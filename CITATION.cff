@@ -1,0 +1,15 @@
+cff-version: 1.2.0
+message: "If you use this framework in academic work, please cite it using this metadata."
+title: "An Agentic Automation Framework for CAD-to-CFD Workflows"
+version: "0.1.0"
+date-released: "2026-06-12"
+authors:
+  - name: "Project Contributors"
+license: "Apache-2.0"
+repository-code: "https://github.com/Yan-Kai-Chen/An-Agentic-Automation-Framework-for-CAD-to-CFD-Workflows"
+keywords:
+  - CAD
+  - CFD
+  - SolidWorks
+  - Fluent
+  - agentic automation

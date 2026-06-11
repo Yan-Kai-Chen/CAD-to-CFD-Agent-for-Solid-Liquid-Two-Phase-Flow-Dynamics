@@ -1,0 +1,6 @@
+project: plate_with_hole_demo
+width_mm: 80
+height_mm: 50
+thickness_mm: 5
+hole_radius_mm: 8
+export_step: true

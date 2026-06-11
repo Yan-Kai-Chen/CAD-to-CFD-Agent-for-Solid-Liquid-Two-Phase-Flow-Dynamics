@@ -1,0 +1,12 @@
+# Project-local Codex MCP configuration template.
+# Copy into your project `.codex/config.toml` or merge into an existing config.
+# Replace <WORKSPACE_ROOT> with your local checkout path.
+
+[mcp_servers.solidworks]
+command = "<WORKSPACE_ROOT>\\04_mcp_servers\\solidworks-mcp\\.venv\\Scripts\\python.exe"
+args = ["<WORKSPACE_ROOT>\\04_mcp_servers\\solidworks-mcp\\server.py"]
+cwd = "<WORKSPACE_ROOT>\\04_mcp_servers\\solidworks-mcp"
+startup_timeout_sec = 120
+tool_timeout_sec = 240
+disabled_tools = ["execute_python"]
+default_tools_approval_mode = "prompt"

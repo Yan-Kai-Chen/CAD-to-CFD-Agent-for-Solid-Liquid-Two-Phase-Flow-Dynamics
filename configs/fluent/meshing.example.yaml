@@ -1,0 +1,4 @@
+fluent_meshing:
+  enabled: false
+  geometry_input: "sandbox/input/model.step"
+  output_mesh: "sandbox/output/model.msh.h5"

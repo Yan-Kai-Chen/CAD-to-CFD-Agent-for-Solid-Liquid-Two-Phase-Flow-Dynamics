@@ -1,0 +1,5 @@
+fluent_solver:
+  enabled: false
+  mesh_input: "sandbox/input/model.msh.h5"
+  case_output: "sandbox/output/model.cas.h5"
+  data_output: "sandbox/output/model.dat.h5"

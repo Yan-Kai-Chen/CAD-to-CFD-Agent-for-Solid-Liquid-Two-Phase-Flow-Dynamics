@@ -1,0 +1,4 @@
+postprocessing:
+  enabled: false
+  case_data: "sandbox/input/model.cas.h5"
+  reports: "sandbox/reports"

@@ -1,0 +1,67 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+dist/
+build/
+
+# Local configs and secrets
+.env
+.env.*
+*.local.yaml
+*.local.toml
+local_config.*
+
+# SolidWorks proprietary CAD files
+*.SLDPRT
+*.SLDASM
+*.SLDDRW
+*.sldprt
+*.sldasm
+*.slddrw
+
+# CAD and mesh exports
+*.STEP
+*.STP
+*.step
+*.stp
+*.IGES
+*.IGS
+*.iges
+*.igs
+*.x_t
+*.x_b
+*.stl
+*.obj
+*.3mf
+
+# Fluent / ANSYS files
+*.cas
+*.cas.h5
+*.dat
+*.dat.h5
+*.msh
+*.msh.h5
+*.jou
+*.trn
+*.res
+*.cdat
+*.cgns
+*.wbpj
+
+# Runtime outputs
+05_projects/
+06_logs/
+sandbox/input/*
+sandbox/output/*
+sandbox/reports/*
+!sandbox/input/.gitkeep
+!sandbox/output/.gitkeep
+!sandbox/reports/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

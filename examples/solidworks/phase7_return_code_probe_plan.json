@@ -1,0 +1,79 @@
+﻿{
+  "schema_version": "fromcad2cfd_solidworks_plan_v1",
+  "project": "phase7_cfd_templates",
+  "model_name": "phase7_return_code_probe",
+  "description": "CFD template: external flow domain with cylindrical obstacle subtracted.",
+  "document": {
+    "type": "part",
+    "save_part": true,
+    "export_step": true,
+    "close_document": true
+  },
+  "execution": {
+    "stop_on_error": true,
+    "visible": false
+  },
+  "operations": [
+    {
+      "id": "fluid_domain_box",
+      "op": "create_rectangular_prism",
+      "args": {
+        "width_mm": 100.0,
+        "height_mm": 42.0,
+        "depth_mm": 20.0,
+        "merge_result": true
+      }
+    },
+    {
+      "id": "cylindrical_obstacle_tool",
+      "op": "create_circular_boss",
+      "args": {
+        "radius_mm": 6.0,
+        "depth_mm": 24.0,
+        "center_x_mm": 0.0,
+        "center_y_mm": 0.0,
+        "merge_result": false
+      }
+    },
+    {
+      "id": "subtract_obstacle_from_domain",
+      "op": "combine_bodies",
+      "args": {
+        "operation": "subtract",
+        "main_body_index": 1,
+        "tool_body_indices": [
+          0
+        ]
+      }
+    },
+    {
+      "id": "flow_axis",
+      "op": "create_reference_axis_from_planes",
+      "args": {
+        "plane_a": "Front",
+        "plane_b": "Right"
+      }
+    },
+    {
+      "id": "analysis_coordinate_system",
+      "op": "create_coordinate_system",
+      "args": {
+        "location_mm": [
+          0,
+          0,
+          0
+        ],
+        "rotation_deg": [
+          0,
+          0,
+          0
+        ]
+      }
+    }
+  ],
+  "template": {
+    "template_version": "fromcad2cfd_cfd_templates_v1",
+    "template_name": "external-cylinder-flow",
+    "parameters": {}
+  }
+}

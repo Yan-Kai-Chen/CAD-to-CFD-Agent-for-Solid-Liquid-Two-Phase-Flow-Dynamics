@@ -1,0 +1,9 @@
+solidworks:
+  visible: true
+  template_dir: "${SOLIDWORKS_TEMPLATE_DIR}"
+outputs:
+  overwrite: false
+  timestamp: true
+reports:
+  markdown: true
+  json: true

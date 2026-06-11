@@ -1,0 +1,57 @@
+﻿{
+  "schema_version": "fromcad2cfd_solidworks_plan_v1",
+  "project": "phase7_cfd_templates",
+  "model_name": "phase7_shell_thicken_wall",
+  "description": "CFD template: shell and thicken workflow for reusable wall geometry.",
+  "document": {
+    "type": "part",
+    "save_part": true,
+    "export_step": true,
+    "close_document": true
+  },
+  "execution": {
+    "stop_on_error": true,
+    "visible": false
+  },
+  "operations": [
+    {
+      "id": "solid_wall_seed",
+      "op": "create_rectangular_prism",
+      "args": {
+        "width_mm": 44.0,
+        "height_mm": 30.0,
+        "depth_mm": 22.0,
+        "merge_result": true
+      }
+    },
+    {
+      "id": "open_top_shell",
+      "op": "apply_shell",
+      "args": {
+        "thickness_mm": 1.8,
+        "open_face_axis": "z+",
+        "outward": false
+      }
+    },
+    {
+      "id": "thicken_top_face",
+      "op": "thicken_selected_face",
+      "args": {
+        "thickness_mm": 2.2,
+        "face_axis": "z+",
+        "merge_result": true
+      }
+    }
+  ],
+  "template": {
+    "template_version": "fromcad2cfd_cfd_templates_v1",
+    "template_name": "shell-thicken-wall",
+    "parameters": {
+      "width_mm": 44,
+      "height_mm": 30,
+      "depth_mm": 22,
+      "shell_thickness_mm": 1.8,
+      "thicken_mm": 2.2
+    }
+  }
+}

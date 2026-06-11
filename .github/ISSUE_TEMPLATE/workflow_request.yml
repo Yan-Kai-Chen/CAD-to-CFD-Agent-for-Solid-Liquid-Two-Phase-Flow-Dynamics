@@ -1,0 +1,12 @@
+name: Workflow request
+description: Propose a CAD-to-CFD workflow automation.
+title: "[Workflow]: "
+labels: ["workflow"]
+body:
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow
+      description: Describe the desired workflow without uploading proprietary geometry.
+    validations:
+      required: true
