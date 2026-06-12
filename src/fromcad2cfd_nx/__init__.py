@@ -1,4 +1,4 @@
-"""Siemens NX backend scaffold for the CAD-to-CFD framework."""
+"""Siemens NX controlled-journal backend for the CAD-to-CFD framework."""
 
 from .preflight import NXPreflightReport, detect_nx_environment, run_preflight
 

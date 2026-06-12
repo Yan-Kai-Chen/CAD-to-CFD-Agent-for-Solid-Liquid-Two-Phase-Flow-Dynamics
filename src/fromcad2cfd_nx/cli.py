@@ -1,4 +1,4 @@
-"""Command-line interface for the Siemens NX backend scaffold."""
+"""Command-line interface for the Siemens NX controlled-journal backend."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 import shutil
 
+from .capabilities import capability_inventory, capability_markdown
 from .curve_surface import curve_surface_demo_job, transform_profile_pack_demo_job
 from .export import import_parasolid_job
 from .geometry import boolean_subtract_demo_recipe, cylinder_recipe, geometry_job_from_recipe, plate_with_hole_recipe
@@ -30,6 +31,9 @@ def _copy_input_to_project(input_file: str, project: str) -> Path:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="fromcad2cfd nx")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    capabilities = sub.add_parser("capabilities", help="Print the Siemens NX capability inventory.")
+    capabilities.add_argument("--format", choices=["json", "markdown"], default="json")
 
     preflight = sub.add_parser("preflight", help="Detect Siemens NX and journal runner availability.")
     preflight.add_argument("--no-report", action="store_true", help="Print only; do not write preflight report files.")
@@ -196,6 +200,12 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    if args.command == "capabilities":
+        if args.format == "markdown":
+            print(capability_markdown(), end="")
+        else:
+            print(json.dumps(capability_inventory(), ensure_ascii=True, indent=2))
+        return 0
     if args.command == "preflight":
         result = run_preflight(write_reports=not args.no_report)
         print(json.dumps(result.to_dict(), ensure_ascii=True, indent=2))

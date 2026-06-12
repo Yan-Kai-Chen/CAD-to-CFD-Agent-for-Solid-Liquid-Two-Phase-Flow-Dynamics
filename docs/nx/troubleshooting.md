@@ -17,7 +17,15 @@ This means the environment variable points to a different NX installation than
 the one found through local path probing. Keep the warning in the preflight
 report and avoid journal execution until the intended NX installation is clear.
 
-## The MCP server is only a scaffold
+## The MCP server does not expose a requested raw operation
 
-This is expected. The safe MCP wrapper should be wired only after the backend
-preflight, job schema, and journal runner are stable.
+This is expected. The MCP server exposes only high-level safe tools. It does
+not expose raw NXOpen calls, arbitrary journal replay, arbitrary Python
+execution, file deletion, or overwrite operations.
+
+Use the CLI job builders directly when an operation is intentionally outside the
+MCP safe surface:
+
+```powershell
+fromcad2cfd nx write-basic-solid-pack-job
+```

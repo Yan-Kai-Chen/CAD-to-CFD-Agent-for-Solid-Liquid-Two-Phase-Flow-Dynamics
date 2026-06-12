@@ -37,7 +37,7 @@ knowing whether a model was created or repaired in SolidWorks or Siemens NX.
 - `fromcad2cfd_solidworks`: SolidWorks automation through pywin32/COM.
 - `fromcad2cfd_mcp_solidworks`: future MCP wrapper for safe SolidWorks tools.
 - `fromcad2cfd_nx`: Siemens NX backend based on validated NXOpen journal jobs.
-- `fromcad2cfd_mcp_nx`: safe Siemens NX MCP wrapper scaffold with high-level job builders.
+- `fromcad2cfd_mcp_nx`: safe Siemens NX stdio MCP server with high-level job builders.
 - `fromcad2cfd_fluent_meshing`: Fluent Meshing roadmap module.
 - `fromcad2cfd_fluent_solver`: Fluent Solver roadmap module.
 - `fromcad2cfd_postprocessing`: CFD post-processing roadmap module.

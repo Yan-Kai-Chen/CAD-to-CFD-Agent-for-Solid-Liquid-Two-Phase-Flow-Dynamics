@@ -1,6 +1,7 @@
 # SolidWorks MCP Reference
 
-The public MCP wrapper is a roadmap component in `v0.1.0`.
+The SolidWorks MCP wrapper remains a roadmap component. The current public
+SolidWorks automation surface is the Python CLI and project skill guidance.
 
 Planned safe tool names:
 

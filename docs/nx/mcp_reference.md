@@ -1,11 +1,44 @@
 # Siemens NX MCP Reference
 
-The NX MCP layer is a safe wrapper around the `fromcad2cfd_nx` backend.
+The NX MCP layer is a runnable stdio MCP server around the `fromcad2cfd_nx`
+backend. It exposes high-level safe tools only: capability reporting, preflight,
+controlled job creation, copied-input job creation, and journal command
+preparation.
 
-Allowed tool names:
+The server does not execute arbitrary NXOpen code, replay arbitrary journals,
+record journals, delete files, overwrite files, or run general Python code.
 
+## Install And Run
+
+```powershell
+python -m pip install -e ".[mcp]"
+python -m fromcad2cfd_mcp_nx.server --describe
+python -m fromcad2cfd_mcp_nx.server --list-tools
+python -m fromcad2cfd_mcp_nx.server
+```
+
+Equivalent console script after installation, if the Python scripts directory is
+on `PATH`:
+
+```powershell
+fromcad2cfd-nx-mcp --describe
+fromcad2cfd-nx-mcp --list-tools
+fromcad2cfd-nx-mcp
+```
+
+Codex configuration example:
+
+```text
+configs/codex/nx_mcp_config.example.toml
+```
+
+## Allowed Tools
+
+- `fromcad2cfd_nx_tool_inventory`
+- `fromcad2cfd_nx_capabilities`
 - `fromcad2cfd_nx_preflight`
 - `fromcad2cfd_nx_write_geometry_job`
+- `fromcad2cfd_nx_write_solid_modeling_job`
 - `fromcad2cfd_nx_write_basic_solid_pack_job`
 - `fromcad2cfd_nx_write_edge_wall_trim_pack_job`
 - `fromcad2cfd_nx_write_boolean_subtract_job`
@@ -21,11 +54,9 @@ Allowed tool names:
 - `fromcad2cfd_nx_write_reverse_step3_step4_xoz_plane_combine_job`
 - `fromcad2cfd_nx_prepare_journal_command`
 - `fromcad2cfd_nx_inspect_model`
-- `fromcad2cfd_nx_safe_edit_expression`
-- `fromcad2cfd_nx_export_geometry`
 - `fromcad2cfd_nx_get_last_report`
 
-Disabled tool patterns:
+## Disabled Tools
 
 - `execute_python`
 - `raw_nxopen_call`
@@ -33,9 +64,17 @@ Disabled tool patterns:
 - `record_journal`
 - `delete_file`
 - `overwrite_file`
+- `fromcad2cfd_nx_safe_edit_expression`
+- `fromcad2cfd_nx_export_geometry`
 
-The initial MCP package is a scaffold only. It documents the safe surface before
-serving real MCP tools.
+## Execution Boundary
+
+The server writes controlled job JSON files and can prepare a `run_journal.exe`
+command for a registered project journal. It does not run arbitrary journals.
+
+Model-editing tools that accept an input file copy that input into the project
+input directory before writing a job. The original file path is recorded in job
+metadata for traceability.
 
 Agent-facing trim is currently axis-aligned plane cutting through a generated
 cutter body plus subtract. True DraftBody and arbitrary face/plane trim remain

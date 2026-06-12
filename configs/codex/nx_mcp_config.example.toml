@@ -1,0 +1,21 @@
+# Project-level Codex MCP config draft for the FromCAD2CFD Siemens NX server.
+# Copy into a project-local `.codex/config.toml` after installing with:
+#   python -m pip install -e ".[mcp]"
+
+[mcp_servers.fromcad2cfd_nx]
+command = "python"
+args = ["-m", "fromcad2cfd_mcp_nx.server"]
+cwd = "<REPO_ROOT>"
+startup_timeout_sec = 120
+tool_timeout_sec = 240
+disabled_tools = [
+  "execute_python",
+  "raw_nxopen_call",
+  "run_arbitrary_journal",
+  "record_journal",
+  "delete_file",
+  "overwrite_file",
+  "fromcad2cfd_nx_safe_edit_expression",
+  "fromcad2cfd_nx_export_geometry",
+]
+default_tools_approval_mode = "prompt"

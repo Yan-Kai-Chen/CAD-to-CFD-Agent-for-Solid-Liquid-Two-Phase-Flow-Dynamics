@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from fromcad2cfd.cli import main as root_main
+from fromcad2cfd_nx.capabilities import capability_inventory, capability_markdown
 from fromcad2cfd_nx.curve_surface import curve_surface_demo_job, transform_profile_pack_demo_job
 from fromcad2cfd_nx.export import export_job, import_parasolid_job
 from fromcad2cfd_nx.geometry import boolean_subtract_demo_recipe, cylinder_recipe, geometry_job_from_recipe, plate_with_hole_recipe
@@ -41,6 +42,25 @@ def test_detect_nx_environment_with_fake_install(tmp_path, monkeypatch):
     assert report.run_journal and report.run_journal.endswith("run_journal.exe")
     assert capabilities.backend == "nx"
     assert capabilities.supports_batch_runner is True
+
+
+def test_nx_capability_inventory_is_machine_readable():
+    inventory = capability_inventory()
+    names = {item["name"] for item in inventory["capabilities"]}
+
+    assert inventory["schema_version"] == "fromcad2cfd_nx_capabilities_v1"
+    assert "basic_solid_pack" in names
+    assert "reverse_step3_step4_xoy_plane_combine" in names
+    assert "nx_mcp_safe_inventory" in names
+    assert inventory["capability_count"] == len(inventory["capabilities"])
+
+
+def test_nx_capability_markdown_mentions_boundaries():
+    markdown = capability_markdown()
+
+    assert "Siemens NX Capability Inventory" in markdown
+    assert "No arbitrary NXOpen execution is exposed" in markdown
+    assert "basic_solid_pack" in markdown
 
 
 def test_nx_job_schema_round_trip(tmp_path):

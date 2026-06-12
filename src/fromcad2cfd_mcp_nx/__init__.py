@@ -1,4 +1,4 @@
-"""MCP scaffold for safe Siemens NX tools."""
+"""Runnable MCP server package for safe Siemens NX tools."""
 
 from .tools import ALLOWED_TOOLS, DISABLED_TOOLS, TOOL_DESCRIPTIONS
 

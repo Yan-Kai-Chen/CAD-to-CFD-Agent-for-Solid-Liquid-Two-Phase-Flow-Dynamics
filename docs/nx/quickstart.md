@@ -104,7 +104,7 @@ NX geometry jobs default to Parasolid `.x_t` export because the local NX 12
 runtime handles Parasolid reliably through the UF API. STEP export is optional
 and should be treated as a secondary translator path.
 
-The scaffold does not execute arbitrary journals. Journal execution must be
+The backend and MCP server do not execute arbitrary journals. Journal execution must be
 explicitly enabled by a future controlled backend command.
 
 For selector-sensitive NX UI workflows that are not clear from NXOpen examples,

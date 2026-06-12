@@ -1,4 +1,4 @@
-"""Safety instructions for the Siemens NX MCP scaffold."""
+"""Safety instructions for the Siemens NX MCP server."""
 
 NX_MCP_INSTRUCTIONS = """
 Expose only high-level safe Siemens NX workflow tools.

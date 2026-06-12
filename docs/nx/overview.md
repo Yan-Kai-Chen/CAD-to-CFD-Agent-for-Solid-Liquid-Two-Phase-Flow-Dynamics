@@ -18,7 +18,7 @@ fromcad2cfd CLI or MCP
 
 Community MCP projects may be useful for research and tool inventory, but the
 framework should integrate stable behavior into its own `fromcad2cfd_nx`
-backend and `fromcad2cfd_mcp_nx` safe wrapper.
+backend and `fromcad2cfd_mcp_nx` safe stdio MCP server.
 
 The current bounded foundation scope is tracked in
 `docs/nx/basic_modeling_matrix.md`. Capabilities outside that matrix should be

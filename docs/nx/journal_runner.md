@@ -13,7 +13,7 @@ validated job.json
   -> JSON and Markdown reports
 ```
 
-The current scaffold can detect `run_journal.exe` and prepare journal commands.
+The current backend can detect `run_journal.exe` and prepare journal commands.
 It does not execute journals by default.
 
 Unsafe patterns are disallowed:

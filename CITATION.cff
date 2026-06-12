@@ -1,7 +1,7 @@
 cff-version: 1.2.0
 message: "If you use this framework in academic work, please cite it using this metadata."
 title: "A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics"
-version: "0.1.0"
+version: "0.2.0"
 date-released: "2026-06-12"
 authors:
   - name: "Project Contributors"
