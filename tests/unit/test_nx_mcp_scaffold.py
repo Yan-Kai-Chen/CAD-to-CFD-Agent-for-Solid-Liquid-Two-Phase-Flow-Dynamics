@@ -12,6 +12,7 @@ from fromcad2cfd_mcp_nx.tools import (
     fromcad2cfd_nx_prepare_journal_command,
     fromcad2cfd_nx_write_basic_solid_pack_job,
     fromcad2cfd_nx_write_boolean_subtract_job,
+    fromcad2cfd_nx_write_fluid_domain_demo_job,
     tool_inventory,
 )
 
@@ -24,6 +25,7 @@ def test_nx_mcp_tool_inventory_is_safe():
     assert "fromcad2cfd_nx_preflight" in inventory["allowed_tools"]
     assert "fromcad2cfd_nx_write_solid_modeling_job" in inventory["allowed_tools"]
     assert "fromcad2cfd_nx_write_basic_solid_pack_job" in inventory["allowed_tools"]
+    assert "fromcad2cfd_nx_write_fluid_domain_demo_job" in inventory["allowed_tools"]
     assert "fromcad2cfd_nx_write_edge_wall_trim_pack_job" in inventory["allowed_tools"]
     assert "fromcad2cfd_nx_write_boolean_subtract_job" in inventory["allowed_tools"]
     assert "fromcad2cfd_nx_write_plane_cut_body_job" in inventory["allowed_tools"]
@@ -80,6 +82,29 @@ def test_nx_mcp_basic_pack_handler_writes_job(tmp_path, monkeypatch):
     assert job_path.exists()
     assert payload["operation"] == "create_basic_solid_pack_demo"
     assert payload["model_name"] == "unit_basic"
+
+
+def test_nx_mcp_fluid_domain_handler_writes_job(tmp_path, monkeypatch):
+    monkeypatch.setattr(nx_paths, "PROJECTS_ROOT", tmp_path)
+
+    result = fromcad2cfd_nx_write_fluid_domain_demo_job(
+        project="unit_mcp_fluid_domain",
+        model_name="unit_fluid_domain",
+        domain_radius_mm=500.0,
+        domain_length_mm=1200.0,
+        obstacle_radius_mm=10.0,
+        obstacle_length_mm=1400.0,
+    )
+    job_path = Path(result["job_path"])
+    payload = json.loads(job_path.read_text(encoding="utf-8"))
+
+    assert result["status"] == "success"
+    assert job_path.exists()
+    assert payload["operation"] == "create_boolean_subtract_demo"
+    assert payload["model_name"] == "unit_fluid_domain"
+    assert payload["parameters"]["outer_radius_mm"] == 500.0
+    assert payload["parameters"]["tool_radius_mm"] == 10.0
+    assert payload["metadata"]["capability_pack"] == "fluid_domain_cylinder_demo"
 
 
 def test_nx_mcp_copied_input_handler_never_targets_original(tmp_path, monkeypatch):

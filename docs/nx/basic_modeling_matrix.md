@@ -12,6 +12,7 @@ non-overwrite outputs, and JSON/Markdown reports.
 | NX preflight | Implemented | `fromcad2cfd nx preflight` | Detects `run_journal.exe`, `ugraf.exe`, and NX environment values. |
 | Synthetic cylinder | Implemented | `fromcad2cfd nx write-job --recipe cylinder` | Saves `.prt`, exports `.x_t`, optional STEP path remains secondary. |
 | Synthetic cylinder subtract | Implemented | `fromcad2cfd nx write-job --recipe boolean-subtract-demo` | Creates one hollow solid body through `CreateSubtractFeature`. |
+| Synthetic cylindrical CFD fluid domain | Implemented | `fromcad2cfd nx write-fluid-domain-demo-job` | Creates a cylindrical computational domain, subtracts a centered cylindrical obstacle, saves `.prt`, and exports `.x_t`. |
 | Copied-model body subtract | Implemented | `fromcad2cfd nx write-boolean-subtract-job` | Requires explicit 1-based target/tool body indices after inspection. |
 | Copied-model inspection | Implemented | `fromcad2cfd nx write-inspect-job` | Reports body, face, edge, and sheet/solid classification. |
 | Copied-model face thicken | Implemented | `fromcad2cfd nx write-thicken-face-job` | Extracts a selected face when requested, then thickens and validates solid output. |

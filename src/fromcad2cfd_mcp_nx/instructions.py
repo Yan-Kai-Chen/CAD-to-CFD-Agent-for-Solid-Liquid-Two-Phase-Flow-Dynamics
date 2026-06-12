@@ -7,10 +7,10 @@ Never expose raw NXOpen calls, arbitrary Python execution, arbitrary journal
 execution, journal recording, delete operations, or overwrite operations.
 
 Allowed solid-modeling tools must map to project journals such as the basic
-solid pack, edge/wall/trim/import pack, copied-model boolean subtract,
-copied-model plane cut, copied-model thicken, copied-model sew,
-controlled Parasolid import, curve/surface smoke workflows, or the
-transform/profile pack for rotate, mirror, project/intersection curves,
+solid pack, cylindrical CFD fluid-domain demo, edge/wall/trim/import pack,
+copied-model boolean subtract, copied-model plane cut, copied-model thicken,
+copied-model sew, controlled Parasolid import, curve/surface smoke workflows,
+or the transform/profile pack for rotate, mirror, project/intersection curves,
 revolve, sweep-profile-along-path, and through-curves loft smoke coverage.
 Reverse-modeling STL import must map to the controlled Step 1 tool that copies
 the STL input, imports it as a cleaned convergent body, saves `.prt`, and writes

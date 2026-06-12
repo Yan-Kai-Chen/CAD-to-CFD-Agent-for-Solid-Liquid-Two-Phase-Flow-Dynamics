@@ -33,6 +33,14 @@ NX_CAPABILITIES: list[dict[str, Any]] = [
         "scope": "Block, sphere, cone, boolean unite, boolean intersect, and copy-translate.",
     },
     {
+        "name": "fluid_domain_cylinder_demo",
+        "category": "cfd_domain_construction",
+        "status": "implemented",
+        "entrypoint": "fromcad2cfd nx write-fluid-domain-demo-job",
+        "execution_mode": "controlled_journal_job",
+        "scope": "Create a public-safe cylindrical CFD domain and subtract a centered cylindrical obstacle; saves `.prt` and exports Parasolid.",
+    },
+    {
         "name": "edge_wall_trim_import_pack",
         "category": "solid_modeling",
         "status": "implemented",

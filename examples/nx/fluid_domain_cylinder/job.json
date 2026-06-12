@@ -1,0 +1,35 @@
+{
+  "schema_version": "fromcad2cfd_nx_job_v1",
+  "operation": "create_boolean_subtract_demo",
+  "input_file": null,
+  "output_dir": "sandbox/output",
+  "model_name": "nx_fluid_domain_cylinder_demo",
+  "parameters": {
+    "outer_radius_mm": 500.0,
+    "outer_height_mm": 1200.0,
+    "tool_radius_mm": 10.0,
+    "tool_height_mm": 1400.0
+  },
+  "export_formats": [
+    "PARASOLID"
+  ],
+  "metadata": {
+    "example": true,
+    "operation_family": "cfd_domain_construction",
+    "capability_pack": "fluid_domain_cylinder_demo",
+    "domain_type": "cylindrical_fluid_domain_minus_centered_cylindrical_obstacle",
+    "wrapped_operation": "create_boolean_subtract_demo",
+    "covered_operations": [
+      "create_cylindrical_domain",
+      "create_centered_cylindrical_obstacle",
+      "boolean_subtract",
+      "parasolid_export"
+    ],
+    "parameter_aliases": {
+      "outer_radius_mm": "domain_radius_mm",
+      "outer_height_mm": "domain_length_mm",
+      "tool_radius_mm": "obstacle_radius_mm",
+      "tool_height_mm": "obstacle_length_mm"
+    }
+  }
+}

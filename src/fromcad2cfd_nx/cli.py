@@ -15,7 +15,13 @@ from .inspect_model import inspection_job
 from .paths import project_input_dir, project_output_dir, unique_path
 from .preflight import run_preflight
 from .reverse_modeling import cage_from_facet_body_step2_job, stl_import_convergent_step1_job, xoz_plane_combine_step3_step4_job
-from .solid_modeling import basic_solid_pack_demo_job, boolean_subtract_bodies_job, edge_wall_trim_pack_demo_job, plane_cut_body_job
+from .solid_modeling import (
+    basic_solid_pack_demo_job,
+    boolean_subtract_bodies_job,
+    edge_wall_trim_pack_demo_job,
+    fluid_domain_cylinder_demo_job,
+    plane_cut_body_job,
+)
 from .surface_repair import sew_sheet_bodies_job, thicken_face_job
 
 
@@ -82,6 +88,17 @@ def build_parser() -> argparse.ArgumentParser:
     basic_pack.add_argument("--boolean-block-height-mm", type=float, default=20.0)
     basic_pack.add_argument("--boolean-overlap-mm", type=float, default=12.0)
     basic_pack.add_argument("--translate-copy-y-mm", type=float, default=35.0)
+
+    fluid_domain = sub.add_parser(
+        "write-fluid-domain-demo-job",
+        help="Write a synthetic cylindrical CFD fluid-domain job JSON without running NX.",
+    )
+    fluid_domain.add_argument("--project", default="nx_fluid_domain_cylinder_demo")
+    fluid_domain.add_argument("--model-name", default="nx_fluid_domain_cylinder_demo")
+    fluid_domain.add_argument("--domain-radius-mm", type=float, default=500.0)
+    fluid_domain.add_argument("--domain-length-mm", type=float, default=1200.0)
+    fluid_domain.add_argument("--obstacle-radius-mm", type=float, default=10.0)
+    fluid_domain.add_argument("--obstacle-length-mm", type=float, default=1400.0)
 
     edge_wall_trim = sub.add_parser(
         "write-edge-wall-trim-pack-job",
@@ -280,6 +297,20 @@ def main(argv: list[str] | None = None) -> int:
             boolean_block_height_mm=args.boolean_block_height_mm,
             boolean_overlap_mm=args.boolean_overlap_mm,
             translate_copy_y_mm=args.translate_copy_y_mm,
+        )
+        job_path = unique_path(project_input_dir(args.project) / f"{job.model_name}_job.json")
+        job.write(job_path)
+        print(json.dumps({"status": "success", "job_path": str(job_path), "job": job.to_dict()}, ensure_ascii=True, indent=2))
+        return 0
+    if args.command == "write-fluid-domain-demo-job":
+        output_dir = project_output_dir(args.project)
+        job = fluid_domain_cylinder_demo_job(
+            output_dir=output_dir,
+            model_name=args.model_name,
+            domain_radius_mm=args.domain_radius_mm,
+            domain_length_mm=args.domain_length_mm,
+            obstacle_radius_mm=args.obstacle_radius_mm,
+            obstacle_length_mm=args.obstacle_length_mm,
         )
         job_path = unique_path(project_input_dir(args.project) / f"{job.model_name}_job.json")
         job.write(job_path)

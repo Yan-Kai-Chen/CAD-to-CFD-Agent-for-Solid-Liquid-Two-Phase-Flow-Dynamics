@@ -40,6 +40,7 @@ configs/codex/nx_mcp_config.example.toml
 - `fromcad2cfd_nx_write_geometry_job`
 - `fromcad2cfd_nx_write_solid_modeling_job`
 - `fromcad2cfd_nx_write_basic_solid_pack_job`
+- `fromcad2cfd_nx_write_fluid_domain_demo_job`
 - `fromcad2cfd_nx_write_edge_wall_trim_pack_job`
 - `fromcad2cfd_nx_write_boolean_subtract_job`
 - `fromcad2cfd_nx_write_plane_cut_body_job`
@@ -84,6 +85,12 @@ Agent-facing rotate, mirror, project/intersection curves, revolve, sweep, and
 loft are currently exposed only through the synthetic transform/profile pack.
 Real-model variants require explicit body, curve, section, guide, datum, and
 face selectors before they can become copied-model tools.
+
+CFD fluid-domain construction is exposed as a public-safe cylindrical domain
+demo. It creates an outer cylindrical computational domain and subtracts a
+centered cylindrical obstacle through the registered boolean-subtract journal.
+Private device subtraction should continue to use copied-model inspection plus
+explicit boolean body selectors.
 
 Reverse-modeling Step 1 is exposed as a copied-input STL import job. It imports
 STL as a cleaned convergent body with the user-taught settings: convergent

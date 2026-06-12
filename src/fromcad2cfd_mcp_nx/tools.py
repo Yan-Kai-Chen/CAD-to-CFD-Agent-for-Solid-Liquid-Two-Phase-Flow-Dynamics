@@ -16,7 +16,13 @@ from fromcad2cfd_nx.paths import PROJECTS_ROOT, logs_dir, project_input_dir, pro
 from fromcad2cfd_nx.preflight import run_preflight
 from fromcad2cfd_nx.reverse_modeling import cage_from_facet_body_step2_job, stl_import_convergent_step1_job, xoz_plane_combine_step3_step4_job
 from fromcad2cfd_nx.runner import prepare_journal_command
-from fromcad2cfd_nx.solid_modeling import basic_solid_pack_demo_job, boolean_subtract_bodies_job, edge_wall_trim_pack_demo_job, plane_cut_body_job
+from fromcad2cfd_nx.solid_modeling import (
+    basic_solid_pack_demo_job,
+    boolean_subtract_bodies_job,
+    edge_wall_trim_pack_demo_job,
+    fluid_domain_cylinder_demo_job,
+    plane_cut_body_job,
+)
 from fromcad2cfd_nx.surface_repair import sew_sheet_bodies_job, thicken_face_job
 
 
@@ -47,6 +53,7 @@ ALLOWED_TOOLS = [
     "fromcad2cfd_nx_write_geometry_job",
     "fromcad2cfd_nx_write_solid_modeling_job",
     "fromcad2cfd_nx_write_basic_solid_pack_job",
+    "fromcad2cfd_nx_write_fluid_domain_demo_job",
     "fromcad2cfd_nx_write_edge_wall_trim_pack_job",
     "fromcad2cfd_nx_write_boolean_subtract_job",
     "fromcad2cfd_nx_write_plane_cut_body_job",
@@ -82,6 +89,7 @@ TOOL_DESCRIPTIONS = {
     "fromcad2cfd_nx_write_geometry_job": "Write a controlled public-safe NX geometry job JSON.",
     "fromcad2cfd_nx_write_solid_modeling_job": "Write one of the controlled NX solid-modeling capability-pack jobs.",
     "fromcad2cfd_nx_write_basic_solid_pack_job": "Write a validated NX job for block, sphere, cone, boolean unite/intersect, and copy-translate.",
+    "fromcad2cfd_nx_write_fluid_domain_demo_job": "Write a public-safe cylindrical CFD fluid-domain job by subtracting a centered cylindrical obstacle from a cylindrical domain.",
     "fromcad2cfd_nx_write_edge_wall_trim_pack_job": "Write a validated NX job for edge blend, chamfer, shell, shell-face, controlled taper/frustum, plane cut, Parasolid export, and Parasolid import coverage.",
     "fromcad2cfd_nx_write_boolean_subtract_job": "Write a copied-model NX boolean subtract job using explicit target/tool body selectors.",
     "fromcad2cfd_nx_write_plane_cut_body_job": "Write a copied-model NX plane-cut job that removes one side of an axis-aligned plane through a generated cutter body.",
@@ -207,11 +215,34 @@ def fromcad2cfd_nx_write_solid_modeling_job(pack: str = "basic", project: str = 
         return fromcad2cfd_nx_write_edge_wall_trim_pack_job(project=project, model_name=model_name or "nx_edge_wall_trim_pack_demo")
     if pack == "transform-profile":
         return fromcad2cfd_nx_write_transform_profile_pack_job(project=project, model_name=model_name or "nx_transform_profile_pack_demo")
-    raise ValueError("pack must be one of: basic, edge-wall-trim, transform-profile.")
+    if pack == "fluid-domain":
+        return fromcad2cfd_nx_write_fluid_domain_demo_job(project=project, model_name=model_name or "nx_fluid_domain_cylinder_demo")
+    raise ValueError("pack must be one of: basic, edge-wall-trim, transform-profile, fluid-domain.")
 
 
 def fromcad2cfd_nx_write_basic_solid_pack_job(project: str = "nx_basic_solid_pack_demo", model_name: str = "nx_basic_solid_pack_demo") -> dict[str, Any]:
     return _write_job(project, basic_solid_pack_demo_job(output_dir=project_output_dir(project), model_name=model_name))
+
+
+def fromcad2cfd_nx_write_fluid_domain_demo_job(
+    project: str = "nx_fluid_domain_cylinder_demo",
+    model_name: str = "nx_fluid_domain_cylinder_demo",
+    domain_radius_mm: float = 500.0,
+    domain_length_mm: float = 1200.0,
+    obstacle_radius_mm: float = 10.0,
+    obstacle_length_mm: float = 1400.0,
+) -> dict[str, Any]:
+    return _write_job(
+        project,
+        fluid_domain_cylinder_demo_job(
+            output_dir=project_output_dir(project),
+            model_name=model_name,
+            domain_radius_mm=domain_radius_mm,
+            domain_length_mm=domain_length_mm,
+            obstacle_radius_mm=obstacle_radius_mm,
+            obstacle_length_mm=obstacle_length_mm,
+        ),
+    )
 
 
 def fromcad2cfd_nx_write_edge_wall_trim_pack_job(project: str = "nx_edge_wall_trim_pack_demo", model_name: str = "nx_edge_wall_trim_pack_demo") -> dict[str, Any]:
@@ -446,6 +477,7 @@ MCP_TOOL_FUNCTIONS = [
     fromcad2cfd_nx_write_geometry_job,
     fromcad2cfd_nx_write_solid_modeling_job,
     fromcad2cfd_nx_write_basic_solid_pack_job,
+    fromcad2cfd_nx_write_fluid_domain_demo_job,
     fromcad2cfd_nx_write_edge_wall_trim_pack_job,
     fromcad2cfd_nx_write_boolean_subtract_job,
     fromcad2cfd_nx_write_plane_cut_body_job,

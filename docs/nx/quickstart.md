@@ -28,6 +28,16 @@ This capability pack creates synthetic block, sphere, cone, boolean unite,
 boolean intersect, and copy-translate geometry. It is the bounded smoke test for
 basic NX solid modeling; see `docs/nx/basic_modeling_matrix.md`.
 
+Write a synthetic cylindrical CFD fluid-domain job JSON without running NX:
+
+```powershell
+fromcad2cfd nx write-fluid-domain-demo-job --project nx_fluid_domain_cylinder_demo --domain-radius-mm 500 --domain-length-mm 1200 --obstacle-radius-mm 10 --obstacle-length-mm 1400
+```
+
+This public-safe demo creates a cylindrical computational domain and subtracts
+a centered cylindrical obstacle. It is the agent-facing smoke route for
+CFD-domain construction before private device geometry is introduced.
+
 Write the edge/wall/trim/import capability-pack job JSON without running NX:
 
 ```powershell

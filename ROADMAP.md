@@ -21,6 +21,7 @@
 - [x] Add NX documentation and examples.
 - [x] Run controlled NXOpen journals through `run_journal.exe`.
 - [x] Add NX basic solid, edge/wall/trim/import, transform/profile, and curve/surface capability packs.
+- [x] Add a public-safe NX cylindrical CFD fluid-domain construction demo.
 - [x] Add copied-model NX inspection, boolean subtract, plane cut, face thicken, and sheet sew job builders.
 - [x] Add user-taught NX reverse-modeling workflow: STL-to-convergent, cage-from-facet-body, XOY plane CombineSheets.
 - [x] Add manual NX journal capture playbook as a development method for selector-sensitive UI workflows.

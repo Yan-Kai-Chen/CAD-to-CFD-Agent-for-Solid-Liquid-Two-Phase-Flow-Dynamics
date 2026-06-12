@@ -59,6 +59,7 @@ The SolidWorks alpha supports:
 The NX backend supports controlled job generation and validated NXOpen journal families for:
 
 - synthetic public-safe geometry jobs,
+- cylindrical CFD fluid-domain construction demos,
 - basic solid modeling packs,
 - edge/wall/trim/import packs,
 - transform/profile packs,
@@ -143,6 +144,7 @@ Siemens NX:
 fromcad2cfd nx preflight
 fromcad2cfd nx capabilities --format markdown
 fromcad2cfd nx write-basic-solid-pack-job --project nx_basic_solid_pack_demo
+fromcad2cfd nx write-fluid-domain-demo-job --project nx_fluid_domain_cylinder_demo
 fromcad2cfd nx write-edge-wall-trim-pack-job --project nx_edge_wall_trim_demo
 fromcad2cfd nx write-transform-profile-pack-job --project nx_transform_profile_demo
 ```

@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 
 from fromcad2cfd.cli import main as root_main
+import fromcad2cfd_nx.paths as nx_paths
 from fromcad2cfd_nx.capabilities import capability_inventory, capability_markdown
 from fromcad2cfd_nx.curve_surface import curve_surface_demo_job, transform_profile_pack_demo_job
 from fromcad2cfd_nx.export import export_job, import_parasolid_job
@@ -17,7 +18,13 @@ from fromcad2cfd_nx.reverse_modeling import (
     xoz_plane_combine_step3_step4_job,
 )
 from fromcad2cfd_nx.runner import prepare_journal_command, run_journal_command
-from fromcad2cfd_nx.solid_modeling import basic_solid_pack_demo_job, boolean_subtract_bodies_job, edge_wall_trim_pack_demo_job, plane_cut_body_job
+from fromcad2cfd_nx.solid_modeling import (
+    basic_solid_pack_demo_job,
+    boolean_subtract_bodies_job,
+    edge_wall_trim_pack_demo_job,
+    fluid_domain_cylinder_demo_job,
+    plane_cut_body_job,
+)
 from fromcad2cfd_nx.surface_repair import sew_sheet_bodies_job, thicken_face_job
 
 
@@ -50,6 +57,7 @@ def test_nx_capability_inventory_is_machine_readable():
 
     assert inventory["schema_version"] == "fromcad2cfd_nx_capabilities_v1"
     assert "basic_solid_pack" in names
+    assert "fluid_domain_cylinder_demo" in names
     assert "reverse_step3_step4_xoy_plane_combine" in names
     assert "nx_mcp_safe_inventory" in names
     assert inventory["capability_count"] == len(inventory["capabilities"])
@@ -142,6 +150,27 @@ def test_basic_solid_pack_demo_job_builder(tmp_path):
     assert job.metadata["capability_pack"] == "basic_solid_modeling"
     assert "boolean_unite" in job.metadata["covered_operations"]
     assert "copy_translate" in job.metadata["covered_operations"]
+
+
+def test_fluid_domain_cylinder_demo_job_builder(tmp_path):
+    job = fluid_domain_cylinder_demo_job(
+        tmp_path / "output",
+        model_name="fluid_domain",
+        domain_radius_mm=500.0,
+        domain_length_mm=1200.0,
+        obstacle_radius_mm=12.0,
+        obstacle_length_mm=1400.0,
+    )
+
+    assert job.operation == "create_boolean_subtract_demo"
+    assert job.model_name == "fluid_domain"
+    assert job.parameters["outer_radius_mm"] == 500.0
+    assert job.parameters["outer_height_mm"] == 1200.0
+    assert job.parameters["tool_radius_mm"] == 12.0
+    assert job.parameters["tool_height_mm"] == 1400.0
+    assert job.metadata["operation_family"] == "cfd_domain_construction"
+    assert job.metadata["capability_pack"] == "fluid_domain_cylinder_demo"
+    assert "boolean_subtract" in job.metadata["covered_operations"]
 
 
 def test_edge_wall_trim_pack_demo_job_builder(tmp_path):
@@ -373,3 +402,34 @@ def test_root_cli_exposes_nx_preflight(capsys):
     captured = capsys.readouterr()
     assert exit_code in {0, 2}
     assert '"backend": "nx"' in captured.out
+
+
+def test_root_cli_writes_fluid_domain_demo_job(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(nx_paths, "PROJECTS_ROOT", tmp_path)
+
+    exit_code = root_main(
+        [
+            "nx",
+            "write-fluid-domain-demo-job",
+            "--project",
+            "unit_cli_fluid_domain",
+            "--model-name",
+            "unit_cli_fluid_domain",
+            "--domain-radius-mm",
+            "500",
+            "--domain-length-mm",
+            "1200",
+            "--obstacle-radius-mm",
+            "10",
+            "--obstacle-length-mm",
+            "1400",
+        ]
+    )
+
+    captured = capsys.readouterr()
+    payload = json.loads(captured.out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert payload["job"]["operation"] == "create_boolean_subtract_demo"
+    assert payload["job"]["metadata"]["capability_pack"] == "fluid_domain_cylinder_demo"

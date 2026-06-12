@@ -63,6 +63,61 @@ def basic_solid_pack_demo_job(
     )
 
 
+def fluid_domain_cylinder_demo_job(
+    output_dir: str | Path,
+    *,
+    model_name: str = "nx_fluid_domain_cylinder_demo",
+    domain_radius_mm: float = 500.0,
+    domain_length_mm: float = 1200.0,
+    obstacle_radius_mm: float = 10.0,
+    obstacle_length_mm: float = 1400.0,
+) -> NXJournalJob:
+    """Create a synthetic cylindrical CFD domain minus a centered cylindrical obstacle."""
+
+    positive_values = {
+        "domain_radius_mm": domain_radius_mm,
+        "domain_length_mm": domain_length_mm,
+        "obstacle_radius_mm": obstacle_radius_mm,
+        "obstacle_length_mm": obstacle_length_mm,
+    }
+    for name, value in positive_values.items():
+        if float(value) <= 0.0:
+            raise ValueError(f"{name} must be positive.")
+    if float(obstacle_radius_mm) >= float(domain_radius_mm):
+        raise ValueError("obstacle_radius_mm must be smaller than domain_radius_mm.")
+
+    return NXJournalJob(
+        operation="create_boolean_subtract_demo",
+        output_dir=str(output_dir),
+        model_name=model_name,
+        parameters={
+            "outer_radius_mm": float(domain_radius_mm),
+            "outer_height_mm": float(domain_length_mm),
+            "tool_radius_mm": float(obstacle_radius_mm),
+            "tool_height_mm": float(obstacle_length_mm),
+        },
+        metadata={
+            "operation_family": "cfd_domain_construction",
+            "capability_pack": "fluid_domain_cylinder_demo",
+            "domain_type": "cylindrical_fluid_domain_minus_centered_cylindrical_obstacle",
+            "wrapped_operation": "create_boolean_subtract_demo",
+            "covered_operations": [
+                "create_cylindrical_domain",
+                "create_centered_cylindrical_obstacle",
+                "boolean_subtract",
+                "parasolid_export",
+            ],
+            "parameter_aliases": {
+                "outer_radius_mm": "domain_radius_mm",
+                "outer_height_mm": "domain_length_mm",
+                "tool_radius_mm": "obstacle_radius_mm",
+                "tool_height_mm": "obstacle_length_mm",
+            },
+            "acceptance": "one synthetic CFD fluid-domain solid saved as PRT and exported as Parasolid",
+        },
+    )
+
+
 def edge_wall_trim_pack_demo_job(
     output_dir: str | Path,
     *,

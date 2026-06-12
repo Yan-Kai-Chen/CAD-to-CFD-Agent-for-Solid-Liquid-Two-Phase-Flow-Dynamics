@@ -12,6 +12,7 @@ execution requires a local Siemens NX installation and the controlled
 
 - `cylinder/`: minimal synthetic cylinder job payload.
 - `plate_with_hole/`: backend-neutral plate-with-hole job payload template.
+- `fluid_domain_cylinder/`: synthetic CFD domain-minus-obstacle job payload.
 - `basic_solid_pack/`: synthetic NX solid-modeling capability pack.
 - `reverse_modeling_template/`: public reverse-modeling command templates using
   placeholder input paths only.
