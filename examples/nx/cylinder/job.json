@@ -1,0 +1,17 @@
+{
+  "schema_version": "fromcad2cfd_nx_job_v1",
+  "operation": "create_cylinder",
+  "input_file": null,
+  "output_dir": "sandbox/output",
+  "model_name": "nx_test_cylinder",
+  "parameters": {
+    "radius_mm": 10.0,
+    "height_mm": 20.0
+  },
+  "export_formats": [
+    "PARASOLID"
+  ],
+  "metadata": {
+    "example": true
+  }
+}

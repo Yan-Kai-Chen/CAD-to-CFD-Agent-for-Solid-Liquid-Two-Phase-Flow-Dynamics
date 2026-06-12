@@ -1,0 +1,4 @@
+interface:
+  display_name: "NX Solid Modeling"
+  short_description: "Controlled NX primitive and boolean modeling workflows."
+  default_prompt: "Use $fromcad2cfd-nx-solid-modeling to create a CFD-ready test fluid domain with controlled NX primitives and booleans."

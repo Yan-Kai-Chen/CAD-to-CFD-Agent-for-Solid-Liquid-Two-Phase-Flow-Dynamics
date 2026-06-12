@@ -5,7 +5,12 @@ A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynami
 Start with:
 
 - `architecture.md`
+- `cad_backend.md`
 - `installation.md`
 - `safety_policy.md`
+- `skills.md`
+- `nx/overview.md`
+- `nx/reverse_modeling_workflow.md`
+- `nx/manual_journal_capture.md`
 - `solidworks/quickstart.md`
 - `roadmap.md`

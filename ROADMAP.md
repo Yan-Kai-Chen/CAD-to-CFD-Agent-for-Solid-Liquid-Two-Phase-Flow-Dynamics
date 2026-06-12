@@ -11,16 +11,41 @@
 - [x] Provide CFD-oriented geometry templates.
 - [ ] Publish stable SolidWorks MCP wrapper.
 
-## v0.2.0 SolidWorks Parameter Editing
+## v0.2.0 CAD Backend Abstraction And NX Controlled Journal Backend
 
-- [ ] Safe model copy workflow.
-- [ ] Exact dimension modification.
+- [x] Define common CAD backend contract.
+- [x] Standardize backend-neutral result, recipe, inspection, and export metadata structures.
+- [x] Add lightweight backend registry.
+- [x] Add Siemens NX controlled-journal backend.
+- [x] Add Siemens NX MCP wrapper scaffold with safe high-level tool inventory.
+- [x] Add NX documentation and examples.
+- [x] Run controlled NXOpen journals through `run_journal.exe`.
+- [x] Add NX basic solid, edge/wall/trim/import, transform/profile, and curve/surface capability packs.
+- [x] Add copied-model NX inspection, boolean subtract, plane cut, face thicken, and sheet sew job builders.
+- [x] Add user-taught NX reverse-modeling workflow: STL-to-convergent, cage-from-facet-body, XOY plane CombineSheets.
+- [x] Add manual NX journal capture playbook as a development method for selector-sensitive UI workflows.
+- [ ] Rename legacy `xoz` command/file identifiers after downstream compatibility is reviewed.
+
+## v0.3.0 CAD Parameter Editing
+
+- [x] Safe model copy workflow.
+- [x] SolidWorks exact dimension modification.
+- [x] NX exact expression modification scaffold.
+- [ ] Unified backend-neutral parameter edit request.
 - [ ] Rebuild validation.
 - [ ] STEP export after edit.
 - [ ] Old/new value reporting.
 - [ ] Real model read-only inspection.
 
-## v0.3.0 Fluent Meshing Prototype
+## v0.3.1 Public Examples And Documentation Hardening
+
+- [x] Keep real research devices out of the repository.
+- [x] Add synthetic SolidWorks and NX examples.
+- [x] Add public NX reverse-modeling workflow templates without private geometry.
+- [ ] Add small generated synthetic test geometry that can be recreated from code.
+- [ ] Add CI-safe tests that do not require installed CAD software.
+
+## v0.4.0 Fluent Meshing Prototype
 
 - [ ] Import STEP.
 - [ ] Geometry cleanup.
@@ -30,7 +55,7 @@
 - [ ] Mesh generation.
 - [ ] Mesh quality reporting.
 
-## v0.4.0 Fluent Solver Setup Prototype
+## v0.5.0 Fluent Solver Setup Prototype
 
 - [ ] Load mesh.
 - [ ] Set physics models.
@@ -39,7 +64,7 @@
 - [ ] Initialize and run.
 - [ ] Save case/data.
 
-## v0.5.0 Post-processing Prototype
+## v0.6.0 Post-processing Prototype
 
 - [ ] Residual plots.
 - [ ] Contours.

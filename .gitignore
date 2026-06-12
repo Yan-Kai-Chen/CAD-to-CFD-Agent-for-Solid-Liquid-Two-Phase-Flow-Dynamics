@@ -22,6 +22,8 @@ local_config.*
 *.sldprt
 *.sldasm
 *.slddrw
+*.prt
+*.PRT
 
 # CAD and mesh exports
 *.STEP

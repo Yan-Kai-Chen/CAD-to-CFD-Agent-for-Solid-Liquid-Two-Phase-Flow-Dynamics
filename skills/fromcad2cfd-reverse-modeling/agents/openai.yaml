@@ -1,0 +1,4 @@
+interface:
+  display_name: "CAD Reverse Modeling"
+  short_description: "Reverse-modeling workflow for rough CAD or mesh input."
+  default_prompt: "Use $fromcad2cfd-reverse-modeling to plan a safe reverse-modeling workflow for rough imported geometry."

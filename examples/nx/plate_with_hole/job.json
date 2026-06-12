@@ -1,0 +1,19 @@
+{
+  "schema_version": "fromcad2cfd_nx_job_v1",
+  "operation": "create_plate_with_hole",
+  "input_file": null,
+  "output_dir": "sandbox/output",
+  "model_name": "nx_plate_with_hole",
+  "parameters": {
+    "width_mm": 60.0,
+    "height_mm": 40.0,
+    "thickness_mm": 5.0,
+    "hole_radius_mm": 5.0
+  },
+  "export_formats": [
+    "PARASOLID"
+  ],
+  "metadata": {
+    "example": true
+  }
+}

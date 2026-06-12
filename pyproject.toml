@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Project Contributors" }]
-keywords = ["cad", "cfd", "solidworks", "fluent", "automation", "agent", "mcp"]
+keywords = ["cad", "cfd", "solidworks", "siemens-nx", "fluent", "automation", "agent", "mcp"]
 classifiers = [
   "Development Status :: 3 - Alpha",
   "Intended Audience :: Science/Research",

@@ -1,0 +1,14 @@
+backend: nx
+execution:
+  run_journal: auto
+  execute_journals: false
+  timeout_sec: 240
+exports:
+  preferred_formats:
+    - STEP
+    - PARASOLID
+safety:
+  copy_inputs_before_edit: true
+  overwrite_outputs: false
+  allow_raw_nxopen: false
+  allow_arbitrary_journal: false

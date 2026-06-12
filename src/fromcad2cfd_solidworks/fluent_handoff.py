@@ -276,9 +276,11 @@ def write_fluent_handoff_from_report(report_path: Path, *, project: str = "phase
     manifest = build_fluent_handoff_manifest(report_path)
     reports_dir = project_reports_dir(project)
     model_name = str(manifest["solidworks"].get("model_name") or "solidworks_model")
-    base = f"solidworks_to_fluent_handoff_{model_name}_{manifest['timestamp']}"
+    base = f"fh_{manifest['timestamp']}"
     json_path = unique_path(reports_dir / f"{base}.json")
     md_path = unique_path(reports_dir / f"{base}.md")
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    md_path.parent.mkdir(parents=True, exist_ok=True)
     json_path.write_text(json.dumps(manifest, ensure_ascii=True, indent=2), encoding="utf-8")
     md_path.write_text(_markdown_for_manifest(manifest), encoding="utf-8")
     return {

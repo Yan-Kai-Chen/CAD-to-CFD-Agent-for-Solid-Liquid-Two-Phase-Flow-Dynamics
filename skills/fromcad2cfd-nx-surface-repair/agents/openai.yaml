@@ -1,0 +1,4 @@
+interface:
+  display_name: "NX Surface Repair"
+  short_description: "Controlled NX surface healing, sew, thicken, and quality checks."
+  default_prompt: "Use $fromcad2cfd-nx-surface-repair to inspect and heal imported sheet bodies before CFD preparation."
