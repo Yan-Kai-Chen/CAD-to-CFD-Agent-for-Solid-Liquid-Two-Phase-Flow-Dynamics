@@ -10,4 +10,4 @@ FromCAD2CFD should not expose raw arbitrary code execution, unrestricted file de
 
 For sensitive issues, contact the maintainers privately before publishing details.
 
-Emali:Chenyankai25@mail.tsinghua.edu.cn
+Emali: Chenyankai25@mail.tsinghua.edu.cn
