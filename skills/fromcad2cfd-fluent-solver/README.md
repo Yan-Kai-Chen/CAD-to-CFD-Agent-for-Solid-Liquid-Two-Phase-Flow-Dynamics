@@ -1,4 +1,4 @@
-# An Agentic Automation Framework for CAD-to-CFD Workflows Fluent Solver Skill
+# A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics Fluent Solver Skill
 
 Roadmap placeholder for Fluent Solver setup automation.
 

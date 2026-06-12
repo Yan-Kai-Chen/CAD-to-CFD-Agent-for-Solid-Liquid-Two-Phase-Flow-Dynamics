@@ -1,6 +1,6 @@
-# An Agentic Automation Framework for CAD-to-CFD Workflows Documentation
+# A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics Documentation
 
-An Agentic Automation Framework for CAD-to-CFD Workflows is an academic research software project for CAD-to-CFD automation.
+A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics is an academic research software project for CAD-to-CFD automation with a focus on geometry preparation and simulation handoff for solid-liquid two-phase flow dynamics.
 
 Start with:
 

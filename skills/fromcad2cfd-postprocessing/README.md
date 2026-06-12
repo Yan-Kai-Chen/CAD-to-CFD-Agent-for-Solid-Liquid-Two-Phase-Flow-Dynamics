@@ -1,4 +1,4 @@
-# An Agentic Automation Framework for CAD-to-CFD Workflows Post-processing Skill
+# A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics Post-processing Skill
 
 Roadmap placeholder for CFD post-processing automation.
 

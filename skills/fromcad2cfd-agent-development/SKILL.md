@@ -1,4 +1,4 @@
-# An Agentic Automation Framework for CAD-to-CFD Workflows Agent Development
+# A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics Agent Development
 
 Use this skill when extending the framework modules, MCP wrappers, or workflow templates.
 

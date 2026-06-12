@@ -1,15 +1,17 @@
 cff-version: 1.2.0
 message: "If you use this framework in academic work, please cite it using this metadata."
-title: "An Agentic Automation Framework for CAD-to-CFD Workflows"
+title: "A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics"
 version: "0.1.0"
 date-released: "2026-06-12"
 authors:
   - name: "Project Contributors"
 license: "Apache-2.0"
-repository-code: "https://github.com/Yan-Kai-Chen/An-Agentic-Automation-Framework-for-CAD-to-CFD-Workflows"
+repository-code: "https://github.com/Yan-Kai-Chen/CAD-to-CFD-Agent-for-Solid-Liquid-Two-Phase-Flow-Dynamics"
 keywords:
   - CAD
   - CFD
   - SolidWorks
   - Fluent
+  - solid-liquid two-phase flow
+  - flow dynamics
   - agentic automation

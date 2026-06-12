@@ -1,6 +1,6 @@
-# An Agentic Automation Framework for CAD-to-CFD Workflows
+# A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics
 
-**An Agentic Automation Framework for CAD-to-CFD Workflows** is an early-stage research and engineering framework for automating the path from CAD geometry to CFD-ready artifacts.
+**A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics** is an early-stage research and engineering framework for automating the path from CAD geometry to CFD-ready artifacts, with an explicit emphasis on geometry preparation, flow-domain construction, and repeatable preprocessing for solid-liquid two-phase flow dynamics.
 
 The current `v0.1.0` release focuses on a SolidWorks automation alpha. Fluent Meshing, Fluent Solver setup, and CFD post-processing are included as documented roadmap modules.
 
