@@ -1,0 +1,56 @@
+{
+  "schema_version": "fromcad2cfd_fastcfd_scene_v1",
+  "scene_type": "channel2d",
+  "units": {
+    "length": "mm",
+    "time": "s",
+    "density": "g/mm^3",
+    "kinematic_viscosity": "mm^2/s"
+  },
+  "geometry": {
+    "domain": {
+      "type": "channel2d",
+      "length_mm": 120.0,
+      "height_mm": 40.0
+    },
+    "cell_length_mm": 1.0
+  },
+  "zones": [
+    {
+      "name": "fluid",
+      "semantic_type": "fluid"
+    },
+    {
+      "name": "inlet",
+      "semantic_type": "inlet",
+      "velocity_mm_s": 0.03
+    },
+    {
+      "name": "outlet",
+      "semantic_type": "outlet"
+    },
+    {
+      "name": "walls",
+      "semantic_type": "no_slip_wall",
+      "members": [
+        "top",
+        "bottom"
+      ]
+    }
+  ],
+  "physics_intent": {
+    "model": "single_phase_incompressible_lbm",
+    "rho_ref_g_per_mm3": 0.001,
+    "kinematic_viscosity_mm2_s": 0.02,
+    "reference_velocity_mm_s": 0.03,
+    "relaxation_time": 0.56,
+    "qoi_targets": [
+      "physics_passport",
+      "fluent_hints"
+    ]
+  },
+  "metadata": {
+    "model_name": "fastcfd_channel2d_public_scene",
+    "created_by": "fromcad2cfd_fastcfd.default_scene"
+  }
+}

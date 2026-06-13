@@ -56,8 +56,31 @@
 - [ ] Add optional mesh simplification before FreeCAD conversion.
 - [ ] Add NX STEP import-to-PRT follow-up wrapper.
 
-## v0.4.0 Fluent Meshing Prototype
+## v0.3.3 FastCFD / FastFluent Foundation
 
+- [x] Add `fromcad2cfd_fastcfd` package skeleton and CLI routing.
+- [x] Add `FastCFDJob`, `FastCFDScene`, physics contract, QoI, flow fingerprint, Fluent hints, result manifest, and claim ledger schemas.
+- [x] Add capability registry and optional FastFluent source/build preflight.
+- [x] Add deterministic `cavity2d` mock backend with full artifact contract.
+- [x] Add baseline manifest for the internal FastFluent source snapshot.
+- [x] Add CI-safe tests that do not require FastFluent to be installed.
+- [x] Add first local FastFluent Windows portability patch for native `cavity2d` build.
+- [x] Add real controlled `cavity2d` backend.
+- [x] Add mandatory physics validator before mock and controlled real runs.
+- [x] Add source-of-truth registry for case templates, lattice sets, boundary types, and collision models.
+- [x] Add semantic scene validation and scene-to-job compilation for `cavity2d`, `channel2d`, `obstacle2d`, and planned `dambreak2d`.
+- [x] Add controlled real FastFluent backend for `channel2d` using the `openboundary2d` example.
+- [x] Add controlled generated-source real FastFluent backend for circle/rectangle `obstacle2d`.
+- [x] Add field-derived QoI extraction from real FastFluent VTK XML output.
+- [x] Add native FastFluent executable run-summary hooks for source-level run facts.
+- [x] Add native FastFluent residual-history CSV hooks.
+- [x] Add recipe-derived lattice-domain trust summaries.
+- [x] Add bounded pilot-decision policy artifacts for Fluent handoff control.
+- [ ] Promote native FastFluent entrypoint output from run summary to the full artifact contract.
+
+## v0.4.0 Fluent Meshing Planning Gate And Prototype
+
+- [x] Add FastCFD evidence preflight gate before Fluent Meshing preparation.
 - [ ] Import STEP.
 - [ ] Geometry cleanup.
 - [ ] Named selections.

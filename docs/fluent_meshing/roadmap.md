@@ -1,5 +1,6 @@
 # Fluent Meshing Roadmap
 
+- FastCFD evidence preflight gate.
 - Import STEP geometry.
 - Geometry cleanup and repair.
 - Named selection creation.

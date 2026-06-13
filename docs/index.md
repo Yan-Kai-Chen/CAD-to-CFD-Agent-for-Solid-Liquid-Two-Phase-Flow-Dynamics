@@ -13,4 +13,7 @@ Start with:
 - `nx/reverse_modeling_workflow.md`
 - `nx/manual_journal_capture.md`
 - `solidworks/quickstart.md`
+- `fastcfd/quickstart.md`
+- `fastcfd/lattice_trust_and_pilot_decision.md`
+- `fluent_meshing/interface_draft.md`
 - `roadmap.md`

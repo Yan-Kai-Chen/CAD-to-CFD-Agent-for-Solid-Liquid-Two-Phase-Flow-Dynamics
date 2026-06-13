@@ -1,0 +1,40 @@
+{
+  "schema_version": "fromcad2cfd_fastcfd_job_v1",
+  "case_type": "cavity2d",
+  "backend": "mock",
+  "output_dir": "05_projects/fastcfd_mock_cavity2d/output",
+  "model_name": "fastcfd_mock_cavity2d",
+  "units": {
+    "length": "mm",
+    "time": "s",
+    "density": "g/mm^3",
+    "kinematic_viscosity": "mm^2/s"
+  },
+  "dimensions": {
+    "nx": 30,
+    "ny": 30,
+    "cell_length_mm": 1.0
+  },
+  "physical_properties": {
+    "rho_ref_g_per_mm3": 0.001,
+    "kinematic_viscosity_mm2_s": 0.02
+  },
+  "boundary_conditions": {
+    "moving_wall_velocity_mm_s": 0.03,
+    "stationary_walls": [
+      "left",
+      "right",
+      "bottom"
+    ]
+  },
+  "solver_settings": {
+    "total_steps": 200,
+    "output_interval": 50,
+    "relaxation_time": 0.56,
+    "thread_num": 1
+  },
+  "metadata": {
+    "advisory_scope": "deterministic mock for FastCFD agent workflow validation",
+    "source_template": "cavity2d"
+  }
+}

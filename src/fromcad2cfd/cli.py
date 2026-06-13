@@ -4,6 +4,8 @@ import argparse
 import sys
 
 from fromcad2cfd_cad import cli as cad_cli
+from fromcad2cfd_fastcfd import cli as fastcfd_cli
+from fromcad2cfd_fluent_meshing import cli as fluent_meshing_cli
 from fromcad2cfd_mesh import cli as mesh_cli
 from fromcad2cfd_nx import cli as nx_cli
 from fromcad2cfd_solidworks import cli as solidworks_cli
@@ -20,7 +22,8 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("mesh", help="Run mesh preprocessing and coarse solidification commands.")
     sub.add_parser("nx", help="Run Siemens NX controlled-journal backend commands.")
     sub.add_parser("solidworks", help="Run SolidWorks automation commands.")
-    sub.add_parser("fluent-meshing", help="Roadmap placeholder.")
+    sub.add_parser("fastcfd", help="Run agent-safe FastCFD pilot simulation workflows.")
+    sub.add_parser("fluent-meshing", help="Run Fluent Meshing planning gate commands.")
     sub.add_parser("fluent-solver", help="Roadmap placeholder.")
     sub.add_parser("post", help="Roadmap placeholder.")
     return parser
@@ -36,7 +39,11 @@ def main(argv: list[str] | None = None) -> int:
         return nx_cli.main(argv[1:])
     if argv and argv[0] == "solidworks":
         return solidworks_cli.main(argv[1:])
-    if argv and argv[0] in {"fluent-meshing", "fluent-solver", "post"}:
+    if argv and argv[0] == "fastcfd":
+        return fastcfd_cli.main(argv[1:])
+    if argv and argv[0] == "fluent-meshing":
+        return fluent_meshing_cli.main(argv[1:])
+    if argv and argv[0] in {"fluent-solver", "post"}:
         from fromcad2cfd import __version__
 
         print(f"{argv[0]} is a roadmap placeholder in v{__version__}.")
