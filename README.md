@@ -2,7 +2,7 @@
 
 **FromCAD2CFD: A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics** is an early-stage research framework for automating CAD geometry preparation, CFD domain construction, and repeatable preprocessing handoff for solid-liquid two-phase flow studies.
 
-The project is currently a **multi-CAD modeling and geometry-preparation alpha**. It contains a working SolidWorks automation layer, a shared CAD backend contract, a Siemens NX controlled-journal backend for advanced solid modeling, an experimental mesh-to-solid route for coarse reverse-modeling candidates, and a new FastCFD foundation for advisory pilot-flow workflows.
+The project is currently a **multi-CAD modeling and geometry-preparation alpha**. It contains a working SolidWorks automation layer, a shared CAD backend contract, a Siemens NX controlled-journal backend for advanced solid modeling, an experimental mesh-to-solid route for coarse reverse-modeling candidates, and a new FastCFD foundation for preliminary CFD prediction and physics-screening workflows.
 
 It is not yet a production CFD pipeline. The current Fluent Meshing work is a planning gate only; full Fluent Meshing execution, Fluent Solver setup, and post-processing remain roadmap modules.
 
@@ -15,7 +15,7 @@ It is not yet a production CFD pipeline. The current Fluent Meshing work is a pl
 | Siemens NX backend | Controlled-journal backend | Uses validated job JSON plus NXOpen journals through `run_journal.exe`. |
 | Siemens NX MCP surface | Runnable stdio server | Exposes high-level safe tools for capability reporting, preflight, job writing, and command preparation. |
 | Mesh solidification | Experimental | Uses copied STL input plus optional FreeCAD/OpenCascade execution to create coarse STEP solid candidates. |
-| FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, and pilot-decision artifacts. |
+| FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, preliminary prediction reports, bounded parameter screening, and pilot-decision artifacts. |
 | Fluent Meshing | Planning gate | Reads FastCFD pilot evidence and writes a pre-meshing gate report before future Fluent automation. |
 | Fluent Solver | Planned | Interface boundary only. |
 | Post-processing | Planned | Interface boundary only. |
@@ -39,7 +39,7 @@ Skills and policies
       -> SolidWorks COM backend
       -> Siemens NX controlled-journal backend
       -> mesh solidification helper
-      -> FastCFD advisory pilot-flow layer
+      -> FastCFD preliminary CFD prediction and physics-screening layer
         -> Fluent Meshing preflight gate
           -> reports and CFD handoff metadata
 ```
@@ -103,7 +103,8 @@ This route is useful when CFD preprocessing needs a boolean-capable coarse solid
 ### FastCFD / FastFluent
 
 The FastCFD foundation prepares the internal FastFluent solver for agent-native
-use. The first batch adds:
+use as a low-cost preliminary CFD prediction and physics-screening layer before
+high-fidelity Fluent validation. The first batch adds:
 
 - `fromcad2cfd fastcfd` CLI routing,
 - validated `FastCFDJob` and `FastCFDScene` contracts,
@@ -116,11 +117,14 @@ use. The first batch adds:
 - native executable summaries and residual-history CSVs when source hooks are installed,
 - VTK XML field parsing for speed, density, centerline, outlet, wake, and refinement proxy metrics,
 - recipe-derived lattice-domain trust summaries,
+- preliminary CFD prediction reports with expected flow behavior, physics screening, numerical-quality review, and design implications,
+- bounded pre-run parameter screening for velocity and grid sensitivity,
 - bounded pilot-decision artifacts for deciding whether to proceed, extend the pilot, review domain extent, or revise the recipe domain,
 - `generated.ini`, QoI, physics contract, flow fingerprint, Fluent hints, claim ledger, result manifest, and reports.
 
 The mock backend validates workflow plumbing only. Real FastFluent source
-field-derived metrics are advisory pilot evidence only. Real FastFluent source
+field-derived metrics support preliminary CFD prediction and physics screening,
+but they are not final Fluent-grade validation. Real FastFluent source
 refactoring will continue to target the same artifact contract and remain
 bounded to allowed case templates before broader solver integration.
 
@@ -232,6 +236,8 @@ fromcad2cfd fastcfd mock-demo --project fastcfd_mock_cavity2d --model-name fastc
 fromcad2cfd fastcfd write-scene --project fastcfd_obstacle2d_scene --model-name fastcfd_obstacle2d_scene --scene-type obstacle2d --obstacle circle
 fromcad2cfd fastcfd write-channel2d-job --project fastcfd_channel2d_real --model-name fastcfd_channel2d_real
 fromcad2cfd fastcfd write-obstacle2d-job --project fastcfd_obstacle2d_real --model-name fastcfd_obstacle2d_real --obstacle circle
+fromcad2cfd fastcfd predict-from-output --fastcfd-output-dir <FastCFD output dir>
+fromcad2cfd fastcfd screen-parameters --job-file <job.json> --velocity-multipliers 0.5,1.0,2.0
 ```
 
 Fluent Meshing preflight gate:
@@ -307,7 +313,7 @@ src/fromcad2cfd_solidworks/   SolidWorks automation backend
 src/fromcad2cfd_nx/           Siemens NX controlled-journal backend
 src/fromcad2cfd_mcp_nx/       Safe NX MCP stdio server
 src/fromcad2cfd_mesh/         Mesh inspection and FreeCAD solidification helper
-src/fromcad2cfd_fastcfd/        FastCFD/FastFluent advisory pilot-flow layer
+src/fromcad2cfd_fastcfd/        FastCFD/FastFluent preliminary CFD screening layer
 src/fromcad2cfd_fluent_meshing/ Fluent Meshing planning gate
 docs/                         Architecture and workflow documentation
 skills/                       Codex skill definitions

@@ -10,7 +10,7 @@ from .registry import CASE_REGISTRY, COLLISION_REGISTRY, LATTICE_REGISTRY
 CAPABILITY_REGISTRY: dict[str, Any] = {
     "backend": "fastcfd",
     "status": "foundation",
-    "role": "advisory low-cost pilot CFD layer before high-fidelity Fluent setup",
+    "role": "low-cost preliminary CFD prediction and physics-screening layer before high-fidelity Fluent validation",
     "validation_gates": {
         "semantic_scene_compiler": {
             "status": "implemented",
@@ -21,7 +21,17 @@ CAPABILITY_REGISTRY: dict[str, Any] = {
             "status": "implemented",
             "checks": ["density", "viscosity", "Re", "tau/RT", "omega", "lattice Mach", "cell count", "step cadence"],
             "entrypoint": "fromcad2cfd fastcfd validate-job",
-        }
+        },
+        "prediction_report": {
+            "status": "implemented",
+            "checks": ["physics regime", "expected flow behavior", "numerical trace quality", "design implications", "parameter suggestions"],
+            "entrypoint": "fromcad2cfd fastcfd predict-from-output",
+        },
+        "bounded_parameter_screening": {
+            "status": "implemented",
+            "checks": ["finite variant count", "velocity sensitivity", "cell-length sensitivity", "physics passport per variant", "ranked candidate list"],
+            "entrypoint": "fromcad2cfd fastcfd screen-parameters",
+        },
     },
     "allowed_case_templates": {name: case.to_dict() for name, case in CASE_REGISTRY.items()},
     "lattice_sets": list(LATTICE_REGISTRY),

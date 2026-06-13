@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from pathlib import Path
 
 from fromcad2cfd_cad import AgentResult
 
@@ -17,10 +18,13 @@ from .fastfluent_backend import (
 )
 from .mock_runner import run_mock_job, write_demo_job
 from .physics_validator import contract_has_blocking_errors, validate_physics
+from .prediction import build_prediction_from_output, write_prediction_artifacts
 from .preflight import run_preflight
 from .registry import registry_inventory, registry_markdown
+from .screening import run_parameter_screening
 from .scene_compiler import compile_scene_file_to_job, read_scene, validate_scene_semantics, write_scene
 from .schemas import read_job
+from .paths import unique_path
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -105,6 +109,20 @@ def build_parser() -> argparse.ArgumentParser:
     run_cavity.add_argument("--source-root", required=True)
     run_cavity.add_argument("--build-timeout-sec", type=int, default=240)
     run_cavity.add_argument("--run-timeout-sec", type=int, default=240)
+
+    predict = sub.add_parser("predict-from-output", help="Build a preliminary CFD prediction report from FastCFD output artifacts.")
+    predict.add_argument("--fastcfd-output-dir", required=True)
+    predict.add_argument("--job-file", default=None)
+    predict.add_argument("--output-dir", default=None)
+    predict.add_argument("--model-name", default=None)
+
+    screen = sub.add_parser("screen-parameters", help="Create a bounded pre-run physics screening matrix from a FastCFD job.")
+    screen.add_argument("--job-file", required=True)
+    screen.add_argument("--velocity-multipliers", default="0.5,1.0,2.0")
+    screen.add_argument("--cell-length-multipliers", default="1.0")
+    screen.add_argument("--max-variants", type=int, default=12)
+    screen.add_argument("--output-dir", default=None)
+    screen.add_argument("--model-name", default=None)
 
     mock_demo = sub.add_parser("mock-demo", help="Write and run the deterministic cavity2d mock demo.")
     mock_demo.add_argument("--project", default="fastcfd_mock_cavity2d")
@@ -262,6 +280,55 @@ def main(argv: list[str] | None = None) -> int:
         )
         print(json.dumps(result, ensure_ascii=True, indent=2))
         return 0 if result.get("status") == "success" else 2
+    if args.command == "predict-from-output":
+        try:
+            report = build_prediction_from_output(args.fastcfd_output_dir, job_file=args.job_file)
+            output_dir = Path(args.output_dir) if args.output_dir else Path(args.fastcfd_output_dir)
+            reports_dir = output_dir.parent / "reports"
+            paths = write_prediction_artifacts(
+                report=report,
+                output_dir=output_dir,
+                reports_dir=reports_dir,
+                model_name=args.model_name or str(report.get("model_name") or "fastcfd_prediction"),
+                unique_path=unique_path,
+            )
+            report["artifacts"] = paths
+            print(json.dumps(report, ensure_ascii=True, indent=2))
+            return 0 if report.get("status") != "blocked" else 2
+        except Exception as exc:
+            result = AgentResult.failed(
+                backend="fastcfd",
+                operation="predict_from_output",
+                message="FastCFD prediction report generation failed.",
+                errors=[str(exc)],
+                metadata={"fastcfd_output_dir": args.fastcfd_output_dir, "job_file": args.job_file},
+            )
+            print(json.dumps(result.to_dict(), ensure_ascii=True, indent=2))
+            return 2
+    if args.command == "screen-parameters":
+        try:
+            job = read_job(args.job_file)
+            output_dir = args.output_dir or str(Path(job.output_dir).parent / "reports")
+            result = run_parameter_screening(
+                args.job_file,
+                velocity_multipliers=_parse_float_list(args.velocity_multipliers),
+                cell_length_multipliers=_parse_float_list(args.cell_length_multipliers),
+                max_variants=args.max_variants,
+                output_dir=output_dir,
+                model_name=args.model_name,
+            )
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0
+        except Exception as exc:
+            result = AgentResult.failed(
+                backend="fastcfd",
+                operation="screen_parameters",
+                message="FastCFD parameter screening failed.",
+                errors=[str(exc)],
+                metadata={"job_file": args.job_file},
+            )
+            print(json.dumps(result.to_dict(), ensure_ascii=True, indent=2))
+            return 2
     if args.command == "mock-demo":
         written = write_demo_job(project=args.project, model_name=args.model_name)
         result = run_mock_job(written["job_path"])
@@ -269,6 +336,17 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(result, ensure_ascii=True, indent=2))
         return 0 if result.get("status") == "success" else 2
     raise AssertionError(f"Unhandled command: {args.command}")
+
+
+def _parse_float_list(text: str) -> list[float]:
+    values = []
+    for item in text.split(","):
+        stripped = item.strip()
+        if stripped:
+            values.append(float(stripped))
+    if not values:
+        raise ValueError("Expected at least one numeric multiplier.")
+    return values
 
 
 if __name__ == "__main__":

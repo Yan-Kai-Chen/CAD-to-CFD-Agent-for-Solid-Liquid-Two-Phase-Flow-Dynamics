@@ -1,8 +1,9 @@
 # FastCFD Quickstart
 
-FastCFD is the FromCAD2CFD advisory pilot-simulation layer. It is designed to
-run cheap, bounded checks before high-fidelity Fluent setup. It is not a Fluent
-replacement and its reports must remain evidence-led.
+FastCFD is the FromCAD2CFD preliminary CFD prediction and physics-screening
+layer. It is designed to run cheap, bounded FastFluent-derived tests before
+high-fidelity Fluent validation. It is not a Fluent replacement and its reports
+must remain evidence-led.
 
 ## Capability Inventory
 
@@ -45,6 +46,7 @@ runs:
 - `physics_contract.json`
 - `lattice_domain_summary.json`
 - `flow_fingerprint.json`
+- `fastcfd_prediction.json`
 - `pilot_decision.json`
 - `fluent_hints.json`
 - `claim_ledger.json`
@@ -139,6 +141,45 @@ latest field `.vti` and optional `GeoFlag` file into conservative pilot metrics:
 `qoi.json`, `fluent_hints.json`, `claim_ledger.json`, and `result_manifest.json`
 reference the parser status so downstream tools can distinguish parsed field
 evidence from missing or failed field analysis.
+
+## Preliminary CFD Prediction Report
+
+Every successful mock or controlled real run writes:
+
+- `fastcfd_prediction.json`
+- `<model_name>_fastcfd_prediction.md`
+
+The prediction report reframes available FastCFD evidence as preliminary CFD
+screening rather than only as a handoff gate. It records:
+
+- physics-screening verdict, Reynolds regime, lattice Mach estimate, tau/omega,
+  and concerns,
+- expected flow behavior for cavity, channel, or obstacle cases,
+- numerical-quality review from residual history, field parser status, and
+  lattice-domain trust,
+- design implications such as outlet/domain review, wake-region optimization,
+  or velocity/lattice scaling changes,
+- recommended next parameter checks.
+
+Existing output directories can be reprocessed:
+
+```powershell
+python -m fromcad2cfd fastcfd predict-from-output --fastcfd-output-dir <FastCFD output dir>
+```
+
+## Bounded Parameter Screening
+
+Before running many solver variants, use the bounded pre-run screen. It expands
+a finite set of velocity and grid-size variants, validates each physics passport,
+and ranks the candidates without launching FastFluent.
+
+```powershell
+python -m fromcad2cfd fastcfd screen-parameters --job-file <job.json> --velocity-multipliers 0.5,1.0,2.0 --cell-length-multipliers 1.0,0.5 --max-variants 6
+```
+
+The output is a screening matrix with recommended and blocked variants. This is
+the safe first step for simple tests such as "does the intended Reynolds regime
+make sense?" or "which grid scale is worth running next?".
 
 `lattice_domain_summary.json` records recipe-to-lattice domain checks, including
 zone counts, obstacle resolution, obstacle clearance, warnings, errors, and a

@@ -14,6 +14,7 @@ from .lattice_trust import analyze_lattice_domain, lattice_domain_qoi_updates
 from .paths import project_input_dir, project_output_dir, project_reports_dir, unique_path
 from .physics_validator import contract_has_blocking_errors, validate_physics
 from .pilot_decision import build_pilot_decision, pilot_decision_qoi_updates
+from .prediction import build_prediction_report, write_prediction_artifacts
 from .schemas import (
     ClaimLedger,
     FastCFDJob,
@@ -305,6 +306,26 @@ def run_mock_job(job_path: str | Path) -> dict[str, Any]:
         "fluent_hints": str(hints_path),
         "claim_ledger": str(ledger_path),
     }
+    prediction_report = build_prediction_report(
+        job=job,
+        physics_contract=contract.to_dict(),
+        qoi=qoi_payload,
+        field_analysis=mock_field_analysis,
+        lattice_summary=lattice_summary,
+        native_summary={"status": "not_available", "warnings": ["Mock backend has no native FastFluent summary."], "metrics": {}},
+        native_convergence=mock_native_convergence,
+        pilot_decision=pilot_decision,
+        artifact_refs=artifacts,
+    )
+    artifacts.update(
+        write_prediction_artifacts(
+            report=prediction_report,
+            output_dir=output_dir,
+            reports_dir=reports_dir,
+            model_name=job.model_name,
+            unique_path=unique_path,
+        )
+    )
     manifest = ResultManifest(
         run_id=run_id,
         status="success",

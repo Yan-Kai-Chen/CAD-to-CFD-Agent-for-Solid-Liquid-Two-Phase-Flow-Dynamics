@@ -17,6 +17,7 @@ from .native_summary import native_convergence_qoi_updates, native_summary_qoi_u
 from .pilot_decision import build_pilot_decision, pilot_decision_qoi_updates
 from .paths import project_output_dir, unique_path
 from .physics_validator import contract_has_blocking_errors
+from .prediction import build_prediction_report, write_prediction_artifacts
 from .preflight import detect_fastcfd_environment
 from .schemas import ClaimLedger, FastCFDJob, FlowFingerprint, FluentHints, QoIManifest, ResultManifest, read_job
 
@@ -452,6 +453,27 @@ def _successful_result(
     )
     ledger_path = _write_json(unique_path(output_dir / "claim_ledger.json"), ledger.to_dict())
     artifacts["claim_ledger"] = str(ledger_path)
+
+    prediction_report = build_prediction_report(
+        job=job,
+        physics_contract=artifacts.get("physics_contract") and json.loads(Path(artifacts["physics_contract"]).read_text(encoding="utf-8")) or {},
+        qoi=qoi.to_dict(),
+        field_analysis=field_analysis,
+        lattice_summary=lattice_summary,
+        native_summary=native_summary,
+        native_convergence=native_convergence,
+        pilot_decision=pilot_decision,
+        artifact_refs=artifacts,
+    )
+    artifacts.update(
+        write_prediction_artifacts(
+            report=prediction_report,
+            output_dir=output_dir,
+            reports_dir=reports_dir,
+            model_name=job.model_name,
+            unique_path=unique_path,
+        )
+    )
 
     if build_report.get("obstacle_summary"):
         obstacle_summary_path = _write_json(unique_path(output_dir / "obstacle_summary.json"), build_report["obstacle_summary"])

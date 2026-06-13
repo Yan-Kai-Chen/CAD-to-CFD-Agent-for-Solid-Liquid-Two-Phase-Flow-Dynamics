@@ -9,7 +9,7 @@ Skills and policies
       -> CAD-specific backends
         -> controlled CAD runtime adapters
           -> geometry reports and CFD handoff metadata
-    -> FastCFD advisory pilot-flow layer
+    -> FastCFD preliminary CFD prediction and physics-screening layer
       -> Fluent Meshing preflight gate
         -> meshing-preparation reports and handoff hints
 ```
@@ -28,11 +28,11 @@ fromcad2cfd CLI / MCP
       -> fromcad2cfd_mesh
           -> STL inspection
           -> FreeCAD/OpenCascade coarse solidification
-  -> fromcad2cfd_fastcfd
+      -> fromcad2cfd_fastcfd
       -> semantic scene registry
       -> physics passport
       -> mock and controlled FastFluent backends
-      -> field QoI, lattice trust, and pilot decision artifacts
+      -> field QoI, lattice trust, prediction, parameter screening, and pilot decision artifacts
   -> fromcad2cfd_fluent_meshing
       -> FastCFD evidence preflight gate
   -> JSON report
@@ -43,8 +43,9 @@ fromcad2cfd CLI / MCP
 The common CAD contract lets Fluent-oriented modules consume geometry outputs
 without knowing whether a model was created or repaired in SolidWorks, Siemens
 NX, or a coarse mesh-to-solid helper. FastCFD artifacts add cheap pilot-flow
-evidence before downstream Fluent preparation, but they are advisory and do not
-replace Fluent mesh or solver validation.
+evidence before downstream Fluent preparation. They can be used for low-cost
+preliminary CFD prediction and physics screening, but they do not replace Fluent
+mesh or solver validation.
 
 ## Modules
 
@@ -55,7 +56,7 @@ replace Fluent mesh or solver validation.
 - `fromcad2cfd_nx`: Siemens NX backend based on validated NXOpen journal jobs.
 - `fromcad2cfd_mcp_nx`: safe Siemens NX stdio MCP server with high-level job builders.
 - `fromcad2cfd_mesh`: mesh inspection and optional FreeCAD/OpenCascade coarse solidification.
-- `fromcad2cfd_fastcfd`: advisory FastCFD/FastFluent pilot-flow workflows with validation gates and reports.
+- `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates and reports.
 - `fromcad2cfd_fluent_meshing`: Fluent Meshing planning gate; full Fluent execution remains planned.
 - `fromcad2cfd_fluent_solver`: Fluent Solver roadmap module.
 - `fromcad2cfd_postprocessing`: CFD post-processing roadmap module.
@@ -82,7 +83,7 @@ selector patterns. It is not an agent-facing execution surface.
 
 The public alpha includes a working SolidWorks automation layer, a backend-neutral
 CAD contract, a locally validated Siemens NX controlled-journal backend, a mesh
-solidification helper, a FastCFD/FastFluent advisory pilot-flow layer, and a
+solidification helper, a FastCFD/FastFluent preliminary CFD screening layer, and a
 Fluent Meshing preflight gate. Full Fluent Meshing execution, Fluent Solver, and
 post-processing remain roadmap modules.
 

@@ -75,6 +75,8 @@
 - [x] Add native FastFluent executable run-summary hooks for source-level run facts.
 - [x] Add native FastFluent residual-history CSV hooks.
 - [x] Add recipe-derived lattice-domain trust summaries.
+- [x] Add preliminary CFD prediction reports for expected flow behavior, physical screening, and design implications.
+- [x] Add bounded parameter screening for simple velocity and grid-sensitivity tests.
 - [x] Add bounded pilot-decision policy artifacts for Fluent handoff control.
 - [ ] Promote native FastFluent entrypoint output from run summary to the full artifact contract.
 

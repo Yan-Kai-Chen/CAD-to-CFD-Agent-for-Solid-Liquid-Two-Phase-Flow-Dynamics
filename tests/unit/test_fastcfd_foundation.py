@@ -30,8 +30,10 @@ from fromcad2cfd_fastcfd.native_summary import (
 )
 from fromcad2cfd_fastcfd.pilot_decision import build_pilot_decision
 from fromcad2cfd_fastcfd.physics_validator import validate_physics
+from fromcad2cfd_fastcfd.prediction import build_prediction_from_output
 from fromcad2cfd_fastcfd.preflight import detect_fastcfd_environment, run_preflight
 from fromcad2cfd_fastcfd.registry import registry_inventory, registry_markdown
+from fromcad2cfd_fastcfd.screening import run_parameter_screening
 from fromcad2cfd_fastcfd.scene_compiler import compile_scene_file_to_job, default_scene, validate_scene_semantics, write_scene
 from fromcad2cfd_fastcfd.schemas import FastCFDJob, FastCFDScene, read_job
 
@@ -334,6 +336,8 @@ def test_fastcfd_write_demo_job_and_mock_runner(tmp_path, monkeypatch):
         "qoi",
         "flow_fingerprint",
         "pilot_decision",
+        "fastcfd_prediction_json",
+        "fastcfd_prediction_markdown",
         "fluent_hints",
         "claim_ledger",
         "result_manifest",
@@ -351,6 +355,44 @@ def test_fastcfd_write_demo_job_and_mock_runner(tmp_path, monkeypatch):
     assert contract["checks"]["mach_lattice_estimate"] < 0.08
     hints = json.loads(Path(artifacts["fluent_hints"]).read_text(encoding="utf-8"))
     assert all("evidence" in hint for hint in hints["hints"])
+    prediction = json.loads(Path(artifacts["fastcfd_prediction_json"]).read_text(encoding="utf-8"))
+    assert prediction["schema_version"] == "fromcad2cfd_fastcfd_prediction_v1"
+    assert prediction["status"] == "physics_screening_only"
+    assert "preliminary CFD prediction" in prediction["role"]
+
+
+def test_fastcfd_prediction_can_be_rebuilt_from_mock_output(tmp_path, monkeypatch):
+    monkeypatch.setattr(fastcfd_paths, "PROJECTS_ROOT", tmp_path)
+
+    written = write_demo_job(project="unit_prediction_rebuild", model_name="unit_prediction")
+    result = run_mock_job(written["job_path"])
+    output_dir = Path(result["outputs"]["artifacts"]["qoi"]).parent
+    prediction = build_prediction_from_output(output_dir)
+
+    assert prediction["status"] == "physics_screening_only"
+    assert prediction["physics_screening"]["verdict"] == "acceptable_for_preliminary_screening"
+    assert prediction["parameter_screening_suggestions"]
+
+
+def test_fastcfd_parameter_screening_ranks_bounded_variants(tmp_path):
+    job = demo_cavity2d_job(tmp_path / "screening_output", model_name="screening_base")
+    job_path = tmp_path / "screening_job.json"
+    job.write(job_path)
+
+    result = run_parameter_screening(
+        job_path,
+        velocity_multipliers=[0.5, 1.0, 4.0],
+        cell_length_multipliers=[1.0],
+        max_variants=3,
+        output_dir=tmp_path / "screening_reports",
+    )
+
+    assert result["schema_version"] == "fromcad2cfd_fastcfd_parameter_screening_v1"
+    assert result["variant_count"] == 3
+    assert result["recommended_variants"]
+    assert "artifacts" in result
+    assert Path(result["artifacts"]["parameter_screening_json"]).exists()
+    assert any(item["screening_verdict"] in {"blocked", "usable_with_warning"} for item in result["ranked_variants"])
 
 
 def test_fastcfd_physics_validator_pass_warning_and_fail(tmp_path):
@@ -518,6 +560,7 @@ def test_fastcfd_real_channel2d_backend_contract_with_mocked_subprocess(tmp_path
     assert Path(artifacts["flow_fingerprint"]).exists()
     assert Path(artifacts["lattice_domain_summary"]).exists()
     assert Path(artifacts["pilot_decision"]).exists()
+    assert Path(artifacts["fastcfd_prediction_json"]).exists()
     assert Path(artifacts["native_summary"]).exists()
     assert Path(artifacts["native_convergence"]).exists()
     qoi = json.loads(Path(artifacts["qoi"]).read_text(encoding="utf-8"))
@@ -575,6 +618,7 @@ def test_fastcfd_real_obstacle2d_backend_contract_with_mocked_subprocess(tmp_pat
     assert Path(artifacts["generated_source"]).exists()
     assert Path(artifacts["lattice_domain_summary"]).exists()
     assert Path(artifacts["pilot_decision"]).exists()
+    assert Path(artifacts["fastcfd_prediction_json"]).exists()
     assert Path(artifacts["native_summary"]).exists()
     assert Path(artifacts["native_convergence"]).exists()
     assert Path(artifacts["obstacle_summary"]).exists()

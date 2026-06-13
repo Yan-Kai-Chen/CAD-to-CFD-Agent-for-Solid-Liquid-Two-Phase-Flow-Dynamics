@@ -1,10 +1,12 @@
 # FastCFD Lattice Trust And Pilot Decision
 
 This note documents two bounded FastCFD artifacts that help an agent decide
-whether a cheap pilot run is usable for Fluent setup reasoning.
+whether a cheap FastFluent-derived run is usable for preliminary CFD prediction,
+physics screening, and later Fluent setup reasoning.
 
-They are advisory workflow controls. They do not certify final CFD accuracy and
-do not replace Fluent mesh-quality, residual, or engineering QoI checks.
+They are workflow controls for low-cost screening. They do not certify final CFD
+accuracy and do not replace Fluent mesh-quality, residual, or engineering QoI
+checks.
 
 ## `lattice_domain_summary.json`
 
@@ -69,6 +71,7 @@ can verify the same interface without requiring a local FastFluent build.
 
 ## Boundary
 
-These artifacts support early, cheap reasoning only. A valid downstream Fluent
-workflow still needs explicit CAD/mesh handoff, named selections, Fluent mesh
-quality, Fluent residuals, and the project-specific engineering outputs.
+These artifacts support early, cheap prediction and physics screening only. A
+valid downstream Fluent workflow still needs explicit CAD/mesh handoff, named
+selections, Fluent mesh quality, Fluent residuals, and the project-specific
+engineering outputs.
