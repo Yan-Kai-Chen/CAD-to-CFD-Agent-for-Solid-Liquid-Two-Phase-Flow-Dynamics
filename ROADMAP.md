@@ -43,8 +43,18 @@
 - [x] Keep real research devices out of the repository.
 - [x] Add synthetic SolidWorks and NX examples.
 - [x] Add public NX reverse-modeling workflow templates without private geometry.
-- [ ] Add small generated synthetic test geometry that can be recreated from code.
-- [ ] Add CI-safe tests that do not require installed CAD software.
+- [x] Add small generated synthetic test geometry that can be recreated from code.
+- [x] Add CI-safe tests that do not require installed CAD software.
+
+## v0.3.2 Mesh Solidification Candidate Route
+
+- [x] Add copied-input STL inspection and coarse watertightness reporting.
+- [x] Add FreeCAD/OpenCascade mesh-to-solid job writing.
+- [x] Add FreeCADCmd execution wrapper with blocked diagnostics when unavailable.
+- [x] Validate portable FreeCAD 1.1.1 execution through bundled Python.
+- [x] Add public synthetic mesh example.
+- [ ] Add optional mesh simplification before FreeCAD conversion.
+- [ ] Add NX STEP import-to-PRT follow-up wrapper.
 
 ## v0.4.0 Fluent Meshing Prototype
 

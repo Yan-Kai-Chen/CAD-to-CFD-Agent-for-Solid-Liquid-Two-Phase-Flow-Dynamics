@@ -4,6 +4,7 @@ import argparse
 import sys
 
 from fromcad2cfd_cad import cli as cad_cli
+from fromcad2cfd_mesh import cli as mesh_cli
 from fromcad2cfd_nx import cli as nx_cli
 from fromcad2cfd_solidworks import cli as solidworks_cli
 
@@ -16,6 +17,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--version", action="store_true", help="Print package version and exit.")
     sub = parser.add_subparsers(dest="module")
     sub.add_parser("cad", help="Inspect the common CAD backend contract.")
+    sub.add_parser("mesh", help="Run mesh preprocessing and coarse solidification commands.")
     sub.add_parser("nx", help="Run Siemens NX controlled-journal backend commands.")
     sub.add_parser("solidworks", help="Run SolidWorks automation commands.")
     sub.add_parser("fluent-meshing", help="Roadmap placeholder.")
@@ -28,6 +30,8 @@ def main(argv: list[str] | None = None) -> int:
     argv = list(sys.argv[1:] if argv is None else argv)
     if argv and argv[0] == "cad":
         return cad_cli.main(argv[1:])
+    if argv and argv[0] == "mesh":
+        return mesh_cli.main(argv[1:])
     if argv and argv[0] == "nx":
         return nx_cli.main(argv[1:])
     if argv and argv[0] == "solidworks":

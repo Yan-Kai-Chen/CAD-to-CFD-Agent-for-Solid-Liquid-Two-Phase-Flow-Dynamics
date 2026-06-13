@@ -2,7 +2,7 @@
 
 **FromCAD2CFD: A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics** is an early-stage research framework for automating CAD geometry preparation, CFD domain construction, and repeatable preprocessing handoff for solid-liquid two-phase flow studies.
 
-The project is currently a **multi-CAD modeling and geometry-preparation alpha**. It contains a working SolidWorks automation layer, a shared CAD backend contract, and a Siemens NX controlled-journal backend for advanced solid modeling, surface preparation, and reverse-modeling research.
+The project is currently a **multi-CAD modeling and geometry-preparation alpha**. It contains a working SolidWorks automation layer, a shared CAD backend contract, a Siemens NX controlled-journal backend for advanced solid modeling, and an experimental mesh-to-solid route for coarse reverse-modeling candidates.
 
 It is not yet a production CFD pipeline. Fluent Meshing, Fluent Solver setup, and post-processing are roadmap modules.
 
@@ -14,6 +14,7 @@ It is not yet a production CFD pipeline. Fluent Meshing, Fluent Solver setup, an
 | SolidWorks backend | Working alpha | Uses `pywin32`/COM for controlled geometry creation, copied-model editing, STEP export, and reports. |
 | Siemens NX backend | Controlled-journal backend | Uses validated job JSON plus NXOpen journals through `run_journal.exe`. |
 | Siemens NX MCP surface | Runnable stdio server | Exposes high-level safe tools for capability reporting, preflight, job writing, and command preparation. |
+| Mesh solidification | Experimental | Uses copied STL input plus optional FreeCAD/OpenCascade execution to create coarse STEP solid candidates. |
 | Fluent Meshing | Planned | Interface boundary only. |
 | Fluent Solver | Planned | Interface boundary only. |
 | Post-processing | Planned | Interface boundary only. |
@@ -36,6 +37,7 @@ Skills and policies
     -> common CAD backend contract
       -> SolidWorks COM backend
       -> Siemens NX controlled-journal backend
+      -> mesh solidification helper
         -> reports and CFD handoff metadata
 ```
 
@@ -83,6 +85,18 @@ fromcad2cfd nx capabilities --format markdown
 
 The current NX MCP package exposes a runnable stdio server. It does not expose raw NXOpen calls, arbitrary Python execution, arbitrary journal replay, file deletion, or overwrite operations. NX journal execution is prepared as an explicit command and remains outside automatic tool execution.
 
+### Mesh Solidification
+
+The mesh helper supports a coarse STL-to-solid candidate route:
+
+- copy STL inputs before processing,
+- inspect STL facet count and simple watertightness indicators,
+- write controlled FreeCAD/OpenCascade solidification jobs,
+- locate FreeCAD through `FreeCADCmd.exe` and execute with the bundled FreeCAD Python runtime when available,
+- export STEP solid candidates and JSON/Markdown reports.
+
+This route is useful when CFD preprocessing needs a boolean-capable coarse solid. It does not claim parametric, analytic, or high-accuracy reverse engineering.
+
 ## Installation
 
 From a local checkout:
@@ -123,6 +137,16 @@ $env:SOLIDWORKS_TEMPLATE_DIR="C:\ProgramData\SOLIDWORKS\SOLIDWORKS 2025\template
 
 Siemens NX journal execution requires a local NX installation with `run_journal.exe`.
 
+Optional FreeCAD mesh solidification requires `FreeCADCmd.exe`. Set:
+
+```powershell
+$env:FREECADCMD_EXE="C:\Program Files\FreeCAD 1.0\bin\FreeCADCmd.exe"
+```
+
+For portable FreeCAD bundles, pass the extracted `FreeCADCmd.exe` path with
+`--freecadcmd`. The runtime wrapper uses this path to locate the same bundle's
+`bin\python.exe`, which is the verified execution mode for FreeCAD 1.1.1.
+
 ## Quickstart
 
 Common contract:
@@ -149,7 +173,14 @@ fromcad2cfd nx write-edge-wall-trim-pack-job --project nx_edge_wall_trim_demo
 fromcad2cfd nx write-transform-profile-pack-job --project nx_transform_profile_demo
 ```
 
-Public examples are under [examples/nx](examples/nx). They use only synthetic geometry or placeholder input paths.
+Mesh solidification:
+
+```powershell
+fromcad2cfd mesh preflight
+fromcad2cfd mesh solidify-freecad --input-file examples\mesh\freecad_solidify\cube_ascii.stl --project mesh_solidify_cube_demo --model-name cube_solid_candidate --no-execute
+```
+
+Public examples are under [examples](examples). They use only synthetic geometry or placeholder input paths.
 
 NX MCP server:
 
@@ -177,6 +208,8 @@ The NX reverse-modeling workflow is documented as a bounded, user-taught process
 See [docs/nx/reverse_modeling_workflow.md](docs/nx/reverse_modeling_workflow.md).
 
 This workflow does not claim automatic conversion of arbitrary faceted geometry into perfect analytic CAD.
+
+The alternative FreeCAD/OpenCascade route is documented in [docs/mesh/freecad_solidify.md](docs/mesh/freecad_solidify.md). It is a coarse mesh-to-solid candidate path for workflows where boolean operations matter more than analytic surface fidelity.
 
 ## Safety Rules
 
@@ -213,6 +246,7 @@ src/fromcad2cfd_cad/          Common CAD backend contract
 src/fromcad2cfd_solidworks/   SolidWorks automation backend
 src/fromcad2cfd_nx/           Siemens NX controlled-journal backend
 src/fromcad2cfd_mcp_nx/       Safe NX MCP stdio server
+src/fromcad2cfd_mesh/         Mesh inspection and FreeCAD solidification helper
 docs/                         Architecture and workflow documentation
 skills/                       Codex skill definitions
 examples/                     Public synthetic examples
@@ -226,7 +260,7 @@ python -m compileall src tests
 python -m pytest
 ```
 
-Current local validation: `54 passed`.
+Current local validation: see the latest run summary in project reports or release notes.
 
 ## Roadmap
 
@@ -240,3 +274,5 @@ Current local validation: `54 passed`.
 ## Citation
 
 If you use this project in academic work, cite it using [CITATION.cff](CITATION.cff).
+Technical references for FreeCAD, Open CASCADE Technology, and mesh-to-Part
+conversion are listed in [docs/references.md](docs/references.md).
