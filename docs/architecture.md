@@ -16,6 +16,19 @@ Skills and policies
       -> structured LBM pilot templates
       -> unstructured FVM mesh gateway
       -> scalar diffusion benchmark gate
+      -> controlled sparse linear-system gate
+      -> manufactured Stokes momentum benchmark gate
+      -> manufactured pressure-correction projection gate
+      -> iterative projection-flow benchmark gate
+      -> named boundary-condition contract gate
+      -> boundary-aware Poiseuille channel-validation gate
+      -> channel mesh-convergence evidence gate
+      -> VOF two-phase physics-passport and setup-hint gate
+      -> turbulence setup-passport and setup-hint gate
+      -> non-Newtonian rheology passport and shear-rate benchmark gate
+      -> public body-fitted obstacle-channel evidence gate
+      -> VOF-lite alpha-transport benchmark gate
+      -> evidence-checked Fluent setup hint compiler
       -> physics passport, field QoI, prediction reports, parameter screening
       -> Fluent Meshing preflight gate
         -> meshing-preparation reports and handoff hints
@@ -43,7 +56,9 @@ FastCFD / CFD screening pillar
       -> semantic scene registry
       -> physics passport
       -> mock and controlled FastFluent backends
-      -> unstructured_fvm Gmsh import, named-zone preservation, mesh-quality gate, FV geometry, scalar diffusion, and VTU preview
+      -> unstructured_fvm Gmsh import, named-zone preservation, mesh-quality gate, boundary contract, FV geometry, scalar diffusion, CSR linear systems, manufactured Stokes momentum, pressure projection, iterative flow benchmark, boundary-aware channel validation, convergence evidence, public obstacle-channel evidence, VOF-lite alpha transport, and VTU preview
+      -> VOF, turbulence, and rheology passports plus Fluent setup hints
+      -> evidence-checked Fluent hint compiler
       -> field QoI, lattice trust, prediction, parameter screening, and pilot decision artifacts
   -> fromcad2cfd_fluent_meshing
       -> FastCFD evidence preflight gate
@@ -61,12 +76,20 @@ NX, or a coarse mesh-to-solid helper.
 The FastCFD / FastFluent pillar is separate from CAD modeling. It uses bounded
 scene, job, and physics contracts to run low-cost preliminary CFD screens,
 extract field-derived QoI, issue prediction reports, rank simple parameter
-variants, and prepare evidence for later Fluent work. It does not replace Fluent
-mesh or solver validation. Its current unstructured route is a mesh gateway only:
-it imports Gmsh v4 ASCII meshes, preserves physical names, writes mesh-quality
-reports, writes finite-volume geometry operators, and produces VTU previews
-before future flow-solver work. Its first unstructured PDE gate is scalar
-manufactured diffusion, not momentum or multiphase flow.
+variants, and prepare evidence for later Fluent work. Its current unstructured
+route is an engineering validation and evidence layer: it imports Gmsh v4 ASCII
+meshes, preserves physical names, writes mesh-quality reports, builds
+finite-volume geometry operators, assembles CSR linear systems, solves scalar
+manufactured diffusion, runs Stokes and pressure-projection benchmarks, produces
+VTU previews, and adds boundary-aware Poiseuille channel validation,
+mesh-convergence evidence, public body-fitted obstacle-channel evidence, and
+VOF-lite alpha-transport evidence.
+
+The VOF, turbulence, and rheology gates validate setup inputs and Fluent-facing
+hints with explicit evidence. Production Fluent Meshing, production Fluent
+Solver automation, production-grade general unstructured Navier-Stokes,
+turbulence/multiphase/non-Newtonian coupling, GPU acceleration, and
+post-processing remain roadmap modules.
 
 ## Modules
 
@@ -77,7 +100,7 @@ manufactured diffusion, not momentum or multiphase flow.
 - `fromcad2cfd_nx`: Siemens NX backend based on validated NXOpen journal jobs.
 - `fromcad2cfd_mcp_nx`: safe Siemens NX stdio MCP server with high-level job builders.
 - `fromcad2cfd_mesh`: mesh inspection and optional FreeCAD/OpenCascade coarse solidification.
-- `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates, structured pilot cases, and the first unstructured mesh gateway.
+- `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates, structured pilot cases, VOF/turbulence/rheology setup-passport tooling, evidence-checked Fluent hint compilation, and the first unstructured mesh, boundary-contract, geometry, scalar diffusion, linear-system, Stokes momentum, pressure-projection, iterative flow benchmark, boundary-aware channel validation, channel-convergence, public obstacle-channel, and VOF-lite alpha-transport gates.
 - `fromcad2cfd_fluent_meshing`: Fluent Meshing planning gate; full Fluent execution remains planned.
 - `fromcad2cfd_fluent_solver`: Fluent Solver roadmap module.
 - `fromcad2cfd_postprocessing`: CFD post-processing roadmap module.
@@ -102,11 +125,13 @@ selector patterns. It is not an agent-facing execution surface.
 
 ## Current Boundary
 
-The public alpha includes a working SolidWorks automation layer, a backend-neutral
-CAD contract, a locally validated Siemens NX controlled-journal backend, a mesh
-solidification helper, a FastCFD/FastFluent preliminary CFD screening layer, and a
-Fluent Meshing preflight gate. Full Fluent Meshing execution, Fluent Solver, and
-post-processing remain roadmap modules.
+The public alpha includes a working SolidWorks automation layer, a
+backend-neutral CAD contract, a locally validated Siemens NX controlled-journal
+backend, a mesh solidification helper, a FastCFD/FastFluent preliminary CFD
+screening layer, an unstructured mesh evidence layer, physics passports, and a
+Fluent Meshing preflight gate. Full Fluent Meshing execution, production Fluent
+Solver automation, GPU acceleration, and post-processing remain roadmap
+modules.
 
 The repository intentionally excludes private CAD, STL, Parasolid, NX `.prt`,
 Fluent case/data files, generated runtime outputs, and local absolute paths.

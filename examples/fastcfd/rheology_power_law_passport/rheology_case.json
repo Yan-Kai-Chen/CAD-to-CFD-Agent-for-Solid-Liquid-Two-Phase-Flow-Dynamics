@@ -1,0 +1,22 @@
+{
+  "schema_version": "fromcad2cfd_fastfluent_rheology_case_v1",
+  "case_name": "public_power_law_shear_thinning_passport",
+  "model": "power_law",
+  "parameters": {
+    "consistency_pa_s_n": 0.35,
+    "flow_behavior_index": 0.65,
+    "min_viscosity_pa_s": 0.01,
+    "max_viscosity_pa_s": 10.0
+  },
+  "shear_rate_range_1_s": [
+    0.1,
+    1000.0
+  ],
+  "sample_count": 13,
+  "density_kg_m3": 1030.0,
+  "temperature_k": 298.15,
+  "metadata": {
+    "public_safe": true,
+    "purpose": "non-Newtonian shear-rate benchmark example"
+  }
+}

@@ -150,3 +150,88 @@ def write_scalar_solution_vtu(
 """
     output.write_text(text, encoding="utf-8")
     return output
+
+
+def write_vector_solution_vtu(
+    mesh: UnstructuredMesh,
+    path: str | Path,
+    vectors: dict[int, tuple[float, float, float]],
+    *,
+    exact_vectors: dict[int, tuple[float, float, float]] | None = None,
+    error_vectors: dict[int, tuple[float, float, float]] | None = None,
+    scalar_fields: dict[str, dict[int, float]] | None = None,
+) -> Path:
+    output = Path(path)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    node_tags = sorted(mesh.nodes)
+    node_index = {tag: index for index, tag in enumerate(node_tags)}
+    connectivity = []
+    offsets = []
+    vtk_types = []
+    offset = 0
+    for cell in mesh.cells:
+        connectivity.extend(str(node_index[tag]) for tag in cell.node_tags)
+        offset += len(cell.node_tags)
+        offsets.append(str(offset))
+        vtk_types.append(str(VTK_CELL_TYPES[cell.kind]))
+    points = []
+    for tag in node_tags:
+        node = mesh.nodes[tag]
+        points.append(f"{node.x:.17g} {node.y:.17g} {node.z:.17g}")
+    point_arrays = [
+        _vector_data_array("velocity", node_tags, vectors),
+    ]
+    if exact_vectors is not None:
+        point_arrays.append(_vector_data_array("velocity_exact", node_tags, exact_vectors))
+    if error_vectors is not None:
+        point_arrays.append(_vector_data_array("velocity_error", node_tags, error_vectors))
+    for name, values in sorted((scalar_fields or {}).items()):
+        scalar_text = " ".join(f"{float(values[tag]):.17g}" for tag in node_tags)
+        point_arrays.append(
+            f"""        <DataArray type=\"Float64\" Name=\"{escape(name)}\" format=\"ascii\">
+          {scalar_text}
+        </DataArray>"""
+        )
+    text = f"""<?xml version=\"1.0\"?>
+<VTKFile type=\"UnstructuredGrid\" version=\"0.1\" byte_order=\"LittleEndian\">
+  <UnstructuredGrid>
+    <Piece NumberOfPoints=\"{len(node_tags)}\" NumberOfCells=\"{len(mesh.cells)}\">
+      <Points>
+        <DataArray type=\"Float64\" NumberOfComponents=\"3\" format=\"ascii\">
+          {' '.join(points)}
+        </DataArray>
+      </Points>
+      <Cells>
+        <DataArray type=\"Int64\" Name=\"connectivity\" format=\"ascii\">
+          {' '.join(connectivity)}
+        </DataArray>
+        <DataArray type=\"Int64\" Name=\"offsets\" format=\"ascii\">
+          {' '.join(offsets)}
+        </DataArray>
+        <DataArray type=\"UInt8\" Name=\"types\" format=\"ascii\">
+          {' '.join(vtk_types)}
+        </DataArray>
+      </Cells>
+      <PointData Vectors=\"velocity\">
+{chr(10).join(point_arrays)}
+      </PointData>
+      <FieldData>
+        <DataArray type=\"String\" Name=\"source_mesh\" NumberOfTuples=\"1\" format=\"ascii\">
+          {escape(mesh.source_name())}
+        </DataArray>
+      </FieldData>
+    </Piece>
+  </UnstructuredGrid>
+</VTKFile>
+"""
+    output.write_text(text, encoding="utf-8")
+    return output
+
+
+def _vector_data_array(name: str, node_tags: list[int], values: dict[int, tuple[float, float, float]]) -> str:
+    vector_text = " ".join(
+        f"{float(values[tag][0]):.17g} {float(values[tag][1]):.17g} {float(values[tag][2]):.17g}" for tag in node_tags
+    )
+    return f"""        <DataArray type=\"Float64\" Name=\"{escape(name)}\" NumberOfComponents=\"3\" format=\"ascii\">
+          {vector_text}
+        </DataArray>"""

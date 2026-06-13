@@ -7,7 +7,37 @@ The project is currently a **two-pillar CAD-to-CFD alpha**:
 - a CAD geometry automation pillar for SolidWorks, Siemens NX, controlled geometry repair, and mesh-to-solid preparation,
 - a FastCFD / FastFluent pillar for low-cost preliminary CFD prediction, physics screening, and pre-Fluent decision support.
 
-It is not yet a production CFD pipeline. The current Fluent Meshing work is a planning gate only; full Fluent Meshing execution, Fluent Solver setup, and post-processing remain roadmap modules.
+The current strength is not a one-click Fluent replacement. It is an
+agent-readable evidence layer that makes CAD edits, unstructured mesh checks,
+physics setup decisions, and Fluent handoff recommendations reproducible before
+expensive high-fidelity validation.
+
+## Engineering Strengths
+
+- **CAD-to-CFD traceability**: CAD operations, copied-model editing, fluid-domain
+  construction, mesh solidification candidates, and CFD handoff artifacts are
+  reported as JSON and Markdown.
+- **Safe agent execution**: the public tool surface is built around validated
+  jobs, bounded commands, explicit artifacts, and fail-closed checks instead of
+  arbitrary CAD, Python, C++, or solver execution.
+- **Unstructured mesh readiness**: the `unstructured_fvm` route imports Gmsh
+  meshes, preserves named zones, builds finite-volume geometry, validates
+  boundary contracts, and runs benchmark evidence for diffusion, Stokes,
+  pressure projection, channel flow, obstacle-channel handoff, and VOF-lite
+  alpha transport.
+- **Pre-Fluent physics evidence**: VOF, turbulence, and non-Newtonian rheology
+  passports generate setup checks and Fluent-facing hints with explicit
+  evidence, so the agent can explain why a setting is recommended.
+- **Public-safe examples**: examples are synthetic and reproducible. Private
+  CAD, STL, Parasolid, NX `.prt`, Fluent case/data files, and generated runtime
+  outputs are excluded from the repository.
+
+## Current Boundary
+
+FromCAD2CFD is an engineering research framework for reproducible CAD-to-CFD
+automation and pre-Fluent evidence generation. Full Fluent Meshing execution,
+production Fluent Solver setup, production-grade general unstructured
+Navier-Stokes, GPU acceleration, and post-processing remain roadmap modules.
 
 ## Current Scope
 
@@ -18,7 +48,7 @@ It is not yet a production CFD pipeline. The current Fluent Meshing work is a pl
 | Siemens NX backend | Controlled-journal backend | Uses validated job JSON plus NXOpen journals through `run_journal.exe`. |
 | Siemens NX MCP surface | Runnable stdio server | Exposes high-level safe tools for capability reporting, preflight, job writing, and command preparation. |
 | Mesh solidification | Experimental | Uses copied STL input plus optional FreeCAD/OpenCascade execution to create coarse STEP solid candidates. |
-| FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, preliminary prediction reports, bounded parameter screening, pilot-decision artifacts, and the first `unstructured_fvm` mesh/FV-geometry plus scalar-diffusion gates. |
+| FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, preliminary prediction reports, bounded parameter screening, pilot-decision artifacts, VOF/turbulence/rheology passports, evidence-checked Fluent hint compilation, and `unstructured_fvm` mesh/FV-geometry, scalar-diffusion, Stokes, projection, flow-benchmark, Poiseuille channel-validation, convergence, public body-fitted obstacle-channel, and VOF-lite alpha-transport gates. |
 | Fluent Meshing | Planning gate | Reads FastCFD prediction and screening evidence and writes a pre-meshing gate report before future Fluent automation. |
 | Fluent Solver | Planned | Interface boundary only. |
 | Post-processing | Planned | Interface boundary only. |
@@ -31,7 +61,7 @@ CAD-to-CFD workflows often fail before meshing starts: imported geometry is roug
 - uses bounded CAD operations instead of arbitrary code execution,
 - records JSON and Markdown reports,
 - separates private research geometry from public code,
-- keeps CAD-native artifacts and CFD handoff formats traceable.
+- keeps CAD-native artifacts and CFD handoff formats traceable,
 - uses FastCFD / FastFluent as a separate preliminary CFD layer for physics screening before expensive Fluent validation.
 
 ## Architecture
@@ -125,6 +155,13 @@ high-fidelity Fluent validation. The first batch adds:
 - preliminary CFD prediction reports with expected flow behavior, physics screening, numerical-quality review, and design implications,
 - bounded pre-run parameter screening for velocity and grid sensitivity,
 - bounded pilot-decision artifacts for deciding whether to proceed, extend the pilot, review domain extent, or revise the recipe domain,
+- `unstructured_fvm` mesh-quality, boundary-contract, PDE benchmark, Poiseuille channel-validation, and convergence evidence routes,
+- VOF two-phase physics passports and Fluent setup hints for preliminary multiphase setup decisions,
+- turbulence passports for Reynolds-regime, near-wall y-plus, model-intent, turbulence-intensity, and Fluent viscous-model setup checks,
+- non-Newtonian rheology passports with shear-rate apparent-viscosity benchmarks and Fluent material-model setup checks,
+- public synthetic body-fitted obstacle-channel evidence for named-zone and obstacle-wall preservation without private geometry,
+- VOF-lite alpha-transport benchmarks for bounded volume-fraction advection, CFL, and phase-volume-balance evidence,
+- evidence-checked Fluent setup hint compilation across validated FastCFD artifacts,
 - `generated.ini`, QoI, physics contract, flow fingerprint, Fluent hints, claim ledger, result manifest, and reports.
 
 The mock backend validates workflow plumbing only. Real FastFluent source
@@ -145,6 +182,10 @@ fromcad2cfd fastcfd run-mock-job --job-file <job.json>
 
 FastCFD details are documented in [docs/fastcfd/quickstart.md](docs/fastcfd/quickstart.md)
 and [docs/fastcfd/native_summary_contract.md](docs/fastcfd/native_summary_contract.md).
+The VOF physics passport is documented in
+[docs/fastcfd/vof_physics_passport.md](docs/fastcfd/vof_physics_passport.md).
+The combined physics-passport and Fluent-hint boundary is documented in
+[docs/fastcfd/physics_passports_and_fluent_hints.md](docs/fastcfd/physics_passports_and_fluent_hints.md).
 The lattice trust and pilot-decision artifacts are documented in
 [docs/fastcfd/lattice_trust_and_pilot_decision.md](docs/fastcfd/lattice_trust_and_pilot_decision.md).
 
@@ -242,7 +283,21 @@ fromcad2cfd fastcfd write-scene --project fastcfd_obstacle2d_scene --model-name 
 fromcad2cfd fastcfd write-channel2d-job --project fastcfd_channel2d_real --model-name fastcfd_channel2d_real
 fromcad2cfd fastcfd write-obstacle2d-job --project fastcfd_obstacle2d_real --model-name fastcfd_obstacle2d_real --obstacle circle
 fromcad2cfd fastcfd unstructured inspect-mesh examples/unstructured/channel2d.msh --format json
-fromcad2cfd fastcfd unstructured solve-diffusion examples/unstructured/channel2d.msh --manufactured-solution linear --format json
+fromcad2cfd fastcfd unstructured solve-diffusion examples/unstructured/channel2d.msh --manufactured-solution linear --linear-solver sparse-cg --format json
+fromcad2cfd fastcfd unstructured solve-stokes examples/unstructured/channel2d.msh --manufactured-solution linear_divergence_free --pressure-gradient 0.25,-0.75 --linear-solver sparse-cg --format json
+fromcad2cfd fastcfd unstructured solve-projection examples/unstructured/unit_square_4x4.msh --manufactured-solution quadratic_correction --correction-strength 1.0 --linear-solver sparse-cg --format json
+fromcad2cfd fastcfd unstructured solve-flow-benchmark examples/unstructured/unit_square_4x4.msh --iterations 5 --linear-solver sparse-cg --format json
+fromcad2cfd fastcfd unstructured solve-channel-validation examples/unstructured/unit_square_4x4.msh --pressure-drop 1.0 --linear-solver sparse-cg --format json
+fromcad2cfd fastcfd unstructured solve-channel-convergence --mesh-levels 2,4,8 --format json
+fromcad2cfd fastcfd unstructured solve-obstacle-channel --format json
+fromcad2cfd fastcfd unstructured solve-vof-lite --steps 20 --time-step-s 0.02 --velocity 0.1,0.0 --format json
+fromcad2cfd fastcfd write-vof-demo --output-dir 05_projects\vof_demo\input
+fromcad2cfd fastcfd validate-vof --case-file examples\fastcfd\vof_dambreak2d_passport\vof_case.json --output-dir 05_projects\vof_demo\reports --format json
+fromcad2cfd fastcfd write-turbulence-demo --output-dir 05_projects\turbulence_demo\input
+fromcad2cfd fastcfd validate-turbulence --case-file 05_projects\turbulence_demo\input\turbulence_case.json --output-dir 05_projects\turbulence_demo\reports --format json
+fromcad2cfd fastcfd write-rheology-demo --output-dir 05_projects\rheology_demo\input
+fromcad2cfd fastcfd run-rheology-benchmark --case-file 05_projects\rheology_demo\input\rheology_case.json --output-dir 05_projects\rheology_demo\reports --format json
+fromcad2cfd fastcfd compile-fluent-hints --evidence-files <vof_hints.json>,<turbulence_hints.json>,<rheology_hints.json> --output-dir 05_projects\fluent_hints_demo\reports --format json
 fromcad2cfd fastcfd predict-from-output --fastcfd-output-dir <FastCFD output dir>
 fromcad2cfd fastcfd screen-parameters --job-file <job.json> --velocity-multipliers 0.5,1.0,2.0
 ```

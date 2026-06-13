@@ -13,6 +13,7 @@ from fromcad2cfd_cad import AgentResult
 from ..paths import unique_path
 from .geometry import build_fv_geometry
 from .gmsh import GmshReadError, read_gmsh_v4_ascii
+from .linear import SparseMatrixCSR, solve_linear_system
 from .mesh import MeshElement, UnstructuredMesh, triangle_signed_area_xy
 from .quality import build_mesh_manifest, evaluate_mesh_quality
 from .vtu import write_mesh_vtu, write_scalar_solution_vtu
@@ -28,6 +29,9 @@ def run_scalar_diffusion_case(
     output_dir: str | Path | None = None,
     manufactured_solution: str = "linear",
     diffusivity: float = 1.0,
+    linear_solver: str = "sparse_cg",
+    linear_tolerance: float = 1.0e-12,
+    max_linear_iterations: int | None = None,
     required_patches: tuple[str, ...] = ("inlet", "outlet", "wall"),
 ) -> dict[str, Any]:
     """Run a small manufactured scalar diffusion benchmark.
@@ -73,7 +77,15 @@ def run_scalar_diffusion_case(
         _require_supported_cells(mesh)
         fv_geometry = build_fv_geometry(mesh).to_dict()
         artifacts["fv_geometry"] = str(_write_json(target_dir / "fv_geometry.json", fv_geometry))
-        solution = solve_manufactured_diffusion(mesh, manufactured_solution=manufactured_solution, diffusivity=diffusivity)
+        solution = solve_manufactured_diffusion(
+            mesh,
+            manufactured_solution=manufactured_solution,
+            diffusivity=diffusivity,
+            linear_solver=linear_solver,
+            linear_tolerance=linear_tolerance,
+            max_linear_iterations=max_linear_iterations,
+        )
+        artifacts["linear_system"] = str(_write_json(target_dir / "linear_system.json", solution["linear_system"]))
         artifacts["residual_history"] = str(_write_residual_history(target_dir / "residual_history.csv", solution["residual_history"]))
         artifacts["qoi"] = str(_write_json(target_dir / "qoi.json", solution["qoi"]))
         artifacts["solution_vtu"] = str(
@@ -95,8 +107,9 @@ def run_scalar_diffusion_case(
                 "manifest": manifest,
                 "quality": quality,
                 "fv_geometry": fv_geometry,
+                "linear_system": solution["linear_system"],
                 "qoi": solution["qoi"],
-                "solver_execution": "scalar_diffusion",
+                "solver_execution": "scalar_diffusion_linear_system",
             },
             metadata={"mesh_file": str(mesh_path), "output_dir": str(target_dir)},
         )
@@ -121,48 +134,97 @@ def solve_manufactured_diffusion(
     *,
     manufactured_solution: str = "linear",
     diffusivity: float = 1.0,
+    linear_solver: str = "sparse_cg",
+    linear_tolerance: float = 1.0e-12,
+    max_linear_iterations: int | None = None,
 ) -> dict[str, Any]:
-    node_tags = sorted(mesh.nodes)
-    node_index = {tag: index for index, tag in enumerate(node_tags)}
-    size = len(node_tags)
-    matrix = [[0.0 for _ in range(size)] for _ in range(size)]
-    rhs = [0.0 for _ in range(size)]
     exact = _manufactured_solution(mesh, manufactured_solution, diffusivity=diffusivity)
-    for cell in mesh.cells:
-        _assemble_triangle(matrix, rhs, mesh, cell, node_index, exact["source"], diffusivity)
-    boundary_nodes = _boundary_nodes(mesh)
-    if not boundary_nodes:
-        raise ValueError("Scalar diffusion requires Dirichlet boundary nodes from boundary elements.")
-    constrained = {tag: exact["value"](*mesh.nodes[tag].to_tuple()) for tag in boundary_nodes}
-    system_matrix = [list(row) for row in matrix]
-    system_rhs = list(rhs)
-    _apply_dirichlet(system_matrix, system_rhs, node_index, constrained)
-    initial_residual = _residual_norms(system_matrix, system_rhs, [0.0 for _ in range(size)])
-    solution_vector = _solve_linear_system(system_matrix, system_rhs)
-    final_residual = _residual_norms(system_matrix, system_rhs, solution_vector)
+    linear_system = _assemble_scalar_diffusion_linear_system(mesh, exact, diffusivity)
+    matrix: SparseMatrixCSR = linear_system["matrix"]
+    rhs: list[float] = linear_system["rhs"]
+    node_tags: list[int] = linear_system["node_tags"]
+    node_index: dict[int, int] = linear_system["node_index"]
+    solve_result = solve_linear_system(
+        matrix,
+        rhs,
+        method=linear_solver,
+        tolerance=linear_tolerance,
+        max_iterations=max_linear_iterations,
+    )
+    if not solve_result.converged:
+        raise ValueError(
+            "Scalar diffusion linear solver did not converge: "
+            f"method={solve_result.method}, iterations={solve_result.iterations}, "
+            f"final_residual_l2={solve_result.final_residual_l2}."
+        )
+    solution_vector = solve_result.values
+    final_residual = {"l2": solve_result.final_residual_l2, "linf": solve_result.final_residual_linf}
     node_values = {tag: solution_vector[node_index[tag]] for tag in node_tags}
     exact_node_values = {tag: exact["value"](*mesh.nodes[tag].to_tuple()) for tag in node_tags}
     node_error_values = {tag: node_values[tag] - exact_node_values[tag] for tag in node_tags}
-    qoi = _build_qoi(mesh, node_values, exact, node_error_values, final_residual, manufactured_solution, diffusivity)
-    residual_history = [
-        {"iteration": 0, "residual_l2": initial_residual["l2"], "residual_linf": initial_residual["linf"]},
-        {"iteration": 1, "residual_l2": final_residual["l2"], "residual_linf": final_residual["linf"]},
-    ]
+    matrix_metadata = solve_result.metadata(matrix)
+    matrix_metadata.update(
+        {
+            "assembly": "p1_triangle_scalar_diffusion",
+            "boundary_condition": "exact_dirichlet_on_boundary_nodes",
+            "constrained_node_count": len(linear_system["constrained_values"]),
+            "rhs_l2": sqrt(sum(value * value for value in rhs)),
+        }
+    )
+    qoi = _build_qoi(
+        mesh,
+        node_values,
+        exact,
+        node_error_values,
+        final_residual,
+        manufactured_solution,
+        diffusivity,
+        matrix_metadata,
+    )
+    residual_history = solve_result.residual_history
     qoi["residual_history_rows"] = len(residual_history)
     qoi["residual_reduction_ratio"] = (
-        final_residual["l2"] / initial_residual["l2"] if initial_residual["l2"] > 0 else 0.0
+        final_residual["l2"] / solve_result.initial_residual_l2 if solve_result.initial_residual_l2 > 0 else 0.0
     )
     return {
         "node_values": node_values,
         "exact_node_values": exact_node_values,
         "node_error_values": node_error_values,
         "residual_history": residual_history,
+        "linear_system": matrix_metadata,
         "qoi": qoi,
     }
 
 
+def _assemble_scalar_diffusion_linear_system(
+    mesh: UnstructuredMesh,
+    exact,
+    diffusivity: float,
+) -> dict[str, Any]:
+    node_tags = sorted(mesh.nodes)
+    node_index = {tag: index for index, tag in enumerate(node_tags)}
+    size = len(node_tags)
+    rows: list[dict[int, float]] = [dict() for _ in range(size)]
+    rhs = [0.0 for _ in range(size)]
+    for cell in mesh.cells:
+        _assemble_triangle(rows, rhs, mesh, cell, node_index, exact["source"], diffusivity)
+    boundary_nodes = _boundary_nodes(mesh)
+    if not boundary_nodes:
+        raise ValueError("Scalar diffusion requires Dirichlet boundary nodes from boundary elements.")
+    constrained = {tag: exact["value"](*mesh.nodes[tag].to_tuple()) for tag in boundary_nodes}
+    _apply_dirichlet_sparse_rows(rows, rhs, node_index, constrained)
+    matrix = SparseMatrixCSR.from_rows(rows, n_cols=size, drop_tolerance=1.0e-15)
+    return {
+        "matrix": matrix,
+        "rhs": rhs,
+        "node_tags": node_tags,
+        "node_index": node_index,
+        "constrained_values": constrained,
+    }
+
+
 def _assemble_triangle(
-    matrix: list[list[float]],
+    rows: list[dict[int, float]],
     rhs: list[float],
     mesh: UnstructuredMesh,
     cell: MeshElement,
@@ -183,7 +245,7 @@ def _assemble_triangle(
         rhs[global_i] += local_source * area / 3.0
         for local_j, tag_j in enumerate(cell.node_tags):
             global_j = node_index[tag_j]
-            matrix[global_i][global_j] += diffusivity * area * (
+            rows[global_i][global_j] = rows[global_i].get(global_j, 0.0) + diffusivity * area * (
                 gradients[local_i][0] * gradients[local_j][0] + gradients[local_i][1] * gradients[local_j][1]
             )
 
@@ -243,55 +305,22 @@ def _boundary_nodes(mesh: UnstructuredMesh) -> set[int]:
     return nodes
 
 
-def _apply_dirichlet(
-    matrix: list[list[float]],
+def _apply_dirichlet_sparse_rows(
+    rows: list[dict[int, float]],
     rhs: list[float],
     node_index: dict[int, int],
     constrained_values: dict[int, float],
 ) -> None:
     for tag, value in constrained_values.items():
         index = node_index[tag]
-        for row in range(len(rhs)):
+        for row, coefficients in enumerate(rows):
             if row == index:
                 continue
-            rhs[row] -= matrix[row][index] * value
-            matrix[row][index] = 0.0
-        for column in range(len(rhs)):
-            matrix[index][column] = 0.0
-        matrix[index][index] = 1.0
+            column_value = coefficients.pop(index, 0.0)
+            rhs[row] -= column_value * value
+        rows[index].clear()
+        rows[index][index] = 1.0
         rhs[index] = value
-
-
-def _solve_linear_system(matrix: list[list[float]], rhs: list[float]) -> list[float]:
-    size = len(rhs)
-    augmented = [list(row) + [rhs[index]] for index, row in enumerate(matrix)]
-    for column in range(size):
-        pivot_row = max(range(column, size), key=lambda row: abs(augmented[row][column]))
-        pivot = augmented[pivot_row][column]
-        if abs(pivot) < 1.0e-14:
-            raise ValueError("Scalar diffusion matrix is singular or ill-conditioned for the current gate.")
-        if pivot_row != column:
-            augmented[column], augmented[pivot_row] = augmented[pivot_row], augmented[column]
-        scale = augmented[column][column]
-        for item in range(column, size + 1):
-            augmented[column][item] /= scale
-        for row in range(size):
-            if row == column:
-                continue
-            factor = augmented[row][column]
-            for item in range(column, size + 1):
-                augmented[row][item] -= factor * augmented[column][item]
-    return [augmented[row][size] for row in range(size)]
-
-
-def _residual_norms(matrix: list[list[float]], rhs: list[float], values: list[float]) -> dict[str, float]:
-    residuals = []
-    for row, target in zip(matrix, rhs):
-        residuals.append(sum(value * coefficient for value, coefficient in zip(values, row)) - target)
-    return {
-        "l2": sqrt(sum(value * value for value in residuals)),
-        "linf": max((abs(value) for value in residuals), default=0.0),
-    }
 
 
 def _build_qoi(
@@ -302,6 +331,7 @@ def _build_qoi(
     final_residual: dict[str, float],
     manufactured_solution: str,
     diffusivity: float,
+    linear_system: dict[str, Any],
 ) -> dict[str, Any]:
     node_error_l2 = sqrt(sum(value * value for value in node_error_values.values()) / max(1, len(node_error_values)))
     node_error_linf = max((abs(value) for value in node_error_values.values()), default=0.0)
@@ -324,6 +354,19 @@ def _build_qoi(
         "node_count": len(mesh.nodes),
         "cell_count": len(mesh.cells),
         "boundary_node_count": len(_boundary_nodes(mesh)),
+        "linear_system": {
+            "schema_version": linear_system["schema_version"],
+            "storage": linear_system["storage"],
+            "method": linear_system["method"],
+            "n_rows": linear_system["n_rows"],
+            "n_cols": linear_system["n_cols"],
+            "nnz": linear_system["nnz"],
+            "density": linear_system["density"],
+            "converged": linear_system["converged"],
+            "iterations": linear_system["iterations"],
+            "tolerance": linear_system["tolerance"],
+            "constrained_node_count": linear_system["constrained_node_count"],
+        },
         "metrics": {
             "node_l2_error": node_error_l2,
             "node_linf_error": node_error_linf,
@@ -332,7 +375,7 @@ def _build_qoi(
             "final_residual_linf": final_residual["linf"],
         },
         "limitations": [
-            "U4 solves a scalar manufactured diffusion benchmark only.",
+            "U5 solves a scalar manufactured diffusion benchmark with an explicit linear-system layer only.",
             "The current implementation supports 2D triangular meshes with Dirichlet values on all boundary nodes.",
             "This is not a momentum, pressure, VOF, rheology, turbulence, or Fluent solver.",
         ],
@@ -362,6 +405,7 @@ def _write_text(path: Path, text: str) -> Path:
 
 def _diffusion_markdown(qoi: dict[str, Any]) -> str:
     metrics = qoi["metrics"]
+    linear_system = qoi["linear_system"]
     return "\n".join(
         [
             "# FastFluent Unstructured Scalar Diffusion Benchmark",
@@ -369,6 +413,8 @@ def _diffusion_markdown(qoi: dict[str, Any]) -> str:
             f"Status: `{qoi['status']}`",
             f"Manufactured solution: `{qoi['manufactured_solution']}`",
             f"Cells: `{qoi['cell_count']}`",
+            f"Linear solver: `{linear_system['method']}`",
+            f"Matrix: `{linear_system['storage']}`, nnz `{linear_system['nnz']}`",
             "",
             "## Metrics",
             "",

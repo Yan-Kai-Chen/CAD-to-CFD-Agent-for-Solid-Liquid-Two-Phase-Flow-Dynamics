@@ -1,0 +1,25 @@
+{
+  "schema_version": "fromcad2cfd_fastfluent_turbulence_case_v1",
+  "case_name": "public_channel2d_turbulence_passport",
+  "domain": {
+    "geometry_kind": "internal_channel",
+    "length_scale_mm": 40.0,
+    "hydraulic_diameter_mm": 40.0,
+    "target_y_plus_min": 0.5,
+    "target_y_plus_max": 2.0
+  },
+  "fluid": {
+    "name": "water",
+    "density_kg_m3": 998.2,
+    "dynamic_viscosity_pa_s": 0.001003
+  },
+  "reference_velocity_m_s": 0.5,
+  "model_intent": "rans_sst",
+  "turbulence_intensity_percent": 5.0,
+  "first_cell_height_mm": 0.01,
+  "wall_treatment": "low_re_sst",
+  "metadata": {
+    "public_safe": true,
+    "purpose": "turbulence setup passport example"
+  }
+}

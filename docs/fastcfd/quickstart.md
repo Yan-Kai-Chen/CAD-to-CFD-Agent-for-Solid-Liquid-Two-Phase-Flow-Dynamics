@@ -34,14 +34,177 @@ It writes `mesh_manifest.json`, `mesh_quality.json`, `fv_geometry.json`,
 is a mesh and finite-volume geometry gateway only; the unstructured flow solver
 is a later gate.
 
-The first PDE gate is a scalar manufactured diffusion benchmark:
+The first PDE gate is a scalar manufactured diffusion benchmark. U5 adds the
+controlled linear-system layer behind this command: CSR sparse assembly,
+`sparse-cg` as the default solver, and `dense-direct` as a reference route.
 
 ```powershell
-python -m fromcad2cfd fastcfd unstructured solve-diffusion examples/unstructured/channel2d.msh --manufactured-solution linear --format json
+python -m fromcad2cfd fastcfd unstructured solve-diffusion examples/unstructured/channel2d.msh --manufactured-solution linear --linear-solver sparse-cg --format json
 ```
 
-It writes `solution.vtu`, `residual_history.csv`, `qoi.json`,
-`scalar_diffusion_report.md`, and `diffusion_status.json`.
+It writes `linear_system.json`, `solution.vtu`, `residual_history.csv`,
+`qoi.json`, `scalar_diffusion_report.md`, and `diffusion_status.json`.
+
+The first momentum benchmark is manufactured Stokes:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-stokes examples/unstructured/channel2d.msh --manufactured-solution linear_divergence_free --pressure-gradient 0.25,-0.75 --linear-solver sparse-cg --format json
+```
+
+It writes `stokes_linear_systems.json`, `stokes_residual_history.csv`,
+`stokes_qoi.json`, `stokes_solution.vtu`, `stokes_report.md`, and
+`stokes_status.json`. Pressure is still a manufactured source field here; this
+is not a pressure-Poisson or production Navier-Stokes solver yet.
+
+The first pressure-correction benchmark is manufactured projection:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-projection examples/unstructured/unit_square_4x4.msh --manufactured-solution quadratic_correction --correction-strength 1.0 --linear-solver sparse-cg --format json
+```
+
+It writes `projection_linear_system.json`, `projection_residual_history.csv`,
+`projection_qoi.json`, `projection_solution.vtu`, `projection_report.md`, and
+`projection_status.json`. This reports predicted and corrected divergence, but
+still uses manufactured pressure-correction boundary values.
+
+The current agent-facing unstructured benchmark loop is:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-flow-benchmark examples/unstructured/unit_square_4x4.msh --iterations 5 --linear-solver sparse-cg --format json
+```
+
+It validates the mesh, boundary-condition contract, iterative pressure
+correction, residual history, and final QoI. It writes
+`flow_boundary_contract.json`, `flow_residual_history.csv`, `flow_qoi.json`,
+`flow_solution.vtu`, `flow_report.md`, and `flow_status.json`.
+
+The first boundary-aware physical validation case is the controlled Poiseuille
+channel route:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-channel-validation examples/unstructured/unit_square_4x4.msh --pressure-drop 1.0 --linear-solver sparse-cg --format json
+```
+
+It validates named `inlet`, `outlet`, and `wall` patches, applies a parabolic
+channel velocity profile, records the outlet pressure reference and analytical
+pressure gradient, solves the controlled Stokes channel benchmark, and writes
+`channel_boundary_contract.json`, `channel_linear_systems.json`,
+`channel_residual_history.csv`, `channel_qoi.json`, `channel_solution.vtu`,
+`channel_report.md`, and `channel_status.json`.
+
+For mesh-sensitivity evidence, run the convergence gate. If no mesh files are
+provided, it generates public-safe synthetic unit-square channel meshes in the
+output directory:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-channel-convergence --mesh-levels 2,4,8 --format json
+```
+
+It writes `channel_convergence.json`, `channel_convergence_report.md`, and
+per-level channel-validation artifacts. This is the current U14 evidence route
+for checking whether the unstructured solver path behaves consistently as mesh
+resolution increases.
+
+## VOF Physics Passport
+
+The VOF route validates two-phase setup readiness before any Fluent VOF run. It
+does not solve VOF transport.
+
+Write a public-safe demo case:
+
+```powershell
+python -m fromcad2cfd fastcfd write-vof-demo --output-dir 05_projects\vof_demo\input
+```
+
+Validate an existing VOF case:
+
+```powershell
+python -m fromcad2cfd fastcfd validate-vof --case-file examples\fastcfd\vof_dambreak2d_passport\vof_case.json --output-dir 05_projects\vof_demo\reports --format json
+```
+
+It writes `vof_case.json`, `vof_physics_passport.json`,
+`vof_fluent_setup_hints.json`, `vof_report.md`, and `vof_status.json`.
+
+The passport checks phase density and viscosity, volume-fraction closure,
+surface tension, gravity, time step, VOF Courant number, Reynolds, Weber, Bond,
+Capillary, and Froude numbers. Failed passports block downstream setup hints.
+
+## Turbulence Passport
+
+The turbulence route validates setup readiness for a first Fluent RANS setup. It
+does not solve turbulence.
+
+```powershell
+python -m fromcad2cfd fastcfd write-turbulence-demo --output-dir 05_projects\turbulence_demo\input
+python -m fromcad2cfd fastcfd validate-turbulence --case-file 05_projects\turbulence_demo\input\turbulence_case.json --output-dir 05_projects\turbulence_demo\reports --format json
+```
+
+It writes `turbulence_case.json`, `turbulence_passport.json`,
+`turbulence_fluent_setup_hints.json`, `turbulence_report.md`, and
+`turbulence_status.json`. The passport checks Reynolds regime, hydraulic
+diameter, model intent, turbulence intensity, estimated friction velocity,
+first-cell y-plus, and near-wall target compatibility.
+
+## Non-Newtonian Rheology Passport
+
+The rheology route validates a material model over a declared shear-rate range.
+It is a material-model benchmark, not a non-Newtonian CFD solver.
+
+```powershell
+python -m fromcad2cfd fastcfd write-rheology-demo --output-dir 05_projects\rheology_demo\input
+python -m fromcad2cfd fastcfd run-rheology-benchmark --case-file 05_projects\rheology_demo\input\rheology_case.json --output-dir 05_projects\rheology_demo\reports --format json
+```
+
+It writes `rheology_case.json`, `rheology_passport.json`,
+`rheology_curve.csv`, `rheology_fluent_setup_hints.json`,
+`rheology_report.md`, and `rheology_status.json`. Supported setup models are
+Newtonian, power-law, and Carreau-Yasuda. The benchmark checks finite positive
+apparent viscosity, shear stress, viscosity ratio, and shear-thinning or
+shear-thickening trend.
+
+## Public Obstacle-Channel Evidence
+
+The obstacle-channel route generates or inspects a public synthetic
+body-fitted triangular channel mesh with `obstacle_wall` preserved as a named
+patch. It is safe for public examples because it does not contain private
+device geometry.
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-obstacle-channel --output-dir 05_projects\obstacle_channel_demo\output --format json
+```
+
+It writes `public_obstacle_channel.msh` when no mesh is provided,
+`mesh_manifest.json`, `mesh_quality.json`,
+`obstacle_boundary_contract.json`, `fv_geometry.json`, `mesh.vtu`,
+`obstacle_qoi.json`, `obstacle_report.md`, and `obstacle_status.json`.
+
+## VOF-Lite Alpha Transport
+
+VOF-lite is a bounded scalar alpha-transport benchmark on an unstructured mesh.
+It checks CFL, boundedness, and phase-volume accounting before a later Fluent
+VOF setup. It does not solve pressure, momentum, surface tension, turbulence, or
+interface reconstruction.
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-vof-lite --output-dir 05_projects\vof_lite_demo\output --steps 20 --time-step-s 0.02 --velocity 0.1,0.0 --format json
+```
+
+It writes `vof_lite_history.csv`, `vof_lite_qoi.json`,
+`vof_lite_alpha.vtu`, `vof_lite_report.md`, and `vof_lite_status.json`.
+
+## Evidence-Checked Fluent Hint Compiler
+
+The hint compiler aggregates setup hints from validated evidence artifacts only.
+Every compiled hint must carry explicit evidence and a source artifact path.
+Missing evidence fails closed.
+
+```powershell
+python -m fromcad2cfd fastcfd compile-fluent-hints --evidence-files <vof_hints.json>,<turbulence_hints.json>,<rheology_hints.json> --output-dir 05_projects\fluent_hints_demo\reports --format json
+```
+
+It writes `fluent_setup_hints.json`,
+`fluent_setup_hints_report.md`, and `fluent_setup_hints_status.json`. It does
+not execute Fluent or edit Fluent case files.
 
 ## Environment Preflight
 

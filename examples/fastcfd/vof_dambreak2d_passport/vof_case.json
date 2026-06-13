@@ -1,0 +1,48 @@
+{
+  "schema_version": "fromcad2cfd_fastfluent_vof_case_v1",
+  "case_name": "public_dambreak2d_vof_passport",
+  "model": "vof_two_phase",
+  "units": {
+    "length": "mm",
+    "time": "s",
+    "density": "kg/m^3",
+    "dynamic_viscosity": "Pa*s",
+    "surface_tension": "N/m",
+    "gravity": "m/s^2"
+  },
+  "domain": {
+    "dimension": 2,
+    "length_scale_mm": 100.0,
+    "cell_length_mm": 1.0,
+    "expected_interface_cells": 1.0
+  },
+  "phases": [
+    {
+      "name": "water",
+      "role": "primary_liquid",
+      "density_kg_m3": 998.2,
+      "dynamic_viscosity_pa_s": 0.001003,
+      "initial_volume_fraction": 0.5
+    },
+    {
+      "name": "air",
+      "role": "secondary_gas",
+      "density_kg_m3": 1.225,
+      "dynamic_viscosity_pa_s": 0.0000181,
+      "initial_volume_fraction": 0.5
+    }
+  ],
+  "surface_tension_n_m": 0.072,
+  "gravity_m_s2": [0.0, -9.81, 0.0],
+  "reference_velocity_m_s": 0.5,
+  "time_step_s": 0.0005,
+  "interface": {
+    "initialization": "dam_break_column",
+    "capturing": "geometric_reconstruction",
+    "interface_thickness_cells": 1.0
+  },
+  "metadata": {
+    "public_safe": true,
+    "purpose": "VOF physics passport smoke case"
+  }
+}

@@ -20,6 +20,7 @@ from fromcad2cfd_fastcfd.fastfluent_backend import (
     write_obstacle2d_job,
 )
 from fromcad2cfd_fastcfd.field_qoi import analyze_fastfluent_fields, read_vti_image_data
+from fromcad2cfd_fastcfd.fluent_hints import compile_fluent_setup_hints
 from fromcad2cfd_fastcfd.lattice_trust import analyze_lattice_domain
 from fromcad2cfd_fastcfd.mock_runner import demo_cavity2d_job, run_mock_job, write_demo_job
 from fromcad2cfd_fastcfd.native_summary import (
@@ -33,9 +34,29 @@ from fromcad2cfd_fastcfd.physics_validator import validate_physics
 from fromcad2cfd_fastcfd.prediction import build_prediction_from_output
 from fromcad2cfd_fastcfd.preflight import detect_fastcfd_environment, run_preflight
 from fromcad2cfd_fastcfd.registry import registry_inventory, registry_markdown
+from fromcad2cfd_fastcfd.rheology import (
+    build_rheology_passport,
+    demo_rheology_case,
+    run_rheology_benchmark_file,
+    write_demo_rheology_case,
+)
 from fromcad2cfd_fastcfd.screening import run_parameter_screening
 from fromcad2cfd_fastcfd.scene_compiler import compile_scene_file_to_job, default_scene, validate_scene_semantics, write_scene
 from fromcad2cfd_fastcfd.schemas import FastCFDJob, FastCFDScene, read_job
+from fromcad2cfd_fastcfd.turbulence import (
+    build_turbulence_passport,
+    demo_turbulence_case,
+    validate_turbulence_case_file,
+    write_demo_turbulence_case,
+)
+from fromcad2cfd_fastcfd.vof import (
+    VOFCase,
+    VOFPhase,
+    build_vof_physics_passport,
+    demo_vof_case,
+    validate_vof_case_file,
+    write_demo_vof_case,
+)
 
 
 def _vtk_binary_f64(values):
@@ -184,10 +205,22 @@ def test_fastcfd_capability_registry_blocks_arbitrary_cases():
 
     assert "cavity2d" in inventory["allowed_case_templates"]
     assert inventory["validation_gates"]["physics_passport"]["status"] == "implemented"
+    assert inventory["validation_gates"]["vof_physics_passport"]["status"] == "implemented_u15_vof"
+    assert inventory["validation_gates"]["turbulence_passport"]["status"] == "implemented_u16"
+    assert inventory["validation_gates"]["non_newtonian_rheology_passport"]["status"] == "implemented_u17"
+    assert inventory["validation_gates"]["fluent_hint_compiler"]["status"] == "implemented_u20"
+    assert inventory["physics_model_families"]["vof_two_phase"]["status"] == "passport_and_setup_hints_implemented"
+    assert inventory["physics_model_families"]["turbulence_models"]["status"] == "passport_and_setup_hints_implemented"
+    assert inventory["physics_model_families"]["non_newtonian_rheology"]["status"] == "passport_and_shear_rate_benchmark_implemented"
     assert "arbitrary_cpp_generation" in inventory["disabled_capabilities"]
     assert "arbitrary_fastfluent_case_path" in inventory["disabled_capabilities"]
+    assert "vof_solver_claim" in inventory["disabled_capabilities"]
+    assert "turbulence_solver_claim" in inventory["disabled_capabilities"]
+    assert "non_newtonian_solver_claim" in inventory["disabled_capabilities"]
     assert "cavity2d" in capability_markdown()
     assert "physics_passport" in capability_markdown()
+    assert "vof_two_phase" in capability_markdown()
+    assert "non_newtonian_rheology" in capability_markdown()
 
 
 def test_fastcfd_registry_is_source_of_truth():
@@ -454,6 +487,262 @@ def test_fastcfd_validate_job_cli_blocks_bad_physics(tmp_path, capsys):
 
     assert output["status"] == "failed"
     assert output["checks"]["stability_band"] == "rejected"
+
+
+def test_fastcfd_vof_passport_computes_dimensionless_groups():
+    case = demo_vof_case()
+
+    passport = build_vof_physics_passport(case)
+
+    assert passport["schema_version"] == "fromcad2cfd_fastfluent_vof_physics_passport_v1"
+    assert passport["status"] in {"passed", "warning"}
+    assert passport["primary_phase"] == "water"
+    assert passport["checks"]["reynolds_number"] > 0
+    assert passport["checks"]["weber_number"] > 0
+    assert passport["checks"]["bond_number"] > 0
+    assert passport["checks"]["capillary_number"] > 0
+    assert passport["checks"]["courant_number"] == pytest.approx(0.25)
+    assert passport["blocking_errors"] == []
+    assert any("not a VOF solver" in item for item in passport["limitations"])
+
+
+def test_fastcfd_vof_passport_fails_closed_on_bad_volume_fraction():
+    case = VOFCase(
+        case_name="bad_volume_fraction",
+        domain={"dimension": 2, "length_scale_mm": 100.0, "cell_length_mm": 1.0},
+        phases=[
+            VOFPhase("water", "primary_liquid", 998.2, 1.003e-3, 0.70),
+            VOFPhase("air", "secondary_gas", 1.225, 1.81e-5, 0.20),
+        ],
+        surface_tension_n_m=0.072,
+        gravity_m_s2=(0.0, -9.81, 0.0),
+        reference_velocity_m_s=0.5,
+        time_step_s=5.0e-4,
+        interface={"interface_thickness_cells": 1.0},
+    )
+
+    passport = build_vof_physics_passport(case)
+
+    assert passport["status"] == "failed"
+    assert any("volume fractions" in error for error in passport["blocking_errors"])
+
+
+def test_fastcfd_vof_passport_fails_closed_on_high_courant(tmp_path):
+    case = demo_vof_case(case_name="high_courant")
+    payload = case.to_dict()
+    payload["time_step_s"] = 0.01
+    case_path = tmp_path / "vof_case.json"
+    case_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    result = validate_vof_case_file(case_path, output_dir=tmp_path / "vof_out")
+
+    assert result["status"] == "failed"
+    assert result["outputs"]["passport"]["status"] == "failed"
+    assert result["outputs"]["solver_execution"] == "blocked_by_vof_physics_passport"
+    assert Path(result["outputs"]["artifacts"]["vof_physics_passport"]).exists()
+    assert Path(result["outputs"]["artifacts"]["vof_fluent_setup_hints"]).exists()
+    assert any("Courant" in error for error in result["errors"])
+
+
+def test_fastcfd_vof_case_file_writes_artifacts(tmp_path):
+    written = write_demo_vof_case(output_dir=tmp_path / "input", case_name="unit_vof_demo")
+
+    result = validate_vof_case_file(written["case_file"], output_dir=tmp_path / "reports")
+
+    assert result["status"] == "success"
+    artifacts = result["outputs"]["artifacts"]
+    for key in ["vof_case_copy", "vof_physics_passport", "vof_fluent_setup_hints", "vof_report", "vof_status"]:
+        assert key in artifacts
+        assert Path(artifacts[key]).exists()
+    hints = result["outputs"]["fluent_hints"]
+    assert hints["schema_version"] == "fromcad2cfd_fastfluent_vof_fluent_hints_v1"
+    assert any(hint["category"] == "multiphase_model" for hint in hints["hints"])
+    assert result["outputs"]["solver_execution"] == "not_attempted_physics_passport_only"
+
+
+def test_fastcfd_vof_cli_routes(tmp_path, capsys):
+    write_exit = root_main(
+        [
+            "fastcfd",
+            "write-vof-demo",
+            "--output-dir",
+            str(tmp_path / "vof_input"),
+            "--case-name",
+            "cli_vof_demo",
+        ]
+    )
+    written = json.loads(capsys.readouterr().out)
+    validate_exit = root_main(
+        [
+            "fastcfd",
+            "validate-vof",
+            "--case-file",
+            written["case_file"],
+            "--output-dir",
+            str(tmp_path / "vof_reports"),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert write_exit == 0
+    assert validate_exit == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["vof_status"]).exists()
+
+
+def test_fastcfd_turbulence_passport_estimates_y_plus_and_writes_hints(tmp_path):
+    written = write_demo_turbulence_case(output_dir=tmp_path / "input", case_name="unit_turbulence_demo")
+
+    result = validate_turbulence_case_file(written["case_file"], output_dir=tmp_path / "reports")
+
+    assert result["status"] == "success"
+    passport = result["outputs"]["passport"]
+    checks = passport["checks"]
+    assert passport["schema_version"] == "fromcad2cfd_fastfluent_turbulence_passport_v1"
+    assert passport["flow_regime"] == "turbulent"
+    assert checks["reynolds_number"] > 4000
+    assert checks["estimated_y_plus"] > 0
+    assert result["outputs"]["solver_execution"] == "not_attempted_turbulence_passport_only"
+    for key in ["turbulence_passport", "turbulence_fluent_setup_hints", "turbulence_report", "turbulence_status"]:
+        assert Path(result["outputs"]["artifacts"][key]).exists()
+
+
+def test_fastcfd_turbulence_passport_fails_closed_on_extreme_y_plus(tmp_path):
+    case = demo_turbulence_case(case_name="bad_y_plus")
+    payload = case.to_dict()
+    payload["first_cell_height_mm"] = 100.0
+    case_path = tmp_path / "turbulence_case.json"
+    case_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+
+    result = validate_turbulence_case_file(case_path, output_dir=tmp_path / "bad_out")
+
+    assert result["status"] == "failed"
+    assert result["outputs"]["solver_execution"] == "blocked_by_turbulence_passport"
+    assert any("y-plus" in error for error in result["errors"])
+
+
+def test_fastcfd_turbulence_cli_routes(tmp_path, capsys):
+    write_exit = root_main(
+        [
+            "fastcfd",
+            "write-turbulence-demo",
+            "--output-dir",
+            str(tmp_path / "turbulence_input"),
+            "--case-name",
+            "cli_turbulence_demo",
+        ]
+    )
+    written = json.loads(capsys.readouterr().out)
+    validate_exit = root_main(
+        [
+            "fastcfd",
+            "validate-turbulence",
+            "--case-file",
+            written["case_file"],
+            "--output-dir",
+            str(tmp_path / "turbulence_reports"),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert write_exit == 0
+    assert validate_exit == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["turbulence_status"]).exists()
+
+
+def test_fastcfd_rheology_passport_detects_shear_thinning_and_writes_curve(tmp_path):
+    case = demo_rheology_case()
+    passport = build_rheology_passport(case)
+
+    assert passport["schema_version"] == "fromcad2cfd_fastfluent_rheology_passport_v1"
+    assert passport["status"] == "passed"
+    assert passport["checks"]["trend"] == "shear_thinning"
+    assert passport["checks"]["viscosity_ratio"] > 1
+    assert len(passport["samples"]) == case.sample_count
+
+    written = write_demo_rheology_case(output_dir=tmp_path / "input", case_name="unit_rheology_demo")
+    result = run_rheology_benchmark_file(written["case_file"], output_dir=tmp_path / "reports")
+
+    assert result["status"] == "success"
+    assert result["outputs"]["solver_execution"] == "not_attempted_rheology_passport_only"
+    for key in ["rheology_passport", "rheology_curve_csv", "rheology_fluent_setup_hints", "rheology_report", "rheology_status"]:
+        assert Path(result["outputs"]["artifacts"][key]).exists()
+
+
+def test_fastcfd_rheology_cli_route(tmp_path, capsys):
+    write_exit = root_main(
+        [
+            "fastcfd",
+            "write-rheology-demo",
+            "--output-dir",
+            str(tmp_path / "rheology_input"),
+            "--case-name",
+            "cli_rheology_demo",
+        ]
+    )
+    written = json.loads(capsys.readouterr().out)
+    run_exit = root_main(
+        [
+            "fastcfd",
+            "run-rheology-benchmark",
+            "--case-file",
+            written["case_file"],
+            "--output-dir",
+            str(tmp_path / "rheology_reports"),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert write_exit == 0
+    assert run_exit == 0
+    assert payload["status"] == "success"
+    assert payload["outputs"]["passport"]["checks"]["trend"] == "shear_thinning"
+
+
+def test_fastcfd_fluent_hint_compiler_requires_evidence_and_tracks_sources(tmp_path):
+    vof_written = write_demo_vof_case(output_dir=tmp_path / "vof_input", case_name="compiler_vof")
+    vof_result = validate_vof_case_file(vof_written["case_file"], output_dir=tmp_path / "vof_out")
+    turbulence_written = write_demo_turbulence_case(output_dir=tmp_path / "turbulence_input", case_name="compiler_turbulence")
+    turbulence_result = validate_turbulence_case_file(turbulence_written["case_file"], output_dir=tmp_path / "turbulence_out")
+    rheology_written = write_demo_rheology_case(output_dir=tmp_path / "rheology_input", case_name="compiler_rheology")
+    rheology_result = run_rheology_benchmark_file(rheology_written["case_file"], output_dir=tmp_path / "rheology_out")
+
+    result = compile_fluent_setup_hints(
+        [
+            vof_result["outputs"]["artifacts"]["vof_fluent_setup_hints"],
+            turbulence_result["outputs"]["artifacts"]["turbulence_fluent_setup_hints"],
+            rheology_result["outputs"]["artifacts"]["rheology_fluent_setup_hints"],
+        ],
+        output_dir=tmp_path / "compiled",
+    )
+
+    assert result["status"] == "success"
+    compiled = result["outputs"]["compiled_hints"]
+    assert compiled["schema_version"] == "fromcad2cfd_fastfluent_fluent_hint_compiler_v1"
+    assert compiled["hint_count"] >= 9
+    assert all(hint["evidence"] for hint in compiled["hints"])
+    assert all(hint["source_artifact"] for hint in compiled["hints"])
+    assert Path(result["outputs"]["artifacts"]["fluent_setup_hints"]).exists()
+
+
+def test_fastcfd_fluent_hint_compiler_fails_closed_without_evidence(tmp_path):
+    bad_file = tmp_path / "bad_hints.json"
+    bad_file.write_text(
+        json.dumps({"schema_version": "unit_bad_hints", "hints": [{"category": "bad", "recommendation": "missing evidence"}]}),
+        encoding="utf-8",
+    )
+
+    result = compile_fluent_setup_hints([bad_file], output_dir=tmp_path / "bad_compiled")
+
+    assert result["status"] == "failed"
+    assert any("no evidence" in error for error in result["errors"])
 
 
 def test_fastcfd_write_real_cavity2d_job(tmp_path, monkeypatch):
