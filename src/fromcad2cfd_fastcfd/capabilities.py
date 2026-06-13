@@ -32,11 +32,47 @@ CAPABILITY_REGISTRY: dict[str, Any] = {
             "checks": ["finite variant count", "velocity sensitivity", "cell-length sensitivity", "physics passport per variant", "ranked candidate list"],
             "entrypoint": "fromcad2cfd fastcfd screen-parameters",
         },
+        "unstructured_mesh_gateway": {
+            "status": "implemented_u0_u3",
+            "checks": [
+                "Gmsh v4 ASCII",
+                "physical names",
+                "owner-neighbour topology",
+                "mesh quality",
+                "finite-volume geometry operators",
+                "VTU preview",
+                "fail-closed reports",
+            ],
+            "entrypoint": "fromcad2cfd fastcfd unstructured inspect-mesh",
+        },
+        "unstructured_scalar_diffusion": {
+            "status": "implemented_u4",
+            "checks": [
+                "mesh quality gate",
+                "finite-volume geometry gate",
+                "manufactured solution",
+                "Dirichlet boundary values",
+                "residual history",
+                "solution VTU",
+                "QoI error metrics",
+            ],
+            "entrypoint": "fromcad2cfd fastcfd unstructured solve-diffusion",
+        },
     },
     "allowed_case_templates": {name: case.to_dict() for name, case in CASE_REGISTRY.items()},
     "lattice_sets": list(LATTICE_REGISTRY),
     "collision_models": list(COLLISION_REGISTRY),
-    "safe_backends": ["mock", "fastfluent"],
+    "safe_backends": ["mock", "fastfluent", "unstructured_fvm"],
+    "backend_families": {
+        "structured_lbm": {
+            "status": "implemented_for_controlled_templates",
+            "role": "Fast pilot simulations on bounded structured/block-structured LBM templates.",
+        },
+        "unstructured_fvm": {
+            "status": "mesh_gateway_and_scalar_diffusion_u0_u4",
+            "role": "Engineering CAD-oriented unstructured finite-volume backend scaffold; current gates import meshes, audit them, write finite-volume geometry operators, and run scalar diffusion benchmarks.",
+        },
+    },
     "disabled_capabilities": [
         "arbitrary_shell",
         "arbitrary_python",
@@ -45,6 +81,7 @@ CAPABILITY_REGISTRY: dict[str, Any] = {
         "raw_solver_source_edit_from_mcp",
         "validation_bypass_from_mcp",
         "unbounded_parameter_sweep",
+        "unstructured_flow_solver_without_mesh_quality_gate",
     ],
 }
 

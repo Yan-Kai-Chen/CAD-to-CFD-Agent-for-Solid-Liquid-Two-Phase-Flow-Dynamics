@@ -25,6 +25,8 @@ from .screening import run_parameter_screening
 from .scene_compiler import compile_scene_file_to_job, read_scene, validate_scene_semantics, write_scene
 from .schemas import read_job
 from .paths import unique_path
+from .unstructured.diffusion import run_scalar_diffusion_case
+from .unstructured.inspect import inspect_mesh_file
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -123,6 +125,22 @@ def build_parser() -> argparse.ArgumentParser:
     screen.add_argument("--max-variants", type=int, default=12)
     screen.add_argument("--output-dir", default=None)
     screen.add_argument("--model-name", default=None)
+
+    unstructured = sub.add_parser("unstructured", help="Run unstructured FastFluent mesh gateway commands.")
+    unstructured_sub = unstructured.add_subparsers(dest="unstructured_command", required=True)
+    inspect_mesh = unstructured_sub.add_parser("inspect-mesh", help="Inspect a Gmsh v4 ASCII mesh before any solver execution.")
+    inspect_mesh.add_argument("mesh_file", help="Path to a Gmsh .msh v4 ASCII mesh.")
+    inspect_mesh.add_argument("--output-dir", default=None, help="Directory for mesh_manifest.json, mesh_quality.json, and mesh.vtu.")
+    inspect_mesh.add_argument("--required-patches", default="inlet,outlet,wall", help="Comma-separated required boundary patch names.")
+    inspect_mesh.add_argument("--format", choices=("json", "markdown"), default="json")
+    inspect_mesh.add_argument("--no-write-vtu", action="store_true", help="Skip mesh.vtu preview output.")
+    solve_diffusion = unstructured_sub.add_parser("solve-diffusion", help="Run a manufactured scalar diffusion benchmark.")
+    solve_diffusion.add_argument("mesh_file", help="Path to a Gmsh .msh v4 ASCII mesh.")
+    solve_diffusion.add_argument("--output-dir", default=None, help="Directory for diffusion artifacts.")
+    solve_diffusion.add_argument("--required-patches", default="inlet,outlet,wall", help="Comma-separated required boundary patch names.")
+    solve_diffusion.add_argument("--manufactured-solution", choices=("linear", "quadratic_bubble"), default="linear")
+    solve_diffusion.add_argument("--diffusivity", type=float, default=1.0)
+    solve_diffusion.add_argument("--format", choices=("json", "markdown"), default="json")
 
     mock_demo = sub.add_parser("mock-demo", help="Write and run the deterministic cavity2d mock demo.")
     mock_demo.add_argument("--project", default="fastcfd_mock_cavity2d")
@@ -329,6 +347,44 @@ def main(argv: list[str] | None = None) -> int:
             )
             print(json.dumps(result.to_dict(), ensure_ascii=True, indent=2))
             return 2
+    if args.command == "unstructured":
+        if args.unstructured_command == "inspect-mesh":
+            result = inspect_mesh_file(
+                args.mesh_file,
+                output_dir=args.output_dir,
+                required_patches=tuple(item.strip() for item in args.required_patches.split(",") if item.strip()),
+                write_vtu=not args.no_write_vtu,
+            )
+            if args.format == "markdown":
+                quality = result.get("outputs", {}).get("quality", {})
+                manifest = result.get("outputs", {}).get("manifest", {})
+                print(f"# FastFluent Unstructured Mesh Inspection\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Mesh: `{manifest.get('mesh_name')}`")
+                print(f"- Cells: `{manifest.get('cell_count')}`")
+                print(f"- Boundary zones: `{quality.get('boundary_zone_counts')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "solve-diffusion":
+            result = run_scalar_diffusion_case(
+                args.mesh_file,
+                output_dir=args.output_dir,
+                required_patches=tuple(item.strip() for item in args.required_patches.split(",") if item.strip()),
+                manufactured_solution=args.manufactured_solution,
+                diffusivity=args.diffusivity,
+            )
+            if args.format == "markdown":
+                qoi = result.get("outputs", {}).get("qoi", {})
+                metrics = qoi.get("metrics", {})
+                print(f"# FastFluent Unstructured Scalar Diffusion\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Manufactured solution: `{qoi.get('manufactured_solution')}`")
+                print(f"- Cell-center L2 error: `{metrics.get('cell_center_l2_error')}`")
+                print(f"- Final residual L2: `{metrics.get('final_residual_l2')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
     if args.command == "mock-demo":
         written = write_demo_job(project=args.project, model_name=args.model_name)
         result = run_mock_job(written["job_path"])

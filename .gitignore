@@ -46,6 +46,7 @@ local_config.*
 *.dat
 *.dat.h5
 *.msh
+!examples/unstructured/*.msh
 *.msh.h5
 *.jou
 *.trn

@@ -13,6 +13,9 @@ Skills and policies
         -> controlled CAD runtime adapters
           -> geometry reports and CFD handoff metadata
     -> FastCFD preliminary CFD prediction and physics-screening layer
+      -> structured LBM pilot templates
+      -> unstructured FVM mesh gateway
+      -> scalar diffusion benchmark gate
       -> physics passport, field QoI, prediction reports, parameter screening
       -> Fluent Meshing preflight gate
         -> meshing-preparation reports and handoff hints
@@ -40,6 +43,7 @@ FastCFD / CFD screening pillar
       -> semantic scene registry
       -> physics passport
       -> mock and controlled FastFluent backends
+      -> unstructured_fvm Gmsh import, named-zone preservation, mesh-quality gate, FV geometry, scalar diffusion, and VTU preview
       -> field QoI, lattice trust, prediction, parameter screening, and pilot decision artifacts
   -> fromcad2cfd_fluent_meshing
       -> FastCFD evidence preflight gate
@@ -58,7 +62,11 @@ The FastCFD / FastFluent pillar is separate from CAD modeling. It uses bounded
 scene, job, and physics contracts to run low-cost preliminary CFD screens,
 extract field-derived QoI, issue prediction reports, rank simple parameter
 variants, and prepare evidence for later Fluent work. It does not replace Fluent
-mesh or solver validation.
+mesh or solver validation. Its current unstructured route is a mesh gateway only:
+it imports Gmsh v4 ASCII meshes, preserves physical names, writes mesh-quality
+reports, writes finite-volume geometry operators, and produces VTU previews
+before future flow-solver work. Its first unstructured PDE gate is scalar
+manufactured diffusion, not momentum or multiphase flow.
 
 ## Modules
 
@@ -69,7 +77,7 @@ mesh or solver validation.
 - `fromcad2cfd_nx`: Siemens NX backend based on validated NXOpen journal jobs.
 - `fromcad2cfd_mcp_nx`: safe Siemens NX stdio MCP server with high-level job builders.
 - `fromcad2cfd_mesh`: mesh inspection and optional FreeCAD/OpenCascade coarse solidification.
-- `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates and reports.
+- `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates, structured pilot cases, and the first unstructured mesh gateway.
 - `fromcad2cfd_fluent_meshing`: Fluent Meshing planning gate; full Fluent execution remains planned.
 - `fromcad2cfd_fluent_solver`: Fluent Solver roadmap module.
 - `fromcad2cfd_postprocessing`: CFD post-processing roadmap module.

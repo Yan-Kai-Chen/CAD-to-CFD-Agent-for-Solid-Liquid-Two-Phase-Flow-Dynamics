@@ -20,6 +20,29 @@ types, and collision models that an agent is allowed to use.
 python -m fromcad2cfd fastcfd registry --format markdown
 ```
 
+## Unstructured Mesh Gateway
+
+The first `unstructured_fvm` gate imports and audits a public-safe Gmsh v4 ASCII
+mesh before any solver execution:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured inspect-mesh examples/unstructured/channel2d.msh --format json
+```
+
+It writes `mesh_manifest.json`, `mesh_quality.json`, `fv_geometry.json`,
+`mesh.vtu`, `unstructured_mesh_report.md`, and `inspection_status.json`. This
+is a mesh and finite-volume geometry gateway only; the unstructured flow solver
+is a later gate.
+
+The first PDE gate is a scalar manufactured diffusion benchmark:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-diffusion examples/unstructured/channel2d.msh --manufactured-solution linear --format json
+```
+
+It writes `solution.vtu`, `residual_history.csv`, `qoi.json`,
+`scalar_diffusion_report.md`, and `diffusion_status.json`.
+
 ## Environment Preflight
 
 ```powershell

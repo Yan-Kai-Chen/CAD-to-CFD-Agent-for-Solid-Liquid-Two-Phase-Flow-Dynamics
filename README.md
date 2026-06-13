@@ -18,7 +18,7 @@ It is not yet a production CFD pipeline. The current Fluent Meshing work is a pl
 | Siemens NX backend | Controlled-journal backend | Uses validated job JSON plus NXOpen journals through `run_journal.exe`. |
 | Siemens NX MCP surface | Runnable stdio server | Exposes high-level safe tools for capability reporting, preflight, job writing, and command preparation. |
 | Mesh solidification | Experimental | Uses copied STL input plus optional FreeCAD/OpenCascade execution to create coarse STEP solid candidates. |
-| FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, preliminary prediction reports, bounded parameter screening, and pilot-decision artifacts. |
+| FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, preliminary prediction reports, bounded parameter screening, pilot-decision artifacts, and the first `unstructured_fvm` mesh/FV-geometry plus scalar-diffusion gates. |
 | Fluent Meshing | Planning gate | Reads FastCFD prediction and screening evidence and writes a pre-meshing gate report before future Fluent automation. |
 | Fluent Solver | Planned | Interface boundary only. |
 | Post-processing | Planned | Interface boundary only. |
@@ -241,6 +241,8 @@ fromcad2cfd fastcfd mock-demo --project fastcfd_mock_cavity2d --model-name fastc
 fromcad2cfd fastcfd write-scene --project fastcfd_obstacle2d_scene --model-name fastcfd_obstacle2d_scene --scene-type obstacle2d --obstacle circle
 fromcad2cfd fastcfd write-channel2d-job --project fastcfd_channel2d_real --model-name fastcfd_channel2d_real
 fromcad2cfd fastcfd write-obstacle2d-job --project fastcfd_obstacle2d_real --model-name fastcfd_obstacle2d_real --obstacle circle
+fromcad2cfd fastcfd unstructured inspect-mesh examples/unstructured/channel2d.msh --format json
+fromcad2cfd fastcfd unstructured solve-diffusion examples/unstructured/channel2d.msh --manufactured-solution linear --format json
 fromcad2cfd fastcfd predict-from-output --fastcfd-output-dir <FastCFD output dir>
 fromcad2cfd fastcfd screen-parameters --job-file <job.json> --velocity-multipliers 0.5,1.0,2.0
 ```

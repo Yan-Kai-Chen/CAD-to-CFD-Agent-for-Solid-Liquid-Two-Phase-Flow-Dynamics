@@ -21,6 +21,7 @@ FastCFD / FastFluent preliminary CFD pillar:
 
 - `fastcfd/quickstart.md`
 - `fastcfd/lattice_trust_and_pilot_decision.md`
+- `fastcfd/unstructured_mesh_gateway.md`
 
 Fluent handoff planning:
 
