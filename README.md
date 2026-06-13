@@ -2,7 +2,10 @@
 
 **FromCAD2CFD: A CAD-to-CFD Agentic Automation Framework for Solid-Liquid Two-Phase Flow Dynamics** is an early-stage research framework for automating CAD geometry preparation, CFD domain construction, and repeatable preprocessing handoff for solid-liquid two-phase flow studies.
 
-The project is currently a **multi-CAD modeling and geometry-preparation alpha**. It contains a working SolidWorks automation layer, a shared CAD backend contract, a Siemens NX controlled-journal backend for advanced solid modeling, an experimental mesh-to-solid route for coarse reverse-modeling candidates, and a new FastCFD foundation for preliminary CFD prediction and physics-screening workflows.
+The project is currently a **two-pillar CAD-to-CFD alpha**:
+
+- a CAD geometry automation pillar for SolidWorks, Siemens NX, controlled geometry repair, and mesh-to-solid preparation,
+- a FastCFD / FastFluent pillar for low-cost preliminary CFD prediction, physics screening, and pre-Fluent decision support.
 
 It is not yet a production CFD pipeline. The current Fluent Meshing work is a planning gate only; full Fluent Meshing execution, Fluent Solver setup, and post-processing remain roadmap modules.
 
@@ -16,7 +19,7 @@ It is not yet a production CFD pipeline. The current Fluent Meshing work is a pl
 | Siemens NX MCP surface | Runnable stdio server | Exposes high-level safe tools for capability reporting, preflight, job writing, and command preparation. |
 | Mesh solidification | Experimental | Uses copied STL input plus optional FreeCAD/OpenCascade execution to create coarse STEP solid candidates. |
 | FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, preliminary prediction reports, bounded parameter screening, and pilot-decision artifacts. |
-| Fluent Meshing | Planning gate | Reads FastCFD pilot evidence and writes a pre-meshing gate report before future Fluent automation. |
+| Fluent Meshing | Planning gate | Reads FastCFD prediction and screening evidence and writes a pre-meshing gate report before future Fluent automation. |
 | Fluent Solver | Planned | Interface boundary only. |
 | Post-processing | Planned | Interface boundary only. |
 
@@ -29,6 +32,7 @@ CAD-to-CFD workflows often fail before meshing starts: imported geometry is roug
 - records JSON and Markdown reports,
 - separates private research geometry from public code,
 - keeps CAD-native artifacts and CFD handoff formats traceable.
+- uses FastCFD / FastFluent as a separate preliminary CFD layer for physics screening before expensive Fluent validation.
 
 ## Architecture
 
@@ -39,14 +43,15 @@ Skills and policies
       -> SolidWorks COM backend
       -> Siemens NX controlled-journal backend
       -> mesh solidification helper
-      -> FastCFD preliminary CFD prediction and physics-screening layer
-        -> Fluent Meshing preflight gate
-          -> reports and CFD handoff metadata
+    -> FastCFD / FastFluent preliminary CFD prediction layer
+      -> physics screening, field QoI, parameter screening
+    -> Fluent Meshing preflight gate
+      -> reports and CFD handoff metadata
 ```
 
 See [docs/architecture.md](docs/architecture.md) and [docs/cad_backend.md](docs/cad_backend.md).
 
-## Modeling Capabilities
+## CAD Geometry Capabilities
 
 ### SolidWorks
 
@@ -100,7 +105,7 @@ The mesh helper supports a coarse STL-to-solid candidate route:
 
 This route is useful when CFD preprocessing needs a boolean-capable coarse solid. It does not claim parametric, analytic, or high-accuracy reverse engineering.
 
-### FastCFD / FastFluent
+## FastCFD / FastFluent Preliminary CFD Layer
 
 The FastCFD foundation prepares the internal FastFluent solver for agent-native
 use as a low-cost preliminary CFD prediction and physics-screening layer before
@@ -307,18 +312,23 @@ sandbox/reports/
 ## Repository Layout
 
 ```text
-src/fromcad2cfd/              Root CLI
-src/fromcad2cfd_cad/          Common CAD backend contract
-src/fromcad2cfd_solidworks/   SolidWorks automation backend
-src/fromcad2cfd_nx/           Siemens NX controlled-journal backend
-src/fromcad2cfd_mcp_nx/       Safe NX MCP stdio server
-src/fromcad2cfd_mesh/         Mesh inspection and FreeCAD solidification helper
-src/fromcad2cfd_fastcfd/        FastCFD/FastFluent preliminary CFD screening layer
-src/fromcad2cfd_fluent_meshing/ Fluent Meshing planning gate
-docs/                         Architecture and workflow documentation
-skills/                       Codex skill definitions
-examples/                     Public synthetic examples
-tests/                        Unit tests
+src/fromcad2cfd/                 Root CLI
+
+CAD geometry pillar:
+src/fromcad2cfd_cad/             Common CAD backend contract
+src/fromcad2cfd_solidworks/      SolidWorks automation backend
+src/fromcad2cfd_nx/              Siemens NX controlled-journal backend
+src/fromcad2cfd_mcp_nx/          Safe NX MCP stdio server
+src/fromcad2cfd_mesh/            Mesh inspection and FreeCAD solidification helper
+
+FastCFD / CFD screening pillar:
+src/fromcad2cfd_fastcfd/         FastCFD/FastFluent preliminary CFD screening layer
+src/fromcad2cfd_fluent_meshing/  Fluent Meshing planning gate
+
+docs/                            Architecture and workflow documentation
+skills/                          Codex skill definitions
+examples/                        Public synthetic examples
+tests/                           Unit tests
 ```
 
 ## Development Checks

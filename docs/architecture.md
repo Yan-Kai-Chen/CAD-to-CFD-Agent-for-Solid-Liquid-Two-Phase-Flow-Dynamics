@@ -1,15 +1,19 @@
 # Architecture
 
-The framework is organized as a multi-CAD, safety-first automation stack:
+The framework is organized as a safety-first CAD-to-CFD automation stack with
+two independent first-class pillars: CAD geometry automation and FastCFD /
+FastFluent preliminary CFD screening.
 
 ```text
 Skills and policies
   -> MCP-safe tool surface
-    -> backend-neutral CAD contract
+    -> CAD geometry automation pillar
+      -> backend-neutral CAD contract
       -> CAD-specific backends
         -> controlled CAD runtime adapters
           -> geometry reports and CFD handoff metadata
     -> FastCFD preliminary CFD prediction and physics-screening layer
+      -> physics passport, field QoI, prediction reports, parameter screening
       -> Fluent Meshing preflight gate
         -> meshing-preparation reports and handoff hints
 ```
@@ -18,6 +22,8 @@ Skills and policies
 
 ```text
 fromcad2cfd CLI / MCP
+
+CAD geometry pillar
   -> fromcad2cfd_cad common contract
       -> fromcad2cfd_solidworks
           -> pywin32 / SolidWorks COM
@@ -28,23 +34,30 @@ fromcad2cfd CLI / MCP
       -> fromcad2cfd_mesh
           -> STL inspection
           -> FreeCAD/OpenCascade coarse solidification
-      -> fromcad2cfd_fastcfd
+
+FastCFD / CFD screening pillar
+  -> fromcad2cfd_fastcfd
       -> semantic scene registry
       -> physics passport
       -> mock and controlled FastFluent backends
       -> field QoI, lattice trust, prediction, parameter screening, and pilot decision artifacts
   -> fromcad2cfd_fluent_meshing
       -> FastCFD evidence preflight gate
+
+Shared reporting
   -> JSON report
   -> Markdown report
-  -> CAD handoff artifact
+  -> CAD handoff artifact or CFD screening artifact
 ```
 
 The common CAD contract lets Fluent-oriented modules consume geometry outputs
 without knowing whether a model was created or repaired in SolidWorks, Siemens
-NX, or a coarse mesh-to-solid helper. FastCFD artifacts add cheap pilot-flow
-evidence before downstream Fluent preparation. They can be used for low-cost
-preliminary CFD prediction and physics screening, but they do not replace Fluent
+NX, or a coarse mesh-to-solid helper.
+
+The FastCFD / FastFluent pillar is separate from CAD modeling. It uses bounded
+scene, job, and physics contracts to run low-cost preliminary CFD screens,
+extract field-derived QoI, issue prediction reports, rank simple parameter
+variants, and prepare evidence for later Fluent work. It does not replace Fluent
 mesh or solver validation.
 
 ## Modules
