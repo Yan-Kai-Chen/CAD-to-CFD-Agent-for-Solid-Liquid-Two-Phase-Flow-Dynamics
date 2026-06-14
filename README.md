@@ -23,8 +23,13 @@ expensive high-fidelity validation.
 - **Unstructured mesh readiness**: the `unstructured_fvm` route imports Gmsh
   meshes, preserves named zones, builds finite-volume geometry, validates
   boundary contracts, and runs benchmark evidence for diffusion, Stokes,
-  pressure projection, channel flow, obstacle-channel handoff, and VOF-lite
-  alpha transport.
+  pressure projection, 3D tetra scalar-diffusion smoke checks, channel flow,
+  obstacle-channel handoff, and VOF-lite alpha transport, plus simplified
+  algebraic eddy-viscosity and bounded
+  standard k-epsilon, pressure-corrected k-epsilon, and Menter k-omega SST
+  turbulent channel solves, JSON unstructured case execution, controlled steady
+  incompressible pressure-correction cases, and a public benchmark suite for
+  evidence comparison.
 - **Pre-Fluent physics evidence**: VOF, turbulence, and non-Newtonian rheology
   passports generate setup checks and Fluent-facing hints with explicit
   evidence, so the agent can explain why a setting is recommended.
@@ -48,7 +53,7 @@ Navier-Stokes, GPU acceleration, and post-processing remain roadmap modules.
 | Siemens NX backend | Controlled-journal backend | Uses validated job JSON plus NXOpen journals through `run_journal.exe`. |
 | Siemens NX MCP surface | Runnable stdio server | Exposes high-level safe tools for capability reporting, preflight, job writing, and command preparation. |
 | Mesh solidification | Experimental | Uses copied STL input plus optional FreeCAD/OpenCascade execution to create coarse STEP solid candidates. |
-| FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, preliminary prediction reports, bounded parameter screening, pilot-decision artifacts, VOF/turbulence/rheology passports, evidence-checked Fluent hint compilation, and `unstructured_fvm` mesh/FV-geometry, scalar-diffusion, Stokes, projection, flow-benchmark, Poiseuille channel-validation, convergence, public body-fitted obstacle-channel, and VOF-lite alpha-transport gates. |
+| FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, preliminary prediction reports, bounded parameter screening, pilot-decision artifacts, VOF/turbulence/rheology passports, evidence-checked Fluent hint compilation, and `unstructured_fvm` mesh/FV-geometry, 2D triangle and 3D tetra scalar-diffusion, Stokes, projection, flow-benchmark, Poiseuille channel-validation, convergence, public body-fitted obstacle-channel, VOF-lite alpha-transport, algebraic eddy-viscosity turbulent-channel, k-epsilon turbulent-channel, pressure-corrected k-epsilon channel, Menter k-omega SST channel, JSON case runner, controlled steady incompressible solver, and public benchmark-suite gates. |
 | Fluent Meshing | Planning gate | Reads FastCFD prediction and screening evidence and writes a pre-meshing gate report before future Fluent automation. |
 | Fluent Solver | Planned | Interface boundary only. |
 | Post-processing | Planned | Interface boundary only. |
@@ -155,12 +160,17 @@ high-fidelity Fluent validation. The first batch adds:
 - preliminary CFD prediction reports with expected flow behavior, physics screening, numerical-quality review, and design implications,
 - bounded pre-run parameter screening for velocity and grid sensitivity,
 - bounded pilot-decision artifacts for deciding whether to proceed, extend the pilot, review domain extent, or revise the recipe domain,
-- `unstructured_fvm` mesh-quality, boundary-contract, PDE benchmark, Poiseuille channel-validation, and convergence evidence routes,
+- `unstructured_fvm` mesh-quality, boundary-contract, PDE benchmark, 3D tetra scalar-diffusion smoke, Poiseuille channel-validation, and convergence evidence routes,
 - VOF two-phase physics passports and Fluent setup hints for preliminary multiphase setup decisions,
 - turbulence passports for Reynolds-regime, near-wall y-plus, model-intent, turbulence-intensity, and Fluent viscous-model setup checks,
 - non-Newtonian rheology passports with shear-rate apparent-viscosity benchmarks and Fluent material-model setup checks,
 - public synthetic body-fitted obstacle-channel evidence for named-zone and obstacle-wall preservation without private geometry,
 - VOF-lite alpha-transport benchmarks for bounded volume-fraction advection, CFL, and phase-volume-balance evidence,
+- a simplified algebraic eddy-viscosity turbulent-channel benchmark with iterative effective-viscosity momentum solves, turbulent-viscosity ratio fields, convergence history, and VTU output,
+- a bounded standard k-epsilon turbulent-channel benchmark with streamwise momentum, k transport, epsilon transport, eddy-viscosity update, turbulence production, convergence history, and VTU output,
+- a bounded pressure-corrected k-epsilon channel benchmark with momentum prediction, pressure correction, k/epsilon transport, divergence monitoring, and VTU output,
+- a bounded Menter k-omega SST channel benchmark with k/omega transport, SST blending functions, eddy-viscosity limiting, convergence history, and VTU output,
+- a turbulence benchmark ladder that runs all four channel tiers on one public mesh and recommends the strongest passed evidence tier for later Fluent setup,
 - evidence-checked Fluent setup hint compilation across validated FastCFD artifacts,
 - `generated.ini`, QoI, physics contract, flow fingerprint, Fluent hints, claim ledger, result manifest, and reports.
 
@@ -291,6 +301,15 @@ fromcad2cfd fastcfd unstructured solve-channel-validation examples/unstructured/
 fromcad2cfd fastcfd unstructured solve-channel-convergence --mesh-levels 2,4,8 --format json
 fromcad2cfd fastcfd unstructured solve-obstacle-channel --format json
 fromcad2cfd fastcfd unstructured solve-vof-lite --steps 20 --time-step-s 0.02 --velocity 0.1,0.0 --format json
+fromcad2cfd fastcfd unstructured solve-turbulent-channel --iterations 8 --format json
+fromcad2cfd fastcfd unstructured solve-kepsilon-channel --iterations 8 --format json
+fromcad2cfd fastcfd unstructured solve-kepsilon-pressure-channel --iterations 8 --format json
+fromcad2cfd fastcfd unstructured solve-sst-channel --iterations 8 --format json
+fromcad2cfd fastcfd unstructured solve-turbulence-ladder --iterations 8 --format json
+fromcad2cfd fastcfd unstructured write-steady-channel-case --case-file 05_projects\steady_case\input\case.json --mesh-file examples\unstructured\channel2d.msh
+fromcad2cfd fastcfd unstructured run-case 05_projects\steady_case\input\case.json --format json
+fromcad2cfd fastcfd unstructured solve-steady-incompressible examples\unstructured\channel2d.msh --iterations 8 --format json
+fromcad2cfd fastcfd unstructured run-benchmark-suite --iterations 8 --format json
 fromcad2cfd fastcfd write-vof-demo --output-dir 05_projects\vof_demo\input
 fromcad2cfd fastcfd validate-vof --case-file examples\fastcfd\vof_dambreak2d_passport\vof_case.json --output-dir 05_projects\vof_demo\reports --format json
 fromcad2cfd fastcfd write-turbulence-demo --output-dir 05_projects\turbulence_demo\input

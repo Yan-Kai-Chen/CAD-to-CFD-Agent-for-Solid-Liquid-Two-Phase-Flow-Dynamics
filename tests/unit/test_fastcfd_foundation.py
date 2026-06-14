@@ -209,8 +209,18 @@ def test_fastcfd_capability_registry_blocks_arbitrary_cases():
     assert inventory["validation_gates"]["turbulence_passport"]["status"] == "implemented_u16"
     assert inventory["validation_gates"]["non_newtonian_rheology_passport"]["status"] == "implemented_u17"
     assert inventory["validation_gates"]["fluent_hint_compiler"]["status"] == "implemented_u20"
+    assert inventory["validation_gates"]["unstructured_turbulent_channel_solve"]["status"] == "implemented_u21"
+    assert inventory["validation_gates"]["unstructured_kepsilon_channel_solve"]["status"] == "implemented_u22"
+    assert inventory["validation_gates"]["unstructured_pressure_corrected_kepsilon_channel"]["status"] == "implemented_u23"
+    assert inventory["validation_gates"]["unstructured_sst_channel_solve"]["status"] == "implemented_u25"
+    assert inventory["validation_gates"]["unstructured_turbulence_ladder"]["status"] == "implemented_u24_u25"
+    assert inventory["validation_gates"]["unstructured_case_runner"]["status"] == "implemented_u26"
+    assert inventory["validation_gates"]["unstructured_boundary_condition_schema"]["status"] == "implemented_u27"
+    assert inventory["validation_gates"]["unstructured_steady_incompressible_solver"]["status"] == "implemented_u28"
+    assert inventory["validation_gates"]["unstructured_public_benchmark_suite"]["status"] == "implemented_u29"
+    assert inventory["validation_gates"]["unstructured_tetra_diffusion_smoke"]["status"] == "implemented_u30"
     assert inventory["physics_model_families"]["vof_two_phase"]["status"] == "passport_and_setup_hints_implemented"
-    assert inventory["physics_model_families"]["turbulence_models"]["status"] == "passport_and_setup_hints_implemented"
+    assert inventory["physics_model_families"]["turbulence_models"]["status"] == "passport_hints_turbulence_ladder_and_channel_solves_implemented"
     assert inventory["physics_model_families"]["non_newtonian_rheology"]["status"] == "passport_and_shear_rate_benchmark_implemented"
     assert "arbitrary_cpp_generation" in inventory["disabled_capabilities"]
     assert "arbitrary_fastfluent_case_path" in inventory["disabled_capabilities"]
@@ -221,6 +231,7 @@ def test_fastcfd_capability_registry_blocks_arbitrary_cases():
     assert "physics_passport" in capability_markdown()
     assert "vof_two_phase" in capability_markdown()
     assert "non_newtonian_rheology" in capability_markdown()
+    assert "unstructured_tetra_diffusion_smoke" in capability_markdown()
 
 
 def test_fastcfd_registry_is_source_of_truth():

@@ -4,11 +4,18 @@ The unstructured mesh gateway is the first FastFluent `unstructured_fvm` layer.
 It covers mesh import, topology construction, named-zone preservation,
 mesh-quality diagnostics, finite-volume geometry operators, VTU preview output,
 and a scalar manufactured diffusion benchmark with an explicit linear-system
-layer, a manufactured Stokes momentum benchmark, and a manufactured
-pressure-correction projection benchmark, a public body-fitted
-obstacle-channel evidence gate, and a VOF-lite bounded alpha-transport
-benchmark. It does not run a full production incompressible flow, VOF,
-rheology, turbulence, Fluent, or GPU solver yet.
+layer for both 2D triangle and 3D tetra simplex cells, a manufactured Stokes
+momentum benchmark, and a manufactured pressure-correction projection
+benchmark, a public body-fitted obstacle-channel evidence gate, a VOF-lite
+bounded alpha-transport benchmark, a simplified algebraic eddy-viscosity
+turbulent-channel benchmark, and a bounded standard k-epsilon turbulent-channel
+benchmark, a pressure-corrected k-epsilon benchmark, and a Menter k-omega SST
+benchmark, plus a turbulence ladder that compares all four local turbulence
+evidence tiers. It now also includes an agent-safe JSON case runner, a
+controlled steady incompressible pressure-correction route, a public benchmark
+suite, and a public 3D tetra smoke benchmark. It does not run a full production
+3D incompressible flow, production VOF, rheology, production turbulence, Fluent,
+or GPU solver yet.
 
 ## Why This Exists
 
@@ -27,6 +34,12 @@ Scalar diffusion benchmark:
 
 ```bash
 python -m fromcad2cfd fastcfd unstructured solve-diffusion examples/unstructured/channel2d.msh --manufactured-solution linear --format json
+```
+
+3D tetra scalar diffusion smoke benchmark:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-tetra-diffusion --output-dir 05_projects\tetra_diffusion_demo\output --format json
 ```
 
 Stokes momentum benchmark:
@@ -71,6 +84,55 @@ VOF-lite bounded alpha transport:
 python -m fromcad2cfd fastcfd unstructured solve-vof-lite --output-dir 05_projects\vof_lite_demo\output --steps 20 --time-step-s 0.02 --velocity 0.1,0.0 --format json
 ```
 
+Simplified algebraic eddy-viscosity turbulent channel:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-turbulent-channel --output-dir 05_projects\turbulent_channel_demo\output --iterations 8 --format json
+```
+
+Bounded standard k-epsilon turbulent channel:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-kepsilon-channel --output-dir 05_projects\kepsilon_channel_demo\output --iterations 8 --format json
+```
+
+Pressure-corrected k-epsilon channel:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-kepsilon-pressure-channel --output-dir 05_projects\pressure_kepsilon_channel_demo\output --iterations 8 --format json
+```
+
+Menter k-omega SST channel:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-sst-channel --output-dir 05_projects\sst_channel_demo\output --iterations 8 --format json
+```
+
+Turbulence evidence ladder:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-turbulence-ladder --output-dir 05_projects\turbulence_ladder_demo\output --iterations 8 --format json
+```
+
+Agent-safe steady incompressible case JSON:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured write-steady-channel-case --case-file 05_projects\steady_channel_case\input\case.json --mesh-file examples\unstructured\channel2d.msh --format json
+python -m fromcad2cfd fastcfd unstructured run-case 05_projects\steady_channel_case\input\case.json --output-dir 05_projects\steady_channel_case\output --format json
+```
+
+Direct controlled steady incompressible route:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-steady-incompressible examples\unstructured\channel2d.msh --output-dir 05_projects\steady_incompressible_demo\output --iterations 8 --format json
+```
+
+Public benchmark suite:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured run-benchmark-suite --output-dir 05_projects\unstructured_public_suite\output --iterations 8 --format json
+```
+
 Optional arguments:
 
 ```bash
@@ -87,6 +149,20 @@ Optional arguments:
 --ny <generated obstacle-channel cells in y>
 --time-step-s <VOF-lite time step>
 --velocity ux,uy
+--density <turbulent-channel density>
+--molecular-viscosity <turbulent-channel molecular viscosity>
+--pressure-drop <turbulent-channel pressure drop>
+--kappa <mixing-length von Karman constant>
+--max-mixing-length-fraction <channel-height fraction>
+--turbulent-viscosity-cap-ratio <mu_t / mu cap>
+--c-mu <k-epsilon C_mu>
+--c-epsilon-1 <k-epsilon C_epsilon_1>
+--c-epsilon-2 <k-epsilon C_epsilon_2>
+--sigma-k <k diffusion turbulent Prandtl number>
+--sigma-epsilon <epsilon diffusion turbulent Prandtl number>
+--turbulence-intensity <k-epsilon inlet intensity>
+--turbulent-length-scale-fraction <k-epsilon length scale fraction>
+--pressure-relaxation <pressure-correction under-relaxation>
 ```
 
 ## Outputs
@@ -106,6 +182,8 @@ Optional arguments:
   `solve-diffusion` gate is used.
 - `residual_history.csv`: linear-solver residual trace.
 - `solution.vtu`: scalar solution, exact value, and error fields.
+- `unit_cube_tetra.msh`: generated public 3D tetra mesh when
+  `solve-tetra-diffusion` is run without an input mesh.
 - `stokes_qoi.json`: U6 manufactured Stokes velocity, divergence, pressure
   gradient, and residual metrics.
 - `stokes_linear_systems.json`: U6 CSR matrix and solver metadata for the `u`
@@ -145,6 +223,61 @@ Optional arguments:
 - `vof_lite_alpha.vtu`: final alpha preview field.
 - `vof_lite_report.md`: human-readable VOF-lite summary.
 - `vof_lite_status.json`: agent result envelope for the VOF-lite gate.
+- `turbulent_boundary_contract.json`: named `inlet`, `outlet`, and `wall`
+  contract for the simplified turbulent-channel benchmark.
+- `turbulent_channel_qoi.json`: closure settings, Reynolds number,
+  turbulent-viscosity ratio, effective-viscosity range, solver residuals,
+  velocity-update metrics, acceptance flags, and Fluent turbulence hints.
+- `turbulent_channel_iterations.csv`: effective-viscosity and velocity-update
+  history for the algebraic eddy-viscosity iteration.
+- `turbulent_channel_solution.vtu`: velocity vector plus
+  `turbulent_viscosity_ratio` and `effective_viscosity` preview fields.
+- `turbulent_channel_report.md`: human-readable turbulent-channel summary.
+- `turbulent_channel_status.json`: agent result envelope for the turbulent
+  benchmark.
+- `kepsilon_boundary_contract.json`: named `inlet`, `outlet`, and `wall`
+  contract for the bounded standard k-epsilon benchmark.
+- `kepsilon_qoi.json`: closure constants, Reynolds number, k and epsilon
+  positivity checks, production, `mu_t / mu`, linear residuals, update metrics,
+  acceptance flags, and Fluent turbulence hints.
+- `kepsilon_iterations.csv`: velocity, k, epsilon, effective-viscosity,
+  production, and residual history for the two-equation iteration.
+- `kepsilon_solution.vtu`: velocity plus k, epsilon,
+  `turbulent_viscosity_ratio`, `effective_viscosity`, and production preview
+  fields.
+- `kepsilon_report.md`: human-readable standard k-epsilon benchmark summary.
+- `kepsilon_status.json`: agent result envelope for the k-epsilon benchmark.
+- `pressure_kepsilon_boundary_contract.json`: inlet velocity, outlet pressure
+  reference, and wall no-slip contract for the pressure-corrected k-epsilon
+  benchmark.
+- `pressure_kepsilon_qoi.json`: pressure-correction residuals, divergence
+  monitors, k and epsilon positivity, production, `mu_t / mu`, update metrics,
+  acceptance flags, and Fluent pressure-velocity/turbulence hints.
+- `pressure_kepsilon_iterations.csv`: predicted and corrected divergence,
+  pressure residuals, velocity updates, k and epsilon updates, and eddy-viscosity
+  history.
+- `pressure_kepsilon_solution.vtu`: velocity plus pressure correction, k,
+  epsilon, `turbulent_viscosity_ratio`, `effective_viscosity`, and production
+  preview fields.
+- `pressure_kepsilon_report.md`: human-readable pressure-corrected k-epsilon
+  summary.
+- `pressure_kepsilon_status.json`: agent result envelope for the
+  pressure-corrected k-epsilon benchmark.
+- `sst_boundary_contract.json`: named `inlet`, `outlet`, and `wall` contract
+  for the bounded Menter k-omega SST benchmark.
+- `sst_qoi.json`: SST constants, Reynolds number, k and omega positivity
+  checks, production, F1/F2 blending metrics, `mu_t / mu`, residuals, update
+  metrics, acceptance flags, and Fluent SST hints.
+- `sst_iterations.csv`: velocity, k, omega, effective-viscosity, production,
+  blending-function, and residual history for the SST iteration.
+- `sst_solution.vtu`: velocity plus k, omega, `turbulent_viscosity_ratio`,
+  `effective_viscosity`, production, F1, and F2 preview fields.
+- `sst_report.md`: human-readable Menter k-omega SST benchmark summary.
+- `sst_status.json`: agent result envelope for the SST benchmark.
+- `turbulence_ladder_qoi.json`: per-tier status, QoI summary, key turbulence
+  metrics, recommended strongest passed tier, and explicit benchmark boundary.
+- `turbulence_ladder_report.md`: human-readable turbulence ladder summary.
+- `turbulence_ladder_status.json`: agent result envelope for the ladder.
 
 ## Gate Rules
 
@@ -179,11 +312,11 @@ The Python API also includes a node-based scalar gradient reconstruction helper
 for manufactured-solution tests. It is used only as an operator validation tool
 at this stage and is not yet the final cell-centered FVM gradient scheme.
 
-## U4 Scalar Diffusion And U5 Linear System
+## U4 Scalar Diffusion, U5 Linear System, And U30 Tetra Smoke
 
 The scalar diffusion gate solves a small manufactured benchmark after the mesh
-quality and FV-geometry gates pass. It currently supports 2D triangular meshes
-with exact Dirichlet values on all boundary nodes.
+quality and FV-geometry gates pass. It supports P1 triangle and tetra simplex
+cells with exact Dirichlet values on all boundary nodes.
 
 Supported manufactured solutions:
 
@@ -206,6 +339,19 @@ U5 adds the explicit linear-system layer used by the scalar diffusion gate:
 
 The default CLI route uses `--linear-solver sparse-cg`. `--linear-solver
 dense-direct` is kept as a small-reference path for tests and diagnostics.
+
+U30 adds a public 3D tetra smoke benchmark:
+
+- generates a synthetic unit cube with six named surface patches
+  `xmin/xmax/ymin/ymax/zmin/zmax`,
+- preserves a `fluid` volume region,
+- uses twelve tetrahedra connected to one interior node,
+- runs the linear manufactured diffusion solve through the same CSR layer,
+- writes mesh/FV-geometry/QoI/VTU artifacts for 3D topology checks.
+
+This U30 gate proves that the backend can import, validate, and assemble a
+small 3D tetra scalar problem. It is not a 3D production Navier-Stokes, VOF,
+turbulence, Fluent, or GPU solver.
 
 This is the first PDE gate for the unstructured backend, but it is still not a
 flow solver. Later incompressible-flow gates must keep their own mass-balance,
@@ -355,3 +501,234 @@ with a prescribed velocity field. Acceptance checks include:
 This is intentionally named VOF-lite. It is a transport sanity check for agent
 decision support, not a Fluent VOF solver and not a replacement for pressure,
 momentum, surface-tension, turbulence, or interface-reconstruction physics.
+
+## U21 Algebraic Eddy-Viscosity Turbulent Channel
+
+U21 adds a deliberately bounded turbulence solve to avoid leaving turbulence as
+only a setup passport. The command generates a public-safe unit channel mesh
+when no mesh file is supplied, validates named `inlet`, `outlet`, and `wall`
+patches, and solves a pressure-driven channel with a Prandtl mixing-length
+zero-equation eddy-viscosity closure:
+
+- initialize a laminar pressure-driven channel profile,
+- estimate velocity gradients on triangular cells,
+- compute mixing length from the nearest wall distance,
+- compute and cap `mu_t`,
+- solve the variable-effective-viscosity momentum system,
+- under-relax velocity and effective viscosity,
+- record iteration history and acceptance metrics.
+
+Acceptance evidence includes:
+
+- final linear system convergence,
+- nonzero turbulent-viscosity activation,
+- no-slip wall preservation,
+- settled velocity update,
+- Reynolds number and turbulent-viscosity ratio in the QoI artifact,
+- VTU output with velocity, effective viscosity, and turbulent-viscosity ratio.
+
+This is a real iterative turbulence-closure benchmark, but it is intentionally
+not a production RANS route. It is not k-epsilon, SST, DES, LES, wall-function
+validation, or Fluent replacement. Its purpose is to give the agent a
+reproducible local turbulence evidence gate before later Fluent setup and
+validation work.
+
+## U22 Standard k-epsilon Two-Equation Channel
+
+U22 adds a stronger bounded turbulence route than U21. The command validates the
+same public-safe channel mesh and named boundary patches, then solves:
+
+- streamwise momentum with an effective viscosity,
+- k transport with production and epsilon sink terms,
+- epsilon transport with standard k-epsilon source and sink coefficients,
+- eddy viscosity from `mu_t = rho * C_mu * k^2 / epsilon`.
+
+The default closure constants are:
+
+- `C_mu = 0.09`
+- `C_epsilon_1 = 1.44`
+- `C_epsilon_2 = 1.92`
+- `sigma_k = 1.0`
+- `sigma_epsilon = 1.3`
+
+Acceptance evidence includes:
+
+- final momentum, k, and epsilon linear-system convergence,
+- positive k and epsilon fields,
+- positive turbulence production,
+- eddy viscosity above the molecular viscosity level,
+- no-slip wall preservation,
+- velocity, k, and epsilon update settling,
+- VTU output with velocity, k, epsilon, production, effective viscosity, and
+  turbulent-viscosity ratio fields.
+
+This is a real two-equation k-epsilon benchmark gate. It is still bounded:
+there is no production SIMPLE/PISO pressure-velocity coupling, no SST blending,
+no DES/LES, no validated wall functions, no arbitrary engineering geometry
+claim, and no Fluent replacement claim. Its role is to give the agent stronger
+local turbulence evidence before deciding how to set up and validate Fluent.
+
+## U23 Pressure-Corrected k-epsilon Channel
+
+U23 adds the first pressure-velocity-coupled turbulence benchmark in the public
+FastFluent stack. It uses the U22 k-epsilon transport loop and adds a bounded
+pressure-correction monitor:
+
+- solve streamwise momentum prediction with effective viscosity,
+- compute cell divergence of the predicted velocity,
+- solve a pressure-correction Poisson system,
+- correct the velocity field and reapply inlet and wall constraints,
+- solve k transport,
+- solve epsilon transport,
+- update eddy viscosity,
+- record predicted and corrected divergence at every outer iteration.
+
+The boundary contract differs from U22:
+
+- `inlet`: velocity profile,
+- `outlet`: pressure reference,
+- `wall`: no-slip wall.
+
+Acceptance evidence includes:
+
+- momentum, pressure-correction, k, and epsilon linear-system convergence,
+- positive finite k and epsilon fields,
+- eddy viscosity above the molecular viscosity level,
+- positive turbulence production,
+- no-slip wall preservation,
+- velocity, k, and epsilon update settling,
+- final pressure-correction step reduces the predicted divergence,
+- divergence monitor history is written.
+
+This is the strongest local pressure-velocity-coupled turbulence benchmark in
+the project. It is still not a production SIMPLE/PISO solver: divergence
+metrics are benchmark monitors, not proof of global production continuity
+convergence, and no Fluent, SST, DES, LES, wall-function, arbitrary-geometry, or
+production-validation claim is made.
+
+## U24 Turbulence Evidence Ladder
+
+U24 adds an agent-facing evidence comparison layer. U25 extends the same ladder
+with the SST benchmark. It runs these tiers on one shared public channel mesh:
+
+1. algebraic eddy viscosity,
+2. standard k-epsilon,
+3. pressure-corrected k-epsilon,
+4. Menter k-omega SST.
+
+The ladder writes a compact summary with per-tier status, closure model, key
+QoI metrics, and a recommended strongest passed tier. It is intended for agent
+decision support before Fluent setup. The recommendation separates model
+strength from validation: SST is the strongest local turbulence-closure tier
+when it passes, while pressure-corrected k-epsilon remains the strongest
+pressure-velocity-coupling evidence. The ladder does not promote local benchmark
+evidence to production CFD validation.
+
+## U25 Menter k-omega SST Channel
+
+U25 adds a bounded near-wall-oriented RANS benchmark using the standard Menter
+k-omega SST closure constants. The command validates the same public-safe
+channel mesh and named boundary patches, then solves:
+
+- streamwise momentum with an effective viscosity,
+- k transport with production and SST destruction terms,
+- omega transport with production, beta destruction, and cross-diffusion source
+  terms,
+- SST F1/F2 blending functions,
+- SST eddy viscosity with the `a1` limiter.
+
+The default closure constants are:
+
+- `beta_star = 0.09`
+- `sigma_k1 = 0.85`
+- `sigma_omega1 = 0.5`
+- `beta1 = 0.075`
+- `sigma_k2 = 1.0`
+- `sigma_omega2 = 0.856`
+- `beta2 = 0.0828`
+- `kappa = 0.41`
+- `a1 = 0.31`
+
+Acceptance evidence includes:
+
+- final momentum, k, and omega linear-system convergence,
+- positive finite k and omega fields,
+- positive turbulence production,
+- eddy viscosity above the molecular viscosity level,
+- no-slip wall preservation,
+- velocity, k, and omega update settling,
+- F1/F2 blending-function metrics,
+- VTU output with velocity, k, omega, production, effective viscosity,
+  turbulent-viscosity ratio, F1, and F2 fields.
+
+This is a real SST benchmark gate. It is still bounded: there is no production
+arbitrary-geometry RANS solver, no DES/LES, no validated wall-function route,
+and no Fluent replacement claim. Its role is to make the agent's local
+turbulence-closure evidence stronger before deciding whether and how to set up
+high-fidelity Fluent validation.
+
+## U26 JSON Unstructured Case Runner
+
+U26 adds the first agent-facing unstructured case file. A case JSON contains:
+
+- `mesh_file`,
+- `required_patches`,
+- `physics` with density, viscosity, model, and body force,
+- `boundary_conditions`,
+- `solver` controls.
+
+The runner writes `normalized_case.json`, dispatches only implemented solver
+families, preserves the lower-level solver artifacts, and writes
+`case_status.json`. Unsupported solver families fail closed before solver
+execution.
+
+## U27 Boundary-Condition Schema
+
+U27 broadens the boundary-condition contract beyond the older benchmark labels.
+The parser and validator now recognize:
+
+- `velocity_inlet`,
+- `velocity_dirichlet`,
+- `pressure_outlet`,
+- `pressure_reference`,
+- `mass_flow_inlet`,
+- `opening`,
+- `outflow`,
+- `no_slip_wall`,
+- `symmetry`.
+
+The contract validates required parameters such as inlet velocity, mass-flow
+rate, optional opening pressure, and optional symmetry normals. Solver routes
+still declare their own implemented subset. If a case uses a boundary kind that
+the selected solver does not implement, execution fails closed.
+
+## U28 Controlled Steady Incompressible Case
+
+U28 adds a controlled steady incompressible pressure-correction route for public
+unstructured cases:
+
+- solve u and v velocity-component systems,
+- anchor pressure correction on pressure outlet/reference patches only,
+- use natural pressure-correction handling on other boundaries,
+- reapply velocity Dirichlet constraints after correction,
+- write divergence history, boundary mass-flux diagnostics, VTU preview, JSON
+  QoI, and Markdown report.
+
+The accepted public channel smoke has a mass-flux relative imbalance below 0.1
+and reduces the divergence metric from its initial value. This is a controlled
+solver route, not a production arbitrary-geometry SIMPLE/PISO implementation.
+
+## U29 Public Benchmark Suite
+
+U29 adds a public suite that runs the current reusable non-private evidence set:
+
+1. Poiseuille channel validation,
+2. JSON steady incompressible case,
+3. body-fitted obstacle-channel evidence,
+4. VOF-lite alpha transport,
+5. turbulence ladder.
+
+The suite writes `benchmark_suite_summary.json`,
+`benchmark_suite_report.md`, and `benchmark_suite_status.json`. It is designed
+as a public CI-style evidence bundle for the agent. It does not include private
+device geometry or Fluent case/data files.

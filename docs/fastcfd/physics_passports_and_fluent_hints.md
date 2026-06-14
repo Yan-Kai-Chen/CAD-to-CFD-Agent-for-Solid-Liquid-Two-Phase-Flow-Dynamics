@@ -13,6 +13,13 @@ case/data files.
 | Rheology passport | `fromcad2cfd fastcfd run-rheology-benchmark` | Checks Newtonian, power-law, or Carreau-Yasuda material behavior over a shear-rate range. |
 | Public obstacle-channel evidence | `fromcad2cfd fastcfd unstructured solve-obstacle-channel` | Generates or inspects a public body-fitted obstacle-channel mesh with named obstacle wall evidence. |
 | VOF-lite alpha transport | `fromcad2cfd fastcfd unstructured solve-vof-lite` | Runs a bounded scalar alpha-transport benchmark with CFL and phase-volume-balance evidence. |
+| Algebraic eddy-viscosity turbulent channel | `fromcad2cfd fastcfd unstructured solve-turbulent-channel` | Runs a bounded pressure-driven channel benchmark with Prandtl mixing-length eddy viscosity, turbulent-viscosity ratio output, and convergence history. |
+| Standard k-epsilon turbulent channel | `fromcad2cfd fastcfd unstructured solve-kepsilon-channel` | Runs a bounded two-equation k-epsilon channel benchmark with k, epsilon, production, eddy-viscosity, residual, and convergence evidence. |
+| Pressure-corrected k-epsilon channel | `fromcad2cfd fastcfd unstructured solve-kepsilon-pressure-channel` | Runs a bounded pressure-correction loop with momentum prediction, pressure correction, k/epsilon transport, divergence monitors, and Fluent pressure-velocity hints. |
+| Menter k-omega SST turbulent channel | `fromcad2cfd fastcfd unstructured solve-sst-channel` | Runs a bounded SST channel benchmark with k, omega, F1/F2 blending, eddy-viscosity limiter, residual, and convergence evidence. |
+| Turbulence evidence ladder | `fromcad2cfd fastcfd unstructured solve-turbulence-ladder` | Runs the local algebraic, k-epsilon, pressure-corrected k-epsilon, and SST tiers and recommends the strongest passed evidence tier. |
+| Unstructured case runner | `fromcad2cfd fastcfd unstructured run-case` | Runs an agent-safe JSON case with explicit mesh, physics, boundary conditions, and solver controls. |
+| Public unstructured benchmark suite | `fromcad2cfd fastcfd unstructured run-benchmark-suite` | Runs the current public-safe suite across channel validation, steady case, obstacle evidence, VOF-lite, and turbulence ladder. |
 | Fluent hint compiler | `fromcad2cfd fastcfd compile-fluent-hints` | Aggregates setup hints only when every hint has explicit evidence and source-artifact traceability. |
 
 ## Evidence Rule
@@ -40,7 +47,15 @@ The implemented gates can support early engineering decisions such as:
   range,
 - whether public unstructured examples preserve CAD-to-CFD boundary zones,
 - whether a simple alpha transport check remains bounded before Fluent VOF
-  setup.
+  setup,
+- whether simplified local eddy-viscosity, k-epsilon, pressure-corrected
+  k-epsilon, and SST channel benchmarks activate turbulence effects, preserve
+  wall constraints, and provide usable turbulence-closure evidence before later
+  Fluent RANS validation,
+- whether an explicit JSON case can preserve mesh, boundary-condition, solver,
+  and output intent for repeatable agent execution,
+- whether the public benchmark suite still passes before larger private or
+  Fluent-coupled work begins.
 
 These gates are designed to make the agent's pre-Fluent recommendations
 auditable. The roadmap beyond this layer is production Fluent Meshing,

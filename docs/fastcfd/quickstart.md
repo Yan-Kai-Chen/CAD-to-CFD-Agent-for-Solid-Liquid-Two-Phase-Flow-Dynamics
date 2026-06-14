@@ -45,6 +45,17 @@ python -m fromcad2cfd fastcfd unstructured solve-diffusion examples/unstructured
 It writes `linear_system.json`, `solution.vtu`, `residual_history.csv`,
 `qoi.json`, `scalar_diffusion_report.md`, and `diffusion_status.json`.
 
+For a public 3D tetra smoke benchmark, use the generated unit-cube tetra mesh:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-tetra-diffusion --output-dir 05_projects\tetra_diffusion_demo\output --format json
+```
+
+This writes `unit_cube_tetra.msh`, `mesh_manifest.json`, `mesh_quality.json`,
+`fv_geometry.json`, `linear_system.json`, `solution.vtu`, `qoi.json`, and
+`diffusion_status.json`. It validates 3D tetra topology and scalar P1 assembly
+only; it is not a 3D Navier-Stokes, VOF, turbulence, Fluent, or GPU solver.
+
 The first momentum benchmark is manufactured Stokes:
 
 ```powershell
@@ -105,6 +116,108 @@ per-level channel-validation artifacts. This is the current U14 evidence route
 for checking whether the unstructured solver path behaves consistently as mesh
 resolution increases.
 
+The simplified turbulent-channel benchmark keeps turbulence solving present in
+the local FastFluent stack without claiming a production RANS model:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-turbulent-channel --output-dir 05_projects\turbulent_channel_demo\output --iterations 8 --format json
+```
+
+It generates a public-safe channel mesh when no mesh is supplied, validates
+`inlet`, `outlet`, and `wall` patches, solves an iterative pressure-driven
+channel with a Prandtl mixing-length algebraic eddy-viscosity closure, and
+writes `turbulent_channel_qoi.json`, `turbulent_channel_iterations.csv`,
+`turbulent_channel_solution.vtu`, `turbulent_channel_report.md`, and
+`turbulent_channel_status.json`. This is a zero-equation benchmark for
+engineering evidence; it is not k-epsilon, SST, DES, LES, or a Fluent
+replacement.
+
+The stronger two-equation turbulence benchmark solves streamwise momentum plus
+k and epsilon transport with standard k-epsilon constants:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-kepsilon-channel --output-dir 05_projects\kepsilon_channel_demo\output --iterations 8 --format json
+```
+
+It writes `kepsilon_qoi.json`, `kepsilon_iterations.csv`,
+`kepsilon_solution.vtu`, `kepsilon_report.md`, and `kepsilon_status.json`.
+The QoI includes positive k and epsilon checks, turbulence production,
+`mu_t / mu`, residuals for the momentum, k, and epsilon systems, and Fluent
+RANS setup hints. This is stronger than the algebraic eddy-viscosity benchmark
+because k and epsilon are solved fields, but it is still a bounded benchmark,
+not a production SIMPLE/PISO, SST, DES, LES, wall-function validation, or
+Fluent replacement.
+
+The pressure-corrected k-epsilon route adds a pressure-correction step inside
+the same outer turbulence loop:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-kepsilon-pressure-channel --output-dir 05_projects\pressure_kepsilon_channel_demo\output --iterations 8 --format json
+```
+
+It writes `pressure_kepsilon_qoi.json`,
+`pressure_kepsilon_iterations.csv`, `pressure_kepsilon_solution.vtu`,
+`pressure_kepsilon_report.md`, and `pressure_kepsilon_status.json`. The QoI
+records momentum prediction, pressure-correction residuals, divergence monitors,
+k and epsilon transport residuals, eddy-viscosity ratios, and Fluent setup
+hints. This is the strongest local pressure-velocity-coupled turbulence
+evidence in the public stack. It is still bounded and does not claim production
+SIMPLE/PISO, Fluent, SST, DES, LES, or wall-function validation.
+
+The bounded Menter k-omega SST route adds a near-wall-oriented two-equation
+RANS benchmark with SST blending functions:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-sst-channel --output-dir 05_projects\sst_channel_demo\output --iterations 8 --format json
+```
+
+It writes `sst_qoi.json`, `sst_iterations.csv`, `sst_solution.vtu`,
+`sst_report.md`, and `sst_status.json`. The QoI records k and omega transport
+residuals, SST F1/F2 blending fields, the eddy-viscosity limiter,
+positive-field checks, turbulent-viscosity ratios, and Fluent SST setup hints.
+This is now the strongest local turbulence-closure evidence in the public
+stack. The pressure-corrected k-epsilon route remains the pressure-velocity
+coupling evidence. Neither route is a production Fluent replacement.
+
+For agent decision support, the turbulence ladder runs all four local
+turbulence tiers on the same public channel mesh:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-turbulence-ladder --output-dir 05_projects\turbulence_ladder_demo\output --iterations 8 --format json
+```
+
+It writes `turbulence_ladder_qoi.json`,
+`turbulence_ladder_report.md`, and per-tier artifacts under
+`01_algebraic_eddy_viscosity`, `02_standard_kepsilon`,
+`03_pressure_corrected_kepsilon`, and `04_menter_sst`. The ladder recommends the
+strongest passed local evidence tier for later Fluent setup, but it remains a
+bounded local evidence comparison rather than production CFD validation.
+
+The agent-safe unstructured case runner is the preferred route when a mesh and
+boundary-condition set should be described explicitly:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured write-steady-channel-case --case-file 05_projects\steady_channel_case\input\case.json --mesh-file examples\unstructured\channel2d.msh --format json
+python -m fromcad2cfd fastcfd unstructured run-case 05_projects\steady_channel_case\input\case.json --output-dir 05_projects\steady_channel_case\output --format json
+```
+
+The direct controlled steady incompressible route is useful for quick public
+channel checks with default inlet/outlet/wall boundary conditions:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured solve-steady-incompressible examples\unstructured\channel2d.msh --output-dir 05_projects\steady_incompressible_demo\output --iterations 8 --format json
+```
+
+For a one-command public validation sweep:
+
+```powershell
+python -m fromcad2cfd fastcfd unstructured run-benchmark-suite --output-dir 05_projects\unstructured_public_suite\output --iterations 8 --format json
+```
+
+The suite runs Poiseuille channel validation, the JSON steady incompressible
+case route, public obstacle-channel evidence, VOF-lite alpha transport, and the
+turbulence ladder. It is public-safe evidence, not production Fluent validation.
+
 ## VOF Physics Passport
 
 The VOF route validates two-phase setup readiness before any Fluent VOF run. It
@@ -131,8 +244,9 @@ Capillary, and Froude numbers. Failed passports block downstream setup hints.
 
 ## Turbulence Passport
 
-The turbulence route validates setup readiness for a first Fluent RANS setup. It
-does not solve turbulence.
+The turbulence passport validates setup readiness for a first Fluent RANS
+setup. It complements the simplified turbulent-channel benchmark above, but it
+does not itself solve turbulence.
 
 ```powershell
 python -m fromcad2cfd fastcfd write-turbulence-demo --output-dir 05_projects\turbulence_demo\input

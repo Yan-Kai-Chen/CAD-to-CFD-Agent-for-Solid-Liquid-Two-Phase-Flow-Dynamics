@@ -14,7 +14,7 @@ from ..paths import unique_path
 from .geometry import build_fv_geometry
 from .gmsh import GmshReadError, read_gmsh_v4_ascii
 from .linear import SparseMatrixCSR, solve_linear_system
-from .mesh import MeshElement, UnstructuredMesh, triangle_signed_area_xy
+from .mesh import MeshElement, UnstructuredMesh, dot, tetra_signed_volume, triangle_signed_area_xy
 from .quality import build_mesh_manifest, evaluate_mesh_quality
 from .vtu import write_mesh_vtu, write_scalar_solution_vtu
 
@@ -36,9 +36,10 @@ def run_scalar_diffusion_case(
 ) -> dict[str, Any]:
     """Run a small manufactured scalar diffusion benchmark.
 
-    The current implementation supports 2D triangular meshes and exact
-    Dirichlet boundary values on all boundary nodes. It exists as a benchmark
-    gate for geometry and matrix assembly, not as a production scalar solver.
+    The current implementation supports P1 simplex cells: 2D triangles and 3D
+    tetrahedra. It applies exact Dirichlet boundary values on all boundary
+    nodes and exists as a benchmark gate for geometry and matrix assembly, not
+    as a production scalar solver.
     """
 
     mesh_path = Path(mesh_file)
@@ -165,7 +166,7 @@ def solve_manufactured_diffusion(
     matrix_metadata = solve_result.metadata(matrix)
     matrix_metadata.update(
         {
-            "assembly": "p1_triangle_scalar_diffusion",
+            "assembly": _assembly_label(mesh),
             "boundary_condition": "exact_dirichlet_on_boundary_nodes",
             "constrained_node_count": len(linear_system["constrained_values"]),
             "rhs_l2": sqrt(sum(value * value for value in rhs)),
@@ -207,7 +208,7 @@ def _assemble_scalar_diffusion_linear_system(
     rows: list[dict[int, float]] = [dict() for _ in range(size)]
     rhs = [0.0 for _ in range(size)]
     for cell in mesh.cells:
-        _assemble_triangle(rows, rhs, mesh, cell, node_index, exact["source"], diffusivity)
+        _assemble_simplex(rows, rhs, mesh, cell, node_index, exact["source"], diffusivity)
     boundary_nodes = _boundary_nodes(mesh)
     if not boundary_nodes:
         raise ValueError("Scalar diffusion requires Dirichlet boundary nodes from boundary elements.")
@@ -223,7 +224,7 @@ def _assemble_scalar_diffusion_linear_system(
     }
 
 
-def _assemble_triangle(
+def _assemble_simplex(
     rows: list[dict[int, float]],
     rhs: list[float],
     mesh: UnstructuredMesh,
@@ -232,21 +233,28 @@ def _assemble_triangle(
     source_fn,
     diffusivity: float,
 ) -> None:
-    if cell.kind != "triangle":
-        raise ValueError(f"Scalar diffusion U4 currently supports triangle cells only, got {cell.kind}.")
     points = [mesh.nodes[tag].to_tuple() for tag in cell.node_tags]
-    area = abs(triangle_signed_area_xy(points[0], points[1], points[2]))
-    if area <= 0:
-        raise ValueError(f"Cannot assemble diffusion for non-positive triangle area in element {cell.tag}.")
-    gradients = _triangle_basis_gradients(points, area)
+    if cell.kind == "triangle":
+        measure = abs(triangle_signed_area_xy(points[0], points[1], points[2]))
+        if measure <= 0:
+            raise ValueError(f"Cannot assemble diffusion for non-positive triangle area in element {cell.tag}.")
+        gradients = [(gradient[0], gradient[1], 0.0) for gradient in _triangle_basis_gradients(points, measure)]
+    elif cell.kind == "tetra":
+        measure = abs(tetra_signed_volume(points[0], points[1], points[2], points[3]))
+        if measure <= 0:
+            raise ValueError(f"Cannot assemble diffusion for non-positive tetra volume in element {cell.tag}.")
+        gradients = _tetra_basis_gradients(points)
+    else:
+        raise ValueError(f"Scalar diffusion currently supports triangle and tetra cells only, got {cell.kind}.")
     local_source = source_fn(*mesh.cell_center(cell))
     for local_i, tag_i in enumerate(cell.node_tags):
         global_i = node_index[tag_i]
-        rhs[global_i] += local_source * area / 3.0
+        rhs[global_i] += local_source * measure / len(cell.node_tags)
         for local_j, tag_j in enumerate(cell.node_tags):
             global_j = node_index[tag_j]
-            rows[global_i][global_j] = rows[global_i].get(global_j, 0.0) + diffusivity * area * (
-                gradients[local_i][0] * gradients[local_j][0] + gradients[local_i][1] * gradients[local_j][1]
+            rows[global_i][global_j] = rows[global_i].get(global_j, 0.0) + diffusivity * measure * dot(
+                gradients[local_i],
+                gradients[local_j],
             )
 
 
@@ -261,19 +269,51 @@ def _triangle_basis_gradients(points: list[tuple[float, float, float]], area: fl
     return gradients
 
 
+def _tetra_basis_gradients(points: list[tuple[float, float, float]]) -> list[tuple[float, float, float]]:
+    matrix = [[point[0], point[1], point[2], 1.0] for point in points]
+    gradients = []
+    for index in range(4):
+        values = [1.0 if item == index else 0.0 for item in range(4)]
+        coeffs = _solve_linear_system([row[:] for row in matrix], values)
+        gradients.append((coeffs[0], coeffs[1], coeffs[2]))
+    return gradients
+
+
+def _solve_linear_system(matrix: list[list[float]], rhs: list[float]) -> list[float]:
+    size = len(rhs)
+    augmented = [list(row) + [rhs[index]] for index, row in enumerate(matrix)]
+    for column in range(size):
+        pivot_row = max(range(column, size), key=lambda row: abs(augmented[row][column]))
+        pivot = augmented[pivot_row][column]
+        if abs(pivot) < 1.0e-14:
+            raise ValueError("Degenerate tetra geometry for scalar diffusion basis gradients.")
+        if pivot_row != column:
+            augmented[column], augmented[pivot_row] = augmented[pivot_row], augmented[column]
+        scale = augmented[column][column]
+        for item in range(column, size + 1):
+            augmented[column][item] /= scale
+        for row in range(size):
+            if row == column:
+                continue
+            factor = augmented[row][column]
+            for item in range(column, size + 1):
+                augmented[row][item] -= factor * augmented[column][item]
+    return [augmented[row][size] for row in range(size)]
+
+
 def _manufactured_solution(mesh: UnstructuredMesh, name: str, *, diffusivity: float):
     bounds = _mesh_bounds(mesh)
     lx = bounds["xmax"] - bounds["xmin"]
     ly = bounds["ymax"] - bounds["ymin"]
-    if lx <= 0 or ly <= 0:
-        raise ValueError("Manufactured scalar diffusion requires non-zero x and y mesh extents.")
     if name == "linear":
         return {
             "name": name,
-            "value": lambda x, y, z: 2.0 * x - 3.0 * y + 5.0,
+            "value": lambda x, y, z: 2.0 * x - 3.0 * y + 0.5 * z + 5.0,
             "source": lambda x, y, z: 0.0,
         }
     if name == "quadratic_bubble":
+        if lx <= 0 or ly <= 0:
+            raise ValueError("Quadratic scalar diffusion requires non-zero x and y mesh extents.")
         xmin = bounds["xmin"]
         ymin = bounds["ymin"]
 
@@ -375,8 +415,8 @@ def _build_qoi(
             "final_residual_linf": final_residual["linf"],
         },
         "limitations": [
-            "U5 solves a scalar manufactured diffusion benchmark with an explicit linear-system layer only.",
-            "The current implementation supports 2D triangular meshes with Dirichlet values on all boundary nodes.",
+            "U30 solves a scalar manufactured diffusion benchmark with an explicit linear-system layer only.",
+            "The current implementation supports P1 triangle and tetra simplex cells with Dirichlet values on all boundary nodes.",
             "This is not a momentum, pressure, VOF, rheology, turbulence, or Fluent solver.",
         ],
     }
@@ -431,6 +471,11 @@ def _diffusion_markdown(qoi: dict[str, Any]) -> str:
 
 
 def _require_supported_cells(mesh: UnstructuredMesh) -> None:
-    unsupported = sorted({cell.kind for cell in mesh.cells if cell.kind != "triangle"})
+    unsupported = sorted({cell.kind for cell in mesh.cells if cell.kind not in {"triangle", "tetra"}})
     if unsupported:
-        raise ValueError(f"Scalar diffusion U4 currently supports triangle cells only; unsupported cells: {unsupported}.")
+        raise ValueError(f"Scalar diffusion currently supports triangle and tetra cells only; unsupported cells: {unsupported}.")
+
+
+def _assembly_label(mesh: UnstructuredMesh) -> str:
+    kinds = sorted({cell.kind for cell in mesh.cells})
+    return f"p1_simplex_scalar_diffusion_{'_'.join(kinds)}"

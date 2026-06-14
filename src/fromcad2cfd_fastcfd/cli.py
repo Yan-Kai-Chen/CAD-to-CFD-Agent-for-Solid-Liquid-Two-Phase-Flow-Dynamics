@@ -28,12 +28,20 @@ from .scene_compiler import compile_scene_file_to_job, read_scene, validate_scen
 from .schemas import read_job
 from .paths import unique_path
 from .unstructured.channel_validation import run_channel_convergence_case, run_channel_validation_case
+from .unstructured.benchmark_suite import run_public_benchmark_suite
+from .unstructured.case_runner import run_unstructured_case_file, write_public_steady_channel_case
 from .unstructured.diffusion import run_scalar_diffusion_case
 from .unstructured.flow import run_flow_benchmark_case
 from .unstructured.inspect import inspect_mesh_file
+from .unstructured.kepsilon_channel import run_kepsilon_channel_case, run_pressure_corrected_kepsilon_channel_case
 from .unstructured.obstacle import run_obstacle_channel_evidence
 from .unstructured.projection import run_projection_benchmark_case
 from .unstructured.stokes import run_stokes_benchmark_case
+from .unstructured.sst_channel import run_sst_channel_case
+from .unstructured.steady_incompressible import run_steady_incompressible_case
+from .unstructured.tetra_validation import run_tetra_diffusion_case
+from .unstructured.turbulent_channel import run_turbulent_channel_case
+from .unstructured.turbulence_ladder import run_turbulence_ladder_case
 from .turbulence import validate_turbulence_case_file, write_demo_turbulence_case
 from .vof import validate_vof_case_file, write_demo_vof_case
 from .vof_transport import run_vof_lite_transport_benchmark
@@ -176,6 +184,19 @@ def build_parser() -> argparse.ArgumentParser:
     inspect_mesh.add_argument("--required-patches", default="inlet,outlet,wall", help="Comma-separated required boundary patch names.")
     inspect_mesh.add_argument("--format", choices=("json", "markdown"), default="json")
     inspect_mesh.add_argument("--no-write-vtu", action="store_true", help="Skip mesh.vtu preview output.")
+    run_case = unstructured_sub.add_parser("run-case", help="Run an agent-safe unstructured case JSON file.")
+    run_case.add_argument("case_file", help="Unstructured case JSON file.")
+    run_case.add_argument("--output-dir", default=None, help="Directory for case-run artifacts.")
+    run_case.add_argument("--format", choices=("json", "markdown"), default="json")
+    write_steady_case = unstructured_sub.add_parser("write-steady-channel-case", help="Write a public steady incompressible channel case JSON.")
+    write_steady_case.add_argument("--case-file", required=True, help="Output case JSON path.")
+    write_steady_case.add_argument("--mesh-file", required=True, help="Mesh path to reference from the case JSON.")
+    write_steady_case.add_argument("--case-name", default="public_steady_channel_case")
+    write_steady_case.add_argument("--inlet-velocity", default="1.0,0.0", help="Comma-separated ux,uy.")
+    write_steady_case.add_argument("--density", type=float, default=1.0)
+    write_steady_case.add_argument("--viscosity", type=float, default=1.0e-2)
+    write_steady_case.add_argument("--iterations", type=int, default=8)
+    write_steady_case.add_argument("--format", choices=("json", "markdown"), default="json")
     solve_diffusion = unstructured_sub.add_parser("solve-diffusion", help="Run a manufactured scalar diffusion benchmark.")
     solve_diffusion.add_argument("mesh_file", help="Path to a Gmsh .msh v4 ASCII mesh.")
     solve_diffusion.add_argument("--output-dir", default=None, help="Directory for diffusion artifacts.")
@@ -186,6 +207,17 @@ def build_parser() -> argparse.ArgumentParser:
     solve_diffusion.add_argument("--linear-tolerance", type=float, default=1.0e-12)
     solve_diffusion.add_argument("--max-linear-iterations", type=int, default=None)
     solve_diffusion.add_argument("--format", choices=("json", "markdown"), default="json")
+    solve_tetra = unstructured_sub.add_parser(
+        "solve-tetra-diffusion",
+        help="Run a public 3D tetra scalar diffusion smoke benchmark.",
+    )
+    solve_tetra.add_argument("mesh_file", nargs="?", help="Optional Gmsh .msh tetra mesh. If omitted, a public unit-cube tetra mesh is generated.")
+    solve_tetra.add_argument("--output-dir", default=None, help="Directory for tetra diffusion artifacts.")
+    solve_tetra.add_argument("--diffusivity", type=float, default=1.0)
+    solve_tetra.add_argument("--linear-solver", choices=("sparse-cg", "dense-direct"), default="sparse-cg")
+    solve_tetra.add_argument("--linear-tolerance", type=float, default=1.0e-12)
+    solve_tetra.add_argument("--max-linear-iterations", type=int, default=None)
+    solve_tetra.add_argument("--format", choices=("json", "markdown"), default="json")
     solve_stokes = unstructured_sub.add_parser("solve-stokes", help="Run a manufactured Stokes momentum benchmark.")
     solve_stokes.add_argument("mesh_file", help="Path to a Gmsh .msh v4 ASCII mesh.")
     solve_stokes.add_argument("--output-dir", default=None, help="Directory for Stokes benchmark artifacts.")
@@ -222,6 +254,22 @@ def build_parser() -> argparse.ArgumentParser:
     solve_flow.add_argument("--linear-tolerance", type=float, default=1.0e-12)
     solve_flow.add_argument("--max-linear-iterations", type=int, default=None)
     solve_flow.add_argument("--format", choices=("json", "markdown"), default="json")
+    solve_steady = unstructured_sub.add_parser(
+        "solve-steady-incompressible",
+        help="Run a controlled steady incompressible pressure-correction case with default inlet/outlet/wall BCs.",
+    )
+    solve_steady.add_argument("mesh_file", help="Path to a Gmsh .msh v4 ASCII mesh.")
+    solve_steady.add_argument("--output-dir", default=None, help="Directory for steady incompressible artifacts.")
+    solve_steady.add_argument("--required-patches", default="inlet,outlet,wall", help="Comma-separated required boundary patch names.")
+    solve_steady.add_argument("--density", type=float, default=1.0)
+    solve_steady.add_argument("--viscosity", type=float, default=1.0e-2)
+    solve_steady.add_argument("--body-force", default="0.0,0.0", help="Comma-separated force_x,force_y.")
+    solve_steady.add_argument("--iterations", type=int, default=8)
+    solve_steady.add_argument("--pressure-relaxation", type=float, default=0.45)
+    solve_steady.add_argument("--linear-solver", choices=("sparse-cg", "dense-direct"), default="sparse-cg")
+    solve_steady.add_argument("--linear-tolerance", type=float, default=1.0e-12)
+    solve_steady.add_argument("--max-linear-iterations", type=int, default=None)
+    solve_steady.add_argument("--format", choices=("json", "markdown"), default="json")
     solve_channel = unstructured_sub.add_parser("solve-channel-validation", help="Run a boundary-aware Poiseuille channel validation case.")
     solve_channel.add_argument("mesh_file", help="Path to a Gmsh .msh v4 ASCII mesh.")
     solve_channel.add_argument("--output-dir", default=None, help="Directory for channel validation artifacts.")
@@ -260,6 +308,122 @@ def build_parser() -> argparse.ArgumentParser:
     solve_vof_lite.add_argument("--inlet-alpha", type=float, default=1.0)
     solve_vof_lite.add_argument("--initial-column-fraction", type=float, default=0.35)
     solve_vof_lite.add_argument("--format", choices=("json", "markdown"), default="json")
+    solve_turbulent = unstructured_sub.add_parser(
+        "solve-turbulent-channel",
+        help="Run a simplified algebraic eddy-viscosity turbulent channel benchmark.",
+    )
+    solve_turbulent.add_argument("mesh_file", nargs="?", help="Optional Gmsh .msh file. If omitted, a public channel mesh is generated.")
+    solve_turbulent.add_argument("--output-dir", default=None, help="Directory for turbulent-channel artifacts.")
+    solve_turbulent.add_argument("--density", type=float, default=1.0)
+    solve_turbulent.add_argument("--molecular-viscosity", type=float, default=1.0e-3)
+    solve_turbulent.add_argument("--pressure-drop", type=float, default=0.05)
+    solve_turbulent.add_argument("--iterations", type=int, default=12)
+    solve_turbulent.add_argument("--relaxation", type=float, default=0.55)
+    solve_turbulent.add_argument("--kappa", type=float, default=0.41)
+    solve_turbulent.add_argument("--max-mixing-length-fraction", type=float, default=0.09)
+    solve_turbulent.add_argument("--turbulent-viscosity-cap-ratio", type=float, default=1000.0)
+    solve_turbulent.add_argument("--linear-solver", choices=("sparse-cg", "dense-direct"), default="sparse-cg")
+    solve_turbulent.add_argument("--linear-tolerance", type=float, default=1.0e-12)
+    solve_turbulent.add_argument("--max-linear-iterations", type=int, default=None)
+    solve_turbulent.add_argument("--required-patches", default="inlet,outlet,wall", help="Comma-separated required boundary patch names.")
+    solve_turbulent.add_argument("--format", choices=("json", "markdown"), default="json")
+    solve_kepsilon = unstructured_sub.add_parser(
+        "solve-kepsilon-channel",
+        help="Run a bounded standard k-epsilon two-equation turbulent channel benchmark.",
+    )
+    solve_kepsilon.add_argument("mesh_file", nargs="?", help="Optional Gmsh .msh file. If omitted, a public channel mesh is generated.")
+    solve_kepsilon.add_argument("--output-dir", default=None, help="Directory for k-epsilon channel artifacts.")
+    solve_kepsilon.add_argument("--density", type=float, default=1.0)
+    solve_kepsilon.add_argument("--molecular-viscosity", type=float, default=1.0e-3)
+    solve_kepsilon.add_argument("--pressure-drop", type=float, default=0.05)
+    solve_kepsilon.add_argument("--iterations", type=int, default=12)
+    solve_kepsilon.add_argument("--relaxation", type=float, default=0.45)
+    solve_kepsilon.add_argument("--c-mu", type=float, default=0.09)
+    solve_kepsilon.add_argument("--c-epsilon-1", type=float, default=1.44)
+    solve_kepsilon.add_argument("--c-epsilon-2", type=float, default=1.92)
+    solve_kepsilon.add_argument("--sigma-k", type=float, default=1.0)
+    solve_kepsilon.add_argument("--sigma-epsilon", type=float, default=1.3)
+    solve_kepsilon.add_argument("--turbulence-intensity", type=float, default=0.05)
+    solve_kepsilon.add_argument("--turbulent-length-scale-fraction", type=float, default=0.07)
+    solve_kepsilon.add_argument("--turbulent-viscosity-cap-ratio", type=float, default=1000.0)
+    solve_kepsilon.add_argument("--linear-solver", choices=("sparse-cg", "dense-direct"), default="sparse-cg")
+    solve_kepsilon.add_argument("--linear-tolerance", type=float, default=1.0e-12)
+    solve_kepsilon.add_argument("--max-linear-iterations", type=int, default=None)
+    solve_kepsilon.add_argument("--required-patches", default="inlet,outlet,wall", help="Comma-separated required boundary patch names.")
+    solve_kepsilon.add_argument("--format", choices=("json", "markdown"), default="json")
+    solve_pressure_kepsilon = unstructured_sub.add_parser(
+        "solve-kepsilon-pressure-channel",
+        help="Run a bounded pressure-corrected standard k-epsilon turbulent channel benchmark.",
+    )
+    solve_pressure_kepsilon.add_argument("mesh_file", nargs="?", help="Optional Gmsh .msh file. If omitted, a public channel mesh is generated.")
+    solve_pressure_kepsilon.add_argument("--output-dir", default=None, help="Directory for pressure-corrected k-epsilon artifacts.")
+    solve_pressure_kepsilon.add_argument("--density", type=float, default=1.0)
+    solve_pressure_kepsilon.add_argument("--molecular-viscosity", type=float, default=1.0e-3)
+    solve_pressure_kepsilon.add_argument("--pressure-drop", type=float, default=0.05)
+    solve_pressure_kepsilon.add_argument("--iterations", type=int, default=10)
+    solve_pressure_kepsilon.add_argument("--relaxation", type=float, default=0.4)
+    solve_pressure_kepsilon.add_argument("--pressure-relaxation", type=float, default=0.35)
+    solve_pressure_kepsilon.add_argument("--c-mu", type=float, default=0.09)
+    solve_pressure_kepsilon.add_argument("--c-epsilon-1", type=float, default=1.44)
+    solve_pressure_kepsilon.add_argument("--c-epsilon-2", type=float, default=1.92)
+    solve_pressure_kepsilon.add_argument("--sigma-k", type=float, default=1.0)
+    solve_pressure_kepsilon.add_argument("--sigma-epsilon", type=float, default=1.3)
+    solve_pressure_kepsilon.add_argument("--turbulence-intensity", type=float, default=0.05)
+    solve_pressure_kepsilon.add_argument("--turbulent-length-scale-fraction", type=float, default=0.07)
+    solve_pressure_kepsilon.add_argument("--turbulent-viscosity-cap-ratio", type=float, default=1000.0)
+    solve_pressure_kepsilon.add_argument("--linear-solver", choices=("sparse-cg", "dense-direct"), default="sparse-cg")
+    solve_pressure_kepsilon.add_argument("--linear-tolerance", type=float, default=1.0e-12)
+    solve_pressure_kepsilon.add_argument("--max-linear-iterations", type=int, default=None)
+    solve_pressure_kepsilon.add_argument("--required-patches", default="inlet,outlet,wall", help="Comma-separated required boundary patch names.")
+    solve_pressure_kepsilon.add_argument("--format", choices=("json", "markdown"), default="json")
+    solve_sst = unstructured_sub.add_parser(
+        "solve-sst-channel",
+        help="Run a bounded Menter k-omega SST two-equation turbulent channel benchmark.",
+    )
+    solve_sst.add_argument("mesh_file", nargs="?", help="Optional Gmsh .msh file. If omitted, a public channel mesh is generated.")
+    solve_sst.add_argument("--output-dir", default=None, help="Directory for SST channel artifacts.")
+    solve_sst.add_argument("--density", type=float, default=1.0)
+    solve_sst.add_argument("--molecular-viscosity", type=float, default=1.0e-3)
+    solve_sst.add_argument("--pressure-drop", type=float, default=0.05)
+    solve_sst.add_argument("--iterations", type=int, default=10)
+    solve_sst.add_argument("--relaxation", type=float, default=0.35)
+    solve_sst.add_argument("--beta-star", type=float, default=0.09)
+    solve_sst.add_argument("--sigma-k1", type=float, default=0.85)
+    solve_sst.add_argument("--sigma-omega1", type=float, default=0.5)
+    solve_sst.add_argument("--beta1", type=float, default=0.075)
+    solve_sst.add_argument("--sigma-k2", type=float, default=1.0)
+    solve_sst.add_argument("--sigma-omega2", type=float, default=0.856)
+    solve_sst.add_argument("--beta2", type=float, default=0.0828)
+    solve_sst.add_argument("--kappa", type=float, default=0.41)
+    solve_sst.add_argument("--a1", type=float, default=0.31)
+    solve_sst.add_argument("--turbulence-intensity", type=float, default=0.05)
+    solve_sst.add_argument("--turbulent-length-scale-fraction", type=float, default=0.07)
+    solve_sst.add_argument("--turbulent-viscosity-cap-ratio", type=float, default=1000.0)
+    solve_sst.add_argument("--linear-solver", choices=("sparse-cg", "dense-direct"), default="sparse-cg")
+    solve_sst.add_argument("--linear-tolerance", type=float, default=1.0e-12)
+    solve_sst.add_argument("--max-linear-iterations", type=int, default=None)
+    solve_sst.add_argument("--required-patches", default="inlet,outlet,wall", help="Comma-separated required boundary patch names.")
+    solve_sst.add_argument("--format", choices=("json", "markdown"), default="json")
+    solve_turbulence_ladder = unstructured_sub.add_parser(
+        "solve-turbulence-ladder",
+        help="Run algebraic, k-epsilon, pressure-corrected k-epsilon, and SST channel benchmarks and compare evidence.",
+    )
+    solve_turbulence_ladder.add_argument("--output-dir", default=None, help="Directory for turbulence ladder artifacts.")
+    solve_turbulence_ladder.add_argument("--density", type=float, default=1.0)
+    solve_turbulence_ladder.add_argument("--molecular-viscosity", type=float, default=1.0e-3)
+    solve_turbulence_ladder.add_argument("--pressure-drop", type=float, default=0.05)
+    solve_turbulence_ladder.add_argument("--iterations", type=int, default=8)
+    solve_turbulence_ladder.add_argument("--linear-solver", choices=("sparse-cg", "dense-direct"), default="sparse-cg")
+    solve_turbulence_ladder.add_argument("--linear-tolerance", type=float, default=1.0e-12)
+    solve_turbulence_ladder.add_argument("--max-linear-iterations", type=int, default=None)
+    solve_turbulence_ladder.add_argument("--format", choices=("json", "markdown"), default="json")
+    run_benchmark_suite = unstructured_sub.add_parser(
+        "run-benchmark-suite",
+        help="Run the public unstructured validation suite.",
+    )
+    run_benchmark_suite.add_argument("--output-dir", default=None, help="Directory for public benchmark suite artifacts.")
+    run_benchmark_suite.add_argument("--iterations", type=int, default=8)
+    run_benchmark_suite.add_argument("--format", choices=("json", "markdown"), default="json")
 
     mock_demo = sub.add_parser("mock-demo", help="Write and run the deterministic cavity2d mock demo.")
     mock_demo.add_argument("--project", default="fastcfd_mock_cavity2d")
@@ -554,6 +718,40 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(json.dumps(result, ensure_ascii=True, indent=2))
             return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "run-case":
+            result = run_unstructured_case_file(args.case_file, output_dir=args.output_dir)
+            if args.format == "markdown":
+                qoi = result.get("outputs", {}).get("qoi", {})
+                metrics = qoi.get("metrics", {})
+                print(f"# FastFluent Unstructured Case\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Solver: `{qoi.get('solver_family')}`")
+                print(f"- Final divergence L2: `{metrics.get('final_divergence_l2')}`")
+                print(f"- Mass-flux relative imbalance: `{metrics.get('mass_flux', {}).get('relative_imbalance')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "write-steady-channel-case":
+            case_path = write_public_steady_channel_case(
+                args.case_file,
+                mesh_file=args.mesh_file,
+                case_name=args.case_name,
+                inlet_velocity=_parse_velocity(args.inlet_velocity),
+                density=args.density,
+                viscosity=args.viscosity,
+                iterations=args.iterations,
+            )
+            payload = {
+                "status": "success",
+                "operation": "write_steady_channel_case",
+                "outputs": {"case_file": str(case_path)},
+            }
+            if args.format == "markdown":
+                print("# FastFluent Steady Channel Case\n")
+                print(f"- Case file: `{case_path}`")
+            else:
+                print(json.dumps(payload, ensure_ascii=True, indent=2))
+            return 0
         if args.unstructured_command == "solve-flow-benchmark":
             result = run_flow_benchmark_case(
                 args.mesh_file,
@@ -574,6 +772,55 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"- Initial divergence L2: `{metrics.get('initial_divergence_l2')}`")
                 print(f"- Final divergence L2: `{metrics.get('final_divergence_l2')}`")
                 print(f"- Global divergence reduction ratio: `{metrics.get('global_divergence_reduction_ratio')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "solve-tetra-diffusion":
+            result = run_tetra_diffusion_case(
+                args.mesh_file,
+                output_dir=args.output_dir,
+                diffusivity=args.diffusivity,
+                linear_solver=args.linear_solver,
+                linear_tolerance=args.linear_tolerance,
+                max_linear_iterations=args.max_linear_iterations,
+            )
+            if args.format == "markdown":
+                qoi = result.get("outputs", {}).get("qoi", {})
+                metrics = qoi.get("metrics", {})
+                linear_system = qoi.get("linear_system", {})
+                tetra_case = result.get("outputs", {}).get("tetra_case", {})
+                print(f"# FastFluent 3D Tetra Diffusion\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Mesh: `{tetra_case.get('mesh_file')}`")
+                print(f"- Cells: `{qoi.get('cell_count')}`")
+                print(f"- Linear solver: `{linear_system.get('method')}`")
+                print(f"- Cell-center L2 error: `{metrics.get('cell_center_l2_error')}`")
+                print(f"- Final residual L2: `{metrics.get('final_residual_l2')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "solve-steady-incompressible":
+            result = run_steady_incompressible_case(
+                args.mesh_file,
+                output_dir=args.output_dir,
+                required_patches=tuple(item.strip() for item in args.required_patches.split(",") if item.strip()),
+                density=args.density,
+                viscosity=args.viscosity,
+                body_force=_parse_pressure_gradient(args.body_force),
+                iterations=args.iterations,
+                pressure_relaxation=args.pressure_relaxation,
+                linear_solver=args.linear_solver,
+                linear_tolerance=args.linear_tolerance,
+                max_linear_iterations=args.max_linear_iterations,
+            )
+            if args.format == "markdown":
+                qoi = result.get("outputs", {}).get("qoi", {})
+                metrics = qoi.get("metrics", {})
+                print(f"# FastFluent Steady Incompressible Case\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Final divergence L2: `{metrics.get('final_divergence_l2')}`")
+                print(f"- Mass-flux relative imbalance: `{metrics.get('mass_flux', {}).get('relative_imbalance')}`")
+                print(f"- Boundary error: `{metrics.get('velocity_boundary_error')}`")
                 print(f"- Errors: `{result.get('errors', [])}`")
             else:
                 print(json.dumps(result, ensure_ascii=True, indent=2))
@@ -657,6 +904,178 @@ def main(argv: list[str] | None = None) -> int:
                 print(f"- Alpha range: `{metrics.get('min_alpha')}` to `{metrics.get('max_alpha')}`")
                 print(f"- Relative balance error: `{metrics.get('relative_balance_error')}`")
                 print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "solve-turbulent-channel":
+            result = run_turbulent_channel_case(
+                args.mesh_file,
+                output_dir=args.output_dir,
+                density=args.density,
+                molecular_viscosity=args.molecular_viscosity,
+                pressure_drop=args.pressure_drop,
+                iterations=args.iterations,
+                relaxation=args.relaxation,
+                kappa=args.kappa,
+                max_mixing_length_fraction=args.max_mixing_length_fraction,
+                turbulent_viscosity_cap_ratio=args.turbulent_viscosity_cap_ratio,
+                linear_solver=args.linear_solver,
+                linear_tolerance=args.linear_tolerance,
+                max_linear_iterations=args.max_linear_iterations,
+                required_patches=tuple(item.strip() for item in args.required_patches.split(",") if item.strip()),
+            )
+            if args.format == "markdown":
+                qoi = result.get("outputs", {}).get("qoi", {})
+                metrics = qoi.get("metrics", {})
+                print(f"# FastFluent Turbulent Channel Benchmark\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Bulk Reynolds number: `{metrics.get('bulk_reynolds_number')}`")
+                print(f"- Max turbulent viscosity ratio: `{metrics.get('max_turbulent_viscosity_ratio')}`")
+                print(f"- Final velocity update L2: `{metrics.get('final_velocity_update_l2')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "solve-kepsilon-channel":
+            result = run_kepsilon_channel_case(
+                args.mesh_file,
+                output_dir=args.output_dir,
+                density=args.density,
+                molecular_viscosity=args.molecular_viscosity,
+                pressure_drop=args.pressure_drop,
+                iterations=args.iterations,
+                relaxation=args.relaxation,
+                c_mu=args.c_mu,
+                c_epsilon_1=args.c_epsilon_1,
+                c_epsilon_2=args.c_epsilon_2,
+                sigma_k=args.sigma_k,
+                sigma_epsilon=args.sigma_epsilon,
+                turbulence_intensity=args.turbulence_intensity,
+                turbulent_length_scale_fraction=args.turbulent_length_scale_fraction,
+                turbulent_viscosity_cap_ratio=args.turbulent_viscosity_cap_ratio,
+                linear_solver=args.linear_solver,
+                linear_tolerance=args.linear_tolerance,
+                max_linear_iterations=args.max_linear_iterations,
+                required_patches=tuple(item.strip() for item in args.required_patches.split(",") if item.strip()),
+            )
+            if args.format == "markdown":
+                qoi = result.get("outputs", {}).get("qoi", {})
+                metrics = qoi.get("metrics", {})
+                print(f"# FastFluent k-epsilon Channel Benchmark\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Bulk Reynolds number: `{metrics.get('bulk_reynolds_number')}`")
+                print(f"- Mean k: `{metrics.get('mean_turbulent_kinetic_energy')}`")
+                print(f"- Mean epsilon: `{metrics.get('mean_epsilon')}`")
+                print(f"- Max turbulent viscosity ratio: `{metrics.get('max_turbulent_viscosity_ratio')}`")
+                print(f"- Final velocity update L2: `{metrics.get('final_velocity_update_l2')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "solve-kepsilon-pressure-channel":
+            result = run_pressure_corrected_kepsilon_channel_case(
+                args.mesh_file,
+                output_dir=args.output_dir,
+                density=args.density,
+                molecular_viscosity=args.molecular_viscosity,
+                pressure_drop=args.pressure_drop,
+                iterations=args.iterations,
+                relaxation=args.relaxation,
+                pressure_relaxation=args.pressure_relaxation,
+                c_mu=args.c_mu,
+                c_epsilon_1=args.c_epsilon_1,
+                c_epsilon_2=args.c_epsilon_2,
+                sigma_k=args.sigma_k,
+                sigma_epsilon=args.sigma_epsilon,
+                turbulence_intensity=args.turbulence_intensity,
+                turbulent_length_scale_fraction=args.turbulent_length_scale_fraction,
+                turbulent_viscosity_cap_ratio=args.turbulent_viscosity_cap_ratio,
+                linear_solver=args.linear_solver,
+                linear_tolerance=args.linear_tolerance,
+                max_linear_iterations=args.max_linear_iterations,
+                required_patches=tuple(item.strip() for item in args.required_patches.split(",") if item.strip()),
+            )
+            if args.format == "markdown":
+                qoi = result.get("outputs", {}).get("qoi", {})
+                metrics = qoi.get("metrics", {})
+                print(f"# FastFluent Pressure-Corrected k-epsilon Channel Benchmark\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Bulk Reynolds number: `{metrics.get('bulk_reynolds_number')}`")
+                print(f"- Mean k: `{metrics.get('mean_turbulent_kinetic_energy')}`")
+                print(f"- Mean epsilon: `{metrics.get('mean_epsilon')}`")
+                print(f"- Max turbulent viscosity ratio: `{metrics.get('max_turbulent_viscosity_ratio')}`")
+                print(f"- Final divergence L2: `{metrics.get('final_divergence_l2')}`")
+                print(f"- Final velocity update L2: `{metrics.get('final_velocity_update_l2')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "solve-sst-channel":
+            result = run_sst_channel_case(
+                args.mesh_file,
+                output_dir=args.output_dir,
+                density=args.density,
+                molecular_viscosity=args.molecular_viscosity,
+                pressure_drop=args.pressure_drop,
+                iterations=args.iterations,
+                relaxation=args.relaxation,
+                beta_star=args.beta_star,
+                sigma_k1=args.sigma_k1,
+                sigma_omega1=args.sigma_omega1,
+                beta1=args.beta1,
+                sigma_k2=args.sigma_k2,
+                sigma_omega2=args.sigma_omega2,
+                beta2=args.beta2,
+                kappa=args.kappa,
+                a1=args.a1,
+                turbulence_intensity=args.turbulence_intensity,
+                turbulent_length_scale_fraction=args.turbulent_length_scale_fraction,
+                turbulent_viscosity_cap_ratio=args.turbulent_viscosity_cap_ratio,
+                linear_solver=args.linear_solver,
+                linear_tolerance=args.linear_tolerance,
+                max_linear_iterations=args.max_linear_iterations,
+                required_patches=tuple(item.strip() for item in args.required_patches.split(",") if item.strip()),
+            )
+            if args.format == "markdown":
+                qoi = result.get("outputs", {}).get("qoi", {})
+                metrics = qoi.get("metrics", {})
+                print(f"# FastFluent Menter k-omega SST Channel Benchmark\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Bulk Reynolds number: `{metrics.get('bulk_reynolds_number')}`")
+                print(f"- Mean k: `{metrics.get('mean_turbulent_kinetic_energy')}`")
+                print(f"- Mean omega: `{metrics.get('mean_omega')}`")
+                print(f"- Max turbulent viscosity ratio: `{metrics.get('max_turbulent_viscosity_ratio')}`")
+                print(f"- Mean F1: `{metrics.get('mean_f1')}`")
+                print(f"- Mean F2: `{metrics.get('mean_f2')}`")
+                print(f"- Final velocity update L2: `{metrics.get('final_velocity_update_l2')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "solve-turbulence-ladder":
+            result = run_turbulence_ladder_case(
+                output_dir=args.output_dir,
+                iterations=args.iterations,
+                density=args.density,
+                molecular_viscosity=args.molecular_viscosity,
+                pressure_drop=args.pressure_drop,
+                linear_solver=args.linear_solver,
+                linear_tolerance=args.linear_tolerance,
+                max_linear_iterations=args.max_linear_iterations,
+            )
+            if args.format == "markdown":
+                qoi = result.get("outputs", {}).get("qoi", {})
+                print("# FastFluent Turbulence Ladder\n")
+                print(f"Status: `{result.get('status')}`")
+                print(f"Recommended tier: `{qoi.get('recommendation', {}).get('tier')}`")
+                print(f"Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.unstructured_command == "run-benchmark-suite":
+            result = run_public_benchmark_suite(output_dir=args.output_dir, iterations=args.iterations)
+            if args.format == "markdown":
+                summary = result.get("outputs", {}).get("summary", {})
+                print("# FastFluent Public Unstructured Benchmark Suite\n")
+                print(f"Status: `{result.get('status')}`")
+                print(f"Cases: `{summary.get('case_order')}`")
+                print(f"Errors: `{result.get('errors', [])}`")
             else:
                 print(json.dumps(result, ensure_ascii=True, indent=2))
             return 0 if result.get("status") == "success" else 2

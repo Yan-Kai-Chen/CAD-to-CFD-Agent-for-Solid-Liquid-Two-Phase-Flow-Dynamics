@@ -28,6 +28,14 @@ Skills and policies
       -> non-Newtonian rheology passport and shear-rate benchmark gate
       -> public body-fitted obstacle-channel evidence gate
       -> VOF-lite alpha-transport benchmark gate
+      -> algebraic eddy-viscosity turbulent-channel benchmark gate
+      -> standard k-epsilon turbulent-channel benchmark gate
+      -> pressure-corrected k-epsilon benchmark gate
+      -> Menter k-omega SST benchmark gate
+      -> turbulence evidence ladder
+      -> JSON unstructured case runner
+      -> controlled steady incompressible pressure-correction route
+      -> public unstructured benchmark suite
       -> evidence-checked Fluent setup hint compiler
       -> physics passport, field QoI, prediction reports, parameter screening
       -> Fluent Meshing preflight gate
@@ -56,7 +64,7 @@ FastCFD / CFD screening pillar
       -> semantic scene registry
       -> physics passport
       -> mock and controlled FastFluent backends
-      -> unstructured_fvm Gmsh import, named-zone preservation, mesh-quality gate, boundary contract, FV geometry, scalar diffusion, CSR linear systems, manufactured Stokes momentum, pressure projection, iterative flow benchmark, boundary-aware channel validation, convergence evidence, public obstacle-channel evidence, VOF-lite alpha transport, and VTU preview
+      -> unstructured_fvm Gmsh import, named-zone preservation, mesh-quality gate, boundary contract, FV geometry, 2D triangle and 3D tetra scalar diffusion, CSR linear systems, manufactured Stokes momentum, pressure projection, iterative flow benchmark, boundary-aware channel validation, convergence evidence, public obstacle-channel evidence, VOF-lite alpha transport, algebraic eddy-viscosity turbulent-channel benchmark, standard k-epsilon turbulent-channel benchmark, pressure-corrected k-epsilon benchmark, Menter k-omega SST benchmark, JSON case runner, controlled steady incompressible pressure-correction route, public benchmark suite, turbulence evidence ladder, and VTU preview
       -> VOF, turbulence, and rheology passports plus Fluent setup hints
       -> evidence-checked Fluent hint compiler
       -> field QoI, lattice trust, prediction, parameter screening, and pilot decision artifacts
@@ -79,11 +87,17 @@ extract field-derived QoI, issue prediction reports, rank simple parameter
 variants, and prepare evidence for later Fluent work. Its current unstructured
 route is an engineering validation and evidence layer: it imports Gmsh v4 ASCII
 meshes, preserves physical names, writes mesh-quality reports, builds
-finite-volume geometry operators, assembles CSR linear systems, solves scalar
-manufactured diffusion, runs Stokes and pressure-projection benchmarks, produces
-VTU previews, and adds boundary-aware Poiseuille channel validation,
-mesh-convergence evidence, public body-fitted obstacle-channel evidence, and
-VOF-lite alpha-transport evidence.
+finite-volume geometry operators, assembles CSR linear systems, solves 2D
+triangle and 3D tetra scalar manufactured diffusion, runs Stokes and
+pressure-projection benchmarks, produces VTU previews, and adds
+boundary-aware Poiseuille channel validation,
+mesh-convergence evidence, public body-fitted obstacle-channel evidence,
+VOF-lite alpha-transport evidence, a simplified algebraic eddy-viscosity
+turbulent-channel solve, a bounded standard k-epsilon two-equation channel
+benchmark, a pressure-corrected k-epsilon benchmark, a Menter k-omega SST
+benchmark, a JSON case runner, a controlled steady incompressible
+pressure-correction route, and a public benchmark suite for agent setup
+decisions.
 
 The VOF, turbulence, and rheology gates validate setup inputs and Fluent-facing
 hints with explicit evidence. Production Fluent Meshing, production Fluent
@@ -100,7 +114,7 @@ post-processing remain roadmap modules.
 - `fromcad2cfd_nx`: Siemens NX backend based on validated NXOpen journal jobs.
 - `fromcad2cfd_mcp_nx`: safe Siemens NX stdio MCP server with high-level job builders.
 - `fromcad2cfd_mesh`: mesh inspection and optional FreeCAD/OpenCascade coarse solidification.
-- `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates, structured pilot cases, VOF/turbulence/rheology setup-passport tooling, evidence-checked Fluent hint compilation, and the first unstructured mesh, boundary-contract, geometry, scalar diffusion, linear-system, Stokes momentum, pressure-projection, iterative flow benchmark, boundary-aware channel validation, channel-convergence, public obstacle-channel, and VOF-lite alpha-transport gates.
+- `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates, structured pilot cases, VOF/turbulence/rheology setup-passport tooling, evidence-checked Fluent hint compilation, and the first unstructured mesh, boundary-contract, geometry, 2D triangle and 3D tetra scalar diffusion, linear-system, Stokes momentum, pressure-projection, iterative flow benchmark, boundary-aware channel validation, channel-convergence, public obstacle-channel, VOF-lite alpha-transport, algebraic eddy-viscosity turbulent-channel, standard k-epsilon turbulent-channel, pressure-corrected k-epsilon, Menter k-omega SST, JSON case-runner, controlled steady incompressible, public benchmark-suite, and turbulence-ladder gates.
 - `fromcad2cfd_fluent_meshing`: Fluent Meshing planning gate; full Fluent execution remains planned.
 - `fromcad2cfd_fluent_solver`: Fluent Solver roadmap module.
 - `fromcad2cfd_postprocessing`: CFD post-processing roadmap module.

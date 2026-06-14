@@ -7,6 +7,8 @@ import pytest
 
 from fromcad2cfd.cli import main as root_main
 from fromcad2cfd_fastcfd.capabilities import capability_inventory
+from fromcad2cfd_fastcfd.unstructured.benchmark_suite import run_public_benchmark_suite
+from fromcad2cfd_fastcfd.unstructured.case_runner import run_unstructured_case_file, write_public_steady_channel_case
 from fromcad2cfd_fastcfd.unstructured.channel_validation import (
     run_channel_convergence_case,
     run_channel_validation_case,
@@ -17,11 +19,17 @@ from fromcad2cfd_fastcfd.unstructured.flow import run_flow_benchmark_case
 from fromcad2cfd_fastcfd.unstructured.geometry import build_fv_geometry, node_scalar_cell_gradients
 from fromcad2cfd_fastcfd.unstructured.gmsh import read_gmsh_v4_ascii
 from fromcad2cfd_fastcfd.unstructured.inspect import inspect_mesh_file
+from fromcad2cfd_fastcfd.unstructured.kepsilon_channel import run_kepsilon_channel_case, run_pressure_corrected_kepsilon_channel_case
 from fromcad2cfd_fastcfd.unstructured.linear import SparseMatrixCSR, solve_linear_system
 from fromcad2cfd_fastcfd.unstructured.mesh import dot, vector_sub
 from fromcad2cfd_fastcfd.unstructured.obstacle import run_obstacle_channel_evidence, write_rectangular_obstacle_channel_mesh
 from fromcad2cfd_fastcfd.unstructured.projection import run_projection_benchmark_case
 from fromcad2cfd_fastcfd.unstructured.stokes import run_stokes_benchmark_case
+from fromcad2cfd_fastcfd.unstructured.sst_channel import run_sst_channel_case
+from fromcad2cfd_fastcfd.unstructured.steady_incompressible import run_steady_incompressible_case
+from fromcad2cfd_fastcfd.unstructured.tetra_validation import run_tetra_diffusion_case, write_unit_cube_tetra_mesh
+from fromcad2cfd_fastcfd.unstructured.turbulent_channel import run_turbulent_channel_case
+from fromcad2cfd_fastcfd.unstructured.turbulence_ladder import run_turbulence_ladder_case
 from fromcad2cfd_fastcfd.vof_transport import run_vof_lite_transport_benchmark
 
 
@@ -43,7 +51,17 @@ def test_unstructured_backend_is_declared():
     assert "unstructured_channel_convergence" in inventory["validation_gates"]
     assert "unstructured_obstacle_channel_evidence" in inventory["validation_gates"]
     assert "vof_lite_alpha_transport" in inventory["validation_gates"]
-    assert inventory["validation_gates"]["unstructured_scalar_diffusion"]["status"] == "implemented_u4_u5"
+    assert "unstructured_turbulent_channel_solve" in inventory["validation_gates"]
+    assert "unstructured_kepsilon_channel_solve" in inventory["validation_gates"]
+    assert "unstructured_pressure_corrected_kepsilon_channel" in inventory["validation_gates"]
+    assert "unstructured_sst_channel_solve" in inventory["validation_gates"]
+    assert "unstructured_turbulence_ladder" in inventory["validation_gates"]
+    assert "unstructured_case_runner" in inventory["validation_gates"]
+    assert "unstructured_boundary_condition_schema" in inventory["validation_gates"]
+    assert "unstructured_steady_incompressible_solver" in inventory["validation_gates"]
+    assert "unstructured_public_benchmark_suite" in inventory["validation_gates"]
+    assert "unstructured_tetra_diffusion_smoke" in inventory["validation_gates"]
+    assert inventory["validation_gates"]["unstructured_scalar_diffusion"]["status"] == "implemented_u4_u5_u30"
     assert inventory["validation_gates"]["unstructured_linear_system"]["status"] == "implemented_u5"
     assert inventory["validation_gates"]["unstructured_stokes_momentum"]["status"] == "implemented_u6"
     assert inventory["validation_gates"]["unstructured_pressure_projection"]["status"] == "implemented_u7"
@@ -53,7 +71,17 @@ def test_unstructured_backend_is_declared():
     assert inventory["validation_gates"]["unstructured_channel_convergence"]["status"] == "implemented_u14"
     assert inventory["validation_gates"]["unstructured_obstacle_channel_evidence"]["status"] == "implemented_u18"
     assert inventory["validation_gates"]["vof_lite_alpha_transport"]["status"] == "implemented_u19"
-    assert inventory["backend_families"]["unstructured_fvm"]["status"] == "boundary_aware_channel_validation_u0_u14"
+    assert inventory["validation_gates"]["unstructured_turbulent_channel_solve"]["status"] == "implemented_u21"
+    assert inventory["validation_gates"]["unstructured_kepsilon_channel_solve"]["status"] == "implemented_u22"
+    assert inventory["validation_gates"]["unstructured_pressure_corrected_kepsilon_channel"]["status"] == "implemented_u23"
+    assert inventory["validation_gates"]["unstructured_sst_channel_solve"]["status"] == "implemented_u25"
+    assert inventory["validation_gates"]["unstructured_turbulence_ladder"]["status"] == "implemented_u24_u25"
+    assert inventory["validation_gates"]["unstructured_case_runner"]["status"] == "implemented_u26"
+    assert inventory["validation_gates"]["unstructured_boundary_condition_schema"]["status"] == "implemented_u27"
+    assert inventory["validation_gates"]["unstructured_steady_incompressible_solver"]["status"] == "implemented_u28"
+    assert inventory["validation_gates"]["unstructured_public_benchmark_suite"]["status"] == "implemented_u29"
+    assert inventory["validation_gates"]["unstructured_tetra_diffusion_smoke"]["status"] == "implemented_u30"
+    assert inventory["backend_families"]["unstructured_fvm"]["status"] == "physics_extended_benchmarking_u0_u30"
     assert "unstructured_fvm" in inventory["safe_backends"]
     assert "unstructured_flow_solver_without_mesh_quality_gate" in inventory["disabled_capabilities"]
 
@@ -166,6 +194,30 @@ def test_unstructured_node_scalar_gradients_reconstruct_constant_and_linear_fiel
         assert gradient[2] == pytest.approx(0.0)
 
 
+def test_unstructured_unit_cube_tetra_mesh_preserves_3d_patches(tmp_path):
+    mesh_path = write_unit_cube_tetra_mesh(tmp_path / "unit_cube_tetra.msh")
+    mesh = read_gmsh_v4_ascii(mesh_path)
+    quality_result = inspect_mesh_file(mesh_path, output_dir=tmp_path / "inspect", required_patches=("xmin", "xmax", "ymin", "ymax", "zmin", "zmax"))
+    fv_geometry = build_fv_geometry(mesh)
+    linear_values = {tag: 2.0 * node.x - 3.0 * node.y + 0.5 * node.z + 5.0 for tag, node in mesh.nodes.items()}
+    gradients = node_scalar_cell_gradients(mesh, linear_values)
+
+    assert mesh.cell_dimension == 3
+    assert mesh.cell_type_counts() == {"tetra": 12}
+    assert mesh.boundary_zone_counts() == {"xmax": 2, "xmin": 2, "ymax": 2, "ymin": 2, "zmax": 2, "zmin": 2}
+    assert mesh.region_zone_counts() == {"fluid": 12}
+    assert quality_result["status"] == "success"
+    assert fv_geometry.to_dict()["boundary_face_count"] == 12
+    assert fv_geometry.to_dict()["internal_face_count"] == 18
+    assert all(cell.measure > 0 for cell in fv_geometry.cells)
+    assert any(face.neighbor is not None for face in fv_geometry.faces)
+    assert all(face.area > 0 for face in fv_geometry.faces)
+    for gradient in gradients.values():
+        assert gradient[0] == pytest.approx(2.0)
+        assert gradient[1] == pytest.approx(-3.0)
+        assert gradient[2] == pytest.approx(0.5)
+
+
 def test_unstructured_sparse_matrix_and_solvers_match_dense_reference():
     matrix = SparseMatrixCSR.from_triplets(
         3,
@@ -213,6 +265,25 @@ def test_unstructured_scalar_diffusion_linear_solution_is_exact(tmp_path):
     assert qoi["linear_system"]["method"] == "sparse_cg"
     assert qoi["linear_system"]["storage"] == "csr"
     assert result["outputs"]["solver_execution"] == "scalar_diffusion_linear_system"
+
+
+def test_unstructured_tetra_diffusion_linear_solution_is_exact(tmp_path):
+    result = run_tetra_diffusion_case(output_dir=tmp_path / "tetra_out")
+
+    assert result["status"] == "success"
+    artifacts = result["outputs"]["artifacts"]
+    assert Path(artifacts["tetra_mesh"]).exists()
+    for key in ["qoi", "linear_system", "residual_history", "solution_vtu", "fv_geometry", "diffusion_status"]:
+        assert key in artifacts
+        assert Path(artifacts[key]).exists()
+    qoi = result["outputs"]["qoi"]
+    assert result["outputs"]["tetra_case"]["generated_mesh"] is True
+    assert qoi["cell_count"] == 12
+    assert qoi["boundary_node_count"] == 8
+    assert qoi["linear_system"]["constrained_node_count"] == 8
+    assert qoi["metrics"]["node_linf_error"] == pytest.approx(0.0, abs=1.0e-10)
+    assert qoi["metrics"]["cell_center_l2_error"] == pytest.approx(0.0, abs=1.0e-10)
+    assert qoi["metrics"]["final_residual_l2"] < 1.0e-10
 
 
 def test_unstructured_scalar_diffusion_sparse_and_dense_solvers_match(tmp_path):
@@ -286,6 +357,31 @@ def test_unstructured_scalar_diffusion_cli_route(tmp_path, capsys):
     assert Path(payload["outputs"]["artifacts"]["residual_history"]).exists()
     assert Path(payload["outputs"]["artifacts"]["linear_system"]).exists()
     assert payload["outputs"]["qoi"]["linear_system"]["method"] == "sparse_cg"
+
+
+def test_unstructured_tetra_diffusion_cli_route(tmp_path, capsys):
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "solve-tetra-diffusion",
+            "--output-dir",
+            str(tmp_path / "tetra_cli"),
+            "--linear-solver",
+            "sparse-cg",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert payload["outputs"]["tetra_case"]["generated_mesh"] is True
+    assert Path(payload["outputs"]["artifacts"]["tetra_mesh"]).exists()
+    assert Path(payload["outputs"]["artifacts"]["solution_vtu"]).exists()
+    assert payload["outputs"]["qoi"]["cell_count"] == 12
+    assert payload["outputs"]["qoi"]["metrics"]["node_linf_error"] == pytest.approx(0.0, abs=1.0e-10)
 
 
 def test_unstructured_stokes_linear_divergence_free_solution_is_exact(tmp_path):
@@ -517,6 +613,157 @@ def test_unstructured_flow_benchmark_cli_route(tmp_path, capsys):
     assert payload["outputs"]["qoi"]["metrics"]["global_divergence_reduction_ratio"] < 1.0
 
 
+def test_unstructured_steady_incompressible_case_solves_from_default_bcs(tmp_path):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "steady_channel.msh", nx=8, ny=4)
+
+    result = run_steady_incompressible_case(mesh_path, output_dir=tmp_path / "steady_out", iterations=8, viscosity=1.0e-2)
+
+    assert result["status"] == "success"
+    qoi = result["outputs"]["qoi"]
+    artifacts = result["outputs"]["artifacts"]
+    assert qoi["schema_version"] == "fromcad2cfd_fastfluent_unstructured_steady_incompressible_v1"
+    assert qoi["acceptance"]["linear_systems_converged"] is True
+    assert qoi["acceptance"]["velocity_boundary_preserved"] is True
+    assert qoi["acceptance"]["mass_flux_imbalance_within_controlled_tolerance"] is True
+    assert qoi["metrics"]["mass_flux"]["relative_imbalance"] < 0.1
+    assert qoi["metrics"]["final_divergence_l2"] < qoi["metrics"]["initial_divergence_l2"]
+    assert result["outputs"]["solver_execution"] == "steady_incompressible_pressure_correction"
+    for key in [
+        "mesh_manifest",
+        "mesh_quality",
+        "steady_boundary_contract",
+        "fv_geometry",
+        "steady_linear_systems",
+        "steady_residual_history",
+        "steady_qoi",
+        "steady_solution_vtu",
+        "steady_report",
+        "steady_status",
+    ]:
+        assert Path(artifacts[key]).exists()
+
+
+def test_unstructured_case_runner_executes_steady_case_json(tmp_path):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "case_channel.msh", nx=8, ny=4)
+    case_path = write_public_steady_channel_case(tmp_path / "case.json", mesh_file=mesh_path.resolve(), iterations=8)
+
+    result = run_unstructured_case_file(case_path, output_dir=tmp_path / "case_out")
+
+    assert result["status"] == "success"
+    artifacts = result["outputs"]["artifacts"]
+    qoi = result["outputs"]["qoi"]
+    assert result["outputs"]["solver_execution"] == "steady_incompressible_pressure_correction"
+    assert result["outputs"]["runner_execution"] == "unstructured_case_runner"
+    assert result["outputs"]["case"]["schema_version"] == "fromcad2cfd_fastfluent_unstructured_case_v1"
+    assert qoi["status"] == "passed"
+    assert qoi["metrics"]["mass_flux"]["relative_imbalance"] < 0.1
+    assert Path(artifacts["normalized_case"]).exists()
+    assert Path(artifacts["case_status"]).exists()
+
+
+def test_unstructured_case_runner_boundary_parameters_fail_closed(tmp_path):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "bad_case_channel.msh", nx=4, ny=2)
+    case_path = tmp_path / "bad_case.json"
+    case_path.write_text(
+        json.dumps(
+            {
+                "mesh_file": str(mesh_path),
+                "physics": {"model": "steady_incompressible", "density": 1.0, "viscosity": 1.0e-2},
+                "boundary_conditions": {
+                    "inlet": {"kind": "velocity_inlet"},
+                    "outlet": {"kind": "pressure_outlet", "pressure": 0.0},
+                    "wall": {"kind": "no_slip_wall"},
+                },
+                "solver": {"family": "steady_incompressible", "iterations": 4},
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
+
+    result = run_unstructured_case_file(case_path, output_dir=tmp_path / "bad_case_out")
+
+    assert result["status"] == "failed"
+    assert result["outputs"]["boundary_contract"]["status"] == "failed"
+    assert result["outputs"]["solver_execution"] == "blocked_by_boundary_contract"
+    assert any("requires a velocity parameter" in error for error in result["errors"])
+
+
+def test_unstructured_steady_incompressible_cli_route(tmp_path, capsys):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "steady_cli_channel.msh", nx=8, ny=4)
+
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "solve-steady-incompressible",
+            str(mesh_path),
+            "--output-dir",
+            str(tmp_path / "steady_cli_out"),
+            "--iterations",
+            "8",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["steady_qoi"]).exists()
+    assert payload["outputs"]["qoi"]["acceptance"]["velocity_boundary_preserved"] is True
+
+
+def test_unstructured_case_runner_cli_route(tmp_path, capsys):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "case_cli_channel.msh", nx=8, ny=4)
+    case_path = write_public_steady_channel_case(tmp_path / "case_cli.json", mesh_file=mesh_path.resolve(), iterations=8)
+
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "run-case",
+            str(case_path),
+            "--output-dir",
+            str(tmp_path / "case_cli_out"),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["case_status"]).exists()
+    assert payload["outputs"]["qoi"]["metrics"]["mass_flux"]["relative_imbalance"] < 0.1
+
+
+def test_unstructured_write_steady_channel_case_cli_route(tmp_path, capsys):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "write_case_channel.msh", nx=4, ny=2)
+    case_path = tmp_path / "written_case.json"
+
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "write-steady-channel-case",
+            "--case-file",
+            str(case_path),
+            "--mesh-file",
+            str(mesh_path),
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["case_file"]).exists()
+    case = json.loads(case_path.read_text(encoding="utf-8"))
+    assert case["boundary_conditions"]["inlet"]["kind"] == "velocity_inlet"
+
+
 def test_unstructured_channel_validation_boundary_contract_drives_poiseuille_case(tmp_path):
     mesh_path = _write_unit_square_tri_mesh(tmp_path / "channel_validation.msh", nx=4, ny=4)
 
@@ -731,6 +978,404 @@ def test_unstructured_vof_lite_cli_route(tmp_path, capsys):
     assert payload["status"] == "success"
     assert Path(payload["outputs"]["artifacts"]["vof_lite_qoi"]).exists()
     assert payload["outputs"]["qoi"]["acceptance"]["bounded_alpha"] is True
+
+
+def test_unstructured_turbulent_channel_solves_algebraic_eddy_viscosity_case(tmp_path):
+    result = run_turbulent_channel_case(output_dir=tmp_path / "turbulent_out", iterations=8)
+
+    assert result["status"] == "success"
+    qoi = result["outputs"]["qoi"]
+    metrics = qoi["metrics"]
+    artifacts = result["outputs"]["artifacts"]
+    assert qoi["schema_version"] == "fromcad2cfd_fastfluent_unstructured_turbulent_channel_v1"
+    assert qoi["closure_model"]["model"] == "prandtl_mixing_length_zero_equation"
+    assert qoi["acceptance"]["linear_system_converged"] is True
+    assert qoi["acceptance"]["turbulent_viscosity_activated"] is True
+    assert qoi["acceptance"]["wall_no_slip_preserved"] is True
+    assert qoi["acceptance"]["velocity_update_settled"] is True
+    assert metrics["bulk_reynolds_number"] > 4000.0
+    assert metrics["max_turbulent_viscosity_ratio"] > 1.0
+    assert metrics["wall_no_slip_abs_max"] == pytest.approx(0.0)
+    assert result["outputs"]["solver_execution"] == "algebraic_eddy_viscosity_turbulent_channel"
+    for key in [
+        "mesh_manifest",
+        "mesh_quality",
+        "turbulent_boundary_contract",
+        "fv_geometry",
+        "turbulent_channel_qoi",
+        "turbulent_channel_iterations",
+        "turbulent_channel_solution_vtu",
+        "turbulent_channel_report",
+        "turbulent_channel_status",
+    ]:
+        assert Path(artifacts[key]).exists()
+
+
+def test_unstructured_turbulent_channel_boundary_contract_fails_closed(tmp_path):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "turbulent_missing_patch.msh", nx=3)
+
+    result = run_turbulent_channel_case(
+        mesh_path,
+        output_dir=tmp_path / "blocked_turbulent",
+        required_patches=("inlet", "outlet", "wall", "vent"),
+    )
+
+    assert result["status"] == "failed"
+    assert result["outputs"]["boundary_contract"]["status"] == "failed"
+    assert "vent" in result["outputs"]["boundary_contract"]["missing_required_patches"]
+    assert result["outputs"]["solver_execution"] == "blocked_by_boundary_contract"
+    assert Path(result["outputs"]["artifacts"]["turbulent_boundary_contract"]).exists()
+    assert "turbulent_channel_qoi" not in result["outputs"]["artifacts"]
+
+
+def test_unstructured_turbulent_channel_cli_route(tmp_path, capsys):
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "solve-turbulent-channel",
+            "--output-dir",
+            str(tmp_path / "turbulent_cli_out"),
+            "--iterations",
+            "8",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["turbulent_channel_qoi"]).exists()
+    assert payload["outputs"]["qoi"]["acceptance"]["turbulent_viscosity_activated"] is True
+    assert payload["outputs"]["qoi"]["metrics"]["max_turbulent_viscosity_ratio"] > 1.0
+
+
+def test_unstructured_kepsilon_channel_solves_two_equation_case(tmp_path):
+    result = run_kepsilon_channel_case(output_dir=tmp_path / "kepsilon_out", iterations=8)
+
+    assert result["status"] == "success"
+    qoi = result["outputs"]["qoi"]
+    metrics = qoi["metrics"]
+    artifacts = result["outputs"]["artifacts"]
+    assert qoi["schema_version"] == "fromcad2cfd_fastfluent_unstructured_kepsilon_channel_v1"
+    assert qoi["closure_model"]["model"] == "standard_k_epsilon_two_equation_benchmark"
+    assert qoi["acceptance"]["transport_linear_systems_converged"] is True
+    assert qoi["acceptance"]["eddy_viscosity_above_molecular"] is True
+    assert qoi["acceptance"]["positive_k_field"] is True
+    assert qoi["acceptance"]["positive_epsilon_field"] is True
+    assert qoi["acceptance"]["positive_turbulence_production"] is True
+    assert qoi["acceptance"]["wall_no_slip_preserved"] is True
+    assert qoi["acceptance"]["k_update_settled"] is True
+    assert qoi["acceptance"]["epsilon_update_settled"] is True
+    assert metrics["bulk_reynolds_number"] > 1000.0
+    assert metrics["mean_turbulent_kinetic_energy"] > 0.0
+    assert metrics["mean_epsilon"] > 0.0
+    assert metrics["max_turbulent_viscosity_ratio"] > 1.0
+    assert result["outputs"]["solver_execution"] == "kepsilon_turbulent_channel"
+    for key in [
+        "mesh_manifest",
+        "mesh_quality",
+        "kepsilon_boundary_contract",
+        "fv_geometry",
+        "kepsilon_qoi",
+        "kepsilon_iterations",
+        "kepsilon_solution_vtu",
+        "kepsilon_report",
+        "kepsilon_status",
+    ]:
+        assert Path(artifacts[key]).exists()
+
+
+def test_unstructured_kepsilon_channel_boundary_contract_fails_closed(tmp_path):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "kepsilon_missing_patch.msh", nx=3)
+
+    result = run_kepsilon_channel_case(
+        mesh_path,
+        output_dir=tmp_path / "blocked_kepsilon",
+        required_patches=("inlet", "outlet", "wall", "vent"),
+    )
+
+    assert result["status"] == "failed"
+    assert result["outputs"]["boundary_contract"]["status"] == "failed"
+    assert "vent" in result["outputs"]["boundary_contract"]["missing_required_patches"]
+    assert result["outputs"]["solver_execution"] == "blocked_by_boundary_contract"
+    assert Path(result["outputs"]["artifacts"]["kepsilon_boundary_contract"]).exists()
+    assert "kepsilon_qoi" not in result["outputs"]["artifacts"]
+
+
+def test_unstructured_kepsilon_channel_cli_route(tmp_path, capsys):
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "solve-kepsilon-channel",
+            "--output-dir",
+            str(tmp_path / "kepsilon_cli_out"),
+            "--iterations",
+            "8",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["kepsilon_qoi"]).exists()
+    assert payload["outputs"]["qoi"]["acceptance"]["positive_k_field"] is True
+    assert payload["outputs"]["qoi"]["acceptance"]["positive_epsilon_field"] is True
+    assert payload["outputs"]["qoi"]["metrics"]["max_turbulent_viscosity_ratio"] > 1.0
+
+
+def test_unstructured_pressure_corrected_kepsilon_channel_solves_coupled_benchmark(tmp_path):
+    result = run_pressure_corrected_kepsilon_channel_case(output_dir=tmp_path / "pressure_kepsilon_out", iterations=8)
+
+    assert result["status"] == "success"
+    qoi = result["outputs"]["qoi"]
+    metrics = qoi["metrics"]
+    artifacts = result["outputs"]["artifacts"]
+    assert qoi["schema_version"] == "fromcad2cfd_fastfluent_unstructured_pressure_kepsilon_channel_v1"
+    assert qoi["closure_model"]["model"] == "pressure_corrected_standard_k_epsilon_benchmark"
+    assert qoi["acceptance"]["all_linear_systems_converged"] is True
+    assert qoi["acceptance"]["pressure_correction_system_converged"] is True
+    assert qoi["acceptance"]["eddy_viscosity_above_molecular"] is True
+    assert qoi["acceptance"]["positive_finite_k_field"] is True
+    assert qoi["acceptance"]["positive_finite_epsilon_field"] is True
+    assert qoi["acceptance"]["positive_turbulence_production"] is True
+    assert qoi["acceptance"]["wall_no_slip_preserved"] is True
+    assert qoi["acceptance"]["final_step_divergence_reduced"] is True
+    assert qoi["acceptance"]["divergence_monitor_recorded"] is True
+    assert metrics["bulk_reynolds_number"] > 1000.0
+    assert metrics["max_turbulent_viscosity_ratio"] > 1.0
+    assert metrics["final_divergence_l2"] >= 0.0
+    assert result["outputs"]["solver_execution"] == "pressure_corrected_kepsilon_channel"
+    for key in [
+        "mesh_manifest",
+        "mesh_quality",
+        "pressure_kepsilon_boundary_contract",
+        "fv_geometry",
+        "pressure_kepsilon_qoi",
+        "pressure_kepsilon_iterations",
+        "pressure_kepsilon_solution_vtu",
+        "pressure_kepsilon_report",
+        "pressure_kepsilon_status",
+    ]:
+        assert Path(artifacts[key]).exists()
+
+
+def test_unstructured_pressure_corrected_kepsilon_channel_boundary_contract_fails_closed(tmp_path):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "pressure_kepsilon_missing_patch.msh", nx=3)
+
+    result = run_pressure_corrected_kepsilon_channel_case(
+        mesh_path,
+        output_dir=tmp_path / "blocked_pressure_kepsilon",
+        required_patches=("inlet", "outlet", "wall", "vent"),
+    )
+
+    assert result["status"] == "failed"
+    assert result["outputs"]["boundary_contract"]["status"] == "failed"
+    assert "vent" in result["outputs"]["boundary_contract"]["missing_required_patches"]
+    assert result["outputs"]["solver_execution"] == "blocked_by_boundary_contract"
+    assert Path(result["outputs"]["artifacts"]["pressure_kepsilon_boundary_contract"]).exists()
+    assert "pressure_kepsilon_qoi" not in result["outputs"]["artifacts"]
+
+
+def test_unstructured_pressure_corrected_kepsilon_channel_cli_route(tmp_path, capsys):
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "solve-kepsilon-pressure-channel",
+            "--output-dir",
+            str(tmp_path / "pressure_kepsilon_cli_out"),
+            "--iterations",
+            "8",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["pressure_kepsilon_qoi"]).exists()
+    assert payload["outputs"]["qoi"]["acceptance"]["pressure_correction_system_converged"] is True
+    assert payload["outputs"]["qoi"]["acceptance"]["positive_finite_k_field"] is True
+    assert payload["outputs"]["qoi"]["metrics"]["max_turbulent_viscosity_ratio"] > 1.0
+
+
+def test_unstructured_sst_channel_solves_two_equation_case(tmp_path):
+    result = run_sst_channel_case(output_dir=tmp_path / "sst_out", iterations=8)
+
+    assert result["status"] == "success"
+    qoi = result["outputs"]["qoi"]
+    metrics = qoi["metrics"]
+    artifacts = result["outputs"]["artifacts"]
+    assert qoi["schema_version"] == "fromcad2cfd_fastfluent_unstructured_sst_channel_v1"
+    assert qoi["closure_model"]["model"] == "menter_k_omega_sst_benchmark"
+    assert qoi["acceptance"]["transport_linear_systems_converged"] is True
+    assert qoi["acceptance"]["eddy_viscosity_above_molecular"] is True
+    assert qoi["acceptance"]["positive_finite_k_field"] is True
+    assert qoi["acceptance"]["positive_finite_omega_field"] is True
+    assert qoi["acceptance"]["positive_turbulence_production"] is True
+    assert qoi["acceptance"]["wall_no_slip_preserved"] is True
+    assert qoi["acceptance"]["blending_functions_recorded"] is True
+    assert metrics["bulk_reynolds_number"] > 1000.0
+    assert metrics["mean_turbulent_kinetic_energy"] > 0.0
+    assert metrics["mean_omega"] > 0.0
+    assert metrics["max_turbulent_viscosity_ratio"] > 1.0
+    assert metrics["mean_f1"] >= 0.0
+    assert metrics["mean_f2"] >= 0.0
+    assert result["outputs"]["solver_execution"] == "sst_turbulent_channel"
+    for key in [
+        "mesh_manifest",
+        "mesh_quality",
+        "sst_boundary_contract",
+        "fv_geometry",
+        "sst_qoi",
+        "sst_iterations",
+        "sst_solution_vtu",
+        "sst_report",
+        "sst_status",
+    ]:
+        assert Path(artifacts[key]).exists()
+
+
+def test_unstructured_sst_channel_boundary_contract_fails_closed(tmp_path):
+    mesh_path = write_unit_square_channel_mesh(tmp_path / "sst_missing_patch.msh", nx=3)
+
+    result = run_sst_channel_case(
+        mesh_path,
+        output_dir=tmp_path / "blocked_sst",
+        required_patches=("inlet", "outlet", "wall", "vent"),
+    )
+
+    assert result["status"] == "failed"
+    assert result["outputs"]["boundary_contract"]["status"] == "failed"
+    assert "vent" in result["outputs"]["boundary_contract"]["missing_required_patches"]
+    assert result["outputs"]["solver_execution"] == "blocked_by_boundary_contract"
+    assert Path(result["outputs"]["artifacts"]["sst_boundary_contract"]).exists()
+    assert "sst_qoi" not in result["outputs"]["artifacts"]
+
+
+def test_unstructured_sst_channel_cli_route(tmp_path, capsys):
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "solve-sst-channel",
+            "--output-dir",
+            str(tmp_path / "sst_cli_out"),
+            "--iterations",
+            "8",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["sst_qoi"]).exists()
+    assert payload["outputs"]["qoi"]["acceptance"]["positive_finite_k_field"] is True
+    assert payload["outputs"]["qoi"]["acceptance"]["positive_finite_omega_field"] is True
+    assert payload["outputs"]["qoi"]["metrics"]["max_turbulent_viscosity_ratio"] > 1.0
+
+
+def test_unstructured_turbulence_ladder_runs_all_tiers(tmp_path):
+    result = run_turbulence_ladder_case(output_dir=tmp_path / "turbulence_ladder_out", iterations=8)
+
+    assert result["status"] == "success"
+    qoi = result["outputs"]["qoi"]
+    artifacts = result["outputs"]["artifacts"]
+    assert qoi["schema_version"] == "fromcad2cfd_fastfluent_unstructured_turbulence_ladder_v1"
+    assert qoi["status"] == "passed"
+    assert qoi["case_order"] == ["algebraic_eddy_viscosity", "standard_kepsilon", "pressure_corrected_kepsilon", "menter_sst"]
+    assert qoi["recommendation"]["tier"] == "menter_sst"
+    for name in qoi["case_order"]:
+        assert qoi["cases"][name]["status"] == "success"
+        assert qoi["cases"][name]["qoi_status"] == "passed"
+        assert qoi["cases"][name]["metrics"]["max_turbulent_viscosity_ratio"] > 1.0
+    for key in [
+        "public_mesh",
+        "algebraic_status",
+        "kepsilon_status",
+        "pressure_kepsilon_status",
+        "sst_status",
+        "turbulence_ladder_qoi",
+        "turbulence_ladder_report",
+        "turbulence_ladder_status",
+    ]:
+        assert Path(artifacts[key]).exists()
+
+
+def test_unstructured_turbulence_ladder_cli_route(tmp_path, capsys):
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "solve-turbulence-ladder",
+            "--output-dir",
+            str(tmp_path / "turbulence_ladder_cli_out"),
+            "--iterations",
+            "8",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["turbulence_ladder_qoi"]).exists()
+    assert payload["outputs"]["qoi"]["recommendation"]["tier"] == "menter_sst"
+
+
+def test_unstructured_public_benchmark_suite_runs_all_public_cases(tmp_path):
+    result = run_public_benchmark_suite(output_dir=tmp_path / "public_suite", iterations=8)
+
+    assert result["status"] == "success"
+    summary = result["outputs"]["summary"]
+    artifacts = result["outputs"]["artifacts"]
+    assert summary["schema_version"] == "fromcad2cfd_fastfluent_unstructured_public_benchmark_suite_v1"
+    assert summary["status"] == "passed"
+    assert summary["case_order"] == [
+        "poiseuille_channel",
+        "steady_incompressible_case",
+        "body_fitted_obstacle_channel",
+        "vof_lite_alpha_transport",
+        "turbulence_ladder",
+    ]
+    for name in summary["case_order"]:
+        assert summary["cases"][name]["status"] == "success"
+    assert summary["cases"]["steady_incompressible_case"]["key_metrics"]["mass_flux_relative_imbalance"] < 0.1
+    assert summary["cases"]["turbulence_ladder"]["key_metrics"]["recommendation"] == "menter_sst"
+    assert Path(artifacts["benchmark_suite_summary"]).exists()
+    assert Path(artifacts["benchmark_suite_report"]).exists()
+    assert Path(artifacts["benchmark_suite_status"]).exists()
+
+
+def test_unstructured_public_benchmark_suite_cli_route(tmp_path, capsys):
+    exit_code = root_main(
+        [
+            "fastcfd",
+            "unstructured",
+            "run-benchmark-suite",
+            "--output-dir",
+            str(tmp_path / "suite_cli_out"),
+            "--iterations",
+            "8",
+            "--format",
+            "json",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 0
+    assert payload["status"] == "success"
+    assert Path(payload["outputs"]["artifacts"]["benchmark_suite_summary"]).exists()
+    assert payload["outputs"]["summary"]["cases"]["turbulence_ladder"]["key_metrics"]["recommendation"] == "menter_sst"
 
 
 def _write_unit_square_tri_mesh(path: Path, *, nx: int, ny: int) -> Path:
