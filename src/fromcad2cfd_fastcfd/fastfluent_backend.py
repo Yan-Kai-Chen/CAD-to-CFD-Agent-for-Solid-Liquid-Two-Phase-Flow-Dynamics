@@ -18,7 +18,7 @@ from .pilot_decision import build_pilot_decision, pilot_decision_qoi_updates
 from .paths import project_output_dir, unique_path
 from .physics_validator import contract_has_blocking_errors
 from .prediction import build_prediction_report, write_prediction_artifacts
-from .preflight import detect_fastcfd_environment
+from .preflight import detect_fastcfd_environment, resolve_fastfluent_source_root
 from .schemas import ClaimLedger, FastCFDJob, FlowFingerprint, FluentHints, QoIManifest, ResultManifest, read_job
 
 
@@ -246,7 +246,7 @@ def _index_vtk_outputs(output_dir: Path) -> list[dict[str, Any]]:
 def run_fastfluent_job(
     job_path: str | Path,
     *,
-    source_root: str | Path,
+    source_root: str | Path | None = None,
     build_timeout_sec: int = 240,
     run_timeout_sec: int = 240,
 ) -> dict[str, Any]:
@@ -258,7 +258,7 @@ def run_fastfluent_job(
     if job.case_type not in {"cavity2d", "channel2d", "obstacle2d"}:
         raise ValueError(f"No controlled real FastFluent backend is implemented for case_type='{job.case_type}'.")
 
-    source = Path(source_root)
+    source = Path(source_root) if source_root is not None else resolve_fastfluent_source_root()
     output_dir = Path(job.output_dir)
     logs_dir = output_dir / "logs"
     reports_dir = output_dir.parent / "reports"
@@ -316,7 +316,7 @@ def run_fastfluent_job(
 def run_fastfluent_cavity2d_job(
     job_path: str | Path,
     *,
-    source_root: str | Path,
+    source_root: str | Path | None = None,
     build_timeout_sec: int = 240,
     run_timeout_sec: int = 240,
 ) -> dict[str, Any]:

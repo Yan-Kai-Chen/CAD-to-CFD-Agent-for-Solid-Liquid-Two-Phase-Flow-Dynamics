@@ -120,13 +120,13 @@ def build_parser() -> argparse.ArgumentParser:
 
     run_real = sub.add_parser("run-fastfluent-job", help="Build and run a controlled real FastFluent job.")
     run_real.add_argument("--job-file", required=True)
-    run_real.add_argument("--source-root", required=True)
+    run_real.add_argument("--source-root", default=None, help="FastFluent C++ source root. Defaults to vendored cpp/fastfluent_core when available.")
     run_real.add_argument("--build-timeout-sec", type=int, default=240)
     run_real.add_argument("--run-timeout-sec", type=int, default=240)
 
     run_cavity = sub.add_parser("run-fastfluent-cavity2d-job", help="Build and run a controlled real FastFluent cavity2d job.")
     run_cavity.add_argument("--job-file", required=True)
-    run_cavity.add_argument("--source-root", required=True)
+    run_cavity.add_argument("--source-root", default=None, help="FastFluent C++ source root. Defaults to vendored cpp/fastfluent_core when available.")
     run_cavity.add_argument("--build-timeout-sec", type=int, default=240)
     run_cavity.add_argument("--run-timeout-sec", type=int, default=240)
 

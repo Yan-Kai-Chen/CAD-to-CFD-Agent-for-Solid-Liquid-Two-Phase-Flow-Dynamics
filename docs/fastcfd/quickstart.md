@@ -326,7 +326,9 @@ not execute Fluent or edit Fluent case files.
 python -m fromcad2cfd fastcfd preflight
 ```
 
-Set one of these variables before real FastFluent backend work:
+The preflight command first checks the vendored C++ source tree at
+`cpp/fastfluent_core`. To use another FastFluent checkout, pass `--source-root`
+or set one of these variables:
 
 - `FROMCAD2CFD_FASTFLUENT_ROOT`
 - `FASTFLUENT_ROOT`
@@ -383,7 +385,7 @@ After the local FastFluent source root is available and preflight is acceptable:
 
 ```powershell
 python -m fromcad2cfd fastcfd write-cavity2d-job --project fastcfd_cavity2d_real --model-name fastcfd_cavity2d_real
-python -m fromcad2cfd fastcfd run-fastfluent-cavity2d-job --job-file <job.json> --source-root <FastFluent source root>
+python -m fromcad2cfd fastcfd run-fastfluent-cavity2d-job --job-file <job.json>
 ```
 
 The command builds only the known `examples/cavity2d` target, writes a generated
@@ -400,10 +402,10 @@ global FastFluent source tree.
 
 ```powershell
 python -m fromcad2cfd fastcfd write-channel2d-job --project fastcfd_channel2d_real --model-name fastcfd_channel2d_real --total-steps 100 --output-interval 50
-python -m fromcad2cfd fastcfd run-fastfluent-job --job-file <channel_job.json> --source-root <FastFluent source root>
+python -m fromcad2cfd fastcfd run-fastfluent-job --job-file <channel_job.json>
 
 python -m fromcad2cfd fastcfd write-obstacle2d-job --project fastcfd_obstacle2d_real --model-name fastcfd_obstacle2d_real --obstacle circle --total-steps 100 --output-interval 50
-python -m fromcad2cfd fastcfd run-fastfluent-job --job-file <obstacle_job.json> --source-root <FastFluent source root>
+python -m fromcad2cfd fastcfd run-fastfluent-job --job-file <obstacle_job.json>
 ```
 
 Both routes write:

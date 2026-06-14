@@ -44,6 +44,32 @@ automation and pre-Fluent evidence generation. Full Fluent Meshing execution,
 production Fluent Solver setup, production-grade general unstructured
 Navier-Stokes, GPU acceleration, and post-processing remain roadmap modules.
 
+## Repository Language, Solver Core, And Licensing
+
+This repository now contains both the **Python agent framework layer** and the
+**C++ FastFluent solver core**:
+
+- Python implements the CLI, schemas, safety gates, CAD wrappers, MCP-facing
+  tool surfaces, reports, tests, and the current public unstructured benchmark
+  kernels.
+- C++ implements the original FastFluent / FreeLB-derived lattice Boltzmann
+  solver core, examples, benchmark sources, and low-level data structures under
+  [`cpp/fastfluent_core`](cpp/fastfluent_core).
+- Controlled real FastFluent runs can use the vendored C++ core by default, or
+  an explicit source root through `--source-root`,
+  `FROMCAD2CFD_FASTFLUENT_ROOT`, or `FASTFLUENT_ROOT`.
+
+License boundary:
+
+- The Python agent framework is published under the root Apache-2.0 license.
+- The vendored C++ FastFluent core retains its original GPLv3 license; see
+  [`cpp/fastfluent_core/LICENSE`](cpp/fastfluent_core/LICENSE).
+
+Compiled executables, object files, generated VTK outputs, Fluent case/data
+files, and unreviewed CAD/STL geometry data are intentionally not committed.
+This keeps the public repository source-first while avoiding accidental release
+of generated artifacts or private geometry.
+
 ## Current Scope
 
 | Area | Status | Notes |
@@ -53,10 +79,44 @@ Navier-Stokes, GPU acceleration, and post-processing remain roadmap modules.
 | Siemens NX backend | Controlled-journal backend | Uses validated job JSON plus NXOpen journals through `run_journal.exe`. |
 | Siemens NX MCP surface | Runnable stdio server | Exposes high-level safe tools for capability reporting, preflight, job writing, and command preparation. |
 | Mesh solidification | Experimental | Uses copied STL input plus optional FreeCAD/OpenCascade execution to create coarse STEP solid candidates. |
+| FastFluent C++ core | Source-included alpha | Vendored under `cpp/fastfluent_core` with GPLv3 license, examples, benchmarks, LBM/CA/free-surface/non-Newtonian components, and Makefile-based builds. Generated executables, object files, VTK outputs, and unreviewed STL data are excluded. |
 | FastCFD / FastFluent integration | Foundation | Defines agent-safe schemas, source-of-truth registry, semantic scene compiler, physics passport, preflight, deterministic mock workflow, controlled real `cavity2d`, `channel2d`, and `obstacle2d` backends, native run summaries, field-derived QoI parsing, lattice-domain trust scoring, preliminary prediction reports, bounded parameter screening, pilot-decision artifacts, VOF/turbulence/rheology passports, evidence-checked Fluent hint compilation, and `unstructured_fvm` mesh/FV-geometry, 2D triangle and 3D tetra scalar-diffusion, Stokes, projection, flow-benchmark, Poiseuille channel-validation, convergence, public body-fitted obstacle-channel, VOF-lite alpha-transport, algebraic eddy-viscosity turbulent-channel, k-epsilon turbulent-channel, pressure-corrected k-epsilon channel, Menter k-omega SST channel, JSON case runner, controlled steady incompressible solver, and public benchmark-suite gates. |
 | Fluent Meshing | Planning gate | Reads FastCFD prediction and screening evidence and writes a pre-meshing gate report before future Fluent automation. |
 | Fluent Solver | Planned | Interface boundary only. |
 | Post-processing | Planned | Interface boundary only. |
+
+## Development Route So Far
+
+The project has been built in staged gates rather than as one monolithic solver:
+
+1. **Safe CAD foundation**: established a shared CAD backend contract, result
+   envelopes, safety policy, and public-safe examples.
+2. **SolidWorks automation**: validated local COM access, created controlled
+   model-generation and copied-model editing workflows, and added safe
+   reporting/export patterns.
+3. **NX automation**: added a controlled NXOpen journal backend, safe MCP
+   surface, solid modeling packs, surface/sheet operations, Parasolid import,
+   plane cutting, and reverse-modeling steps.
+4. **Mesh solidification support**: added a FreeCAD/OpenCascade route for
+   coarse STL-to-solid candidates without committing private device geometry.
+5. **FastFluent C++ core publication**: added the original C++ solver core to
+   `cpp/fastfluent_core` while excluding generated executables, object files,
+   VTK outputs, and unreviewed geometry data.
+6. **FastCFD / FastFluent foundation**: defined job/scene schemas, registry,
+   physics passports, mock and controlled real backend routes, field QoI,
+   lattice-domain trust, prediction reports, parameter screening, and
+   pilot-decision artifacts.
+7. **Unstructured FastFluent evidence stack**: added Gmsh import, named-zone
+   preservation, mesh-quality gates, FV geometry, scalar diffusion, Stokes,
+   projection, channel validation, convergence checks, obstacle-channel
+   evidence, VOF-lite alpha transport, turbulence passports, algebraic
+   eddy-viscosity, k-epsilon, pressure-corrected k-epsilon, Menter SST, a
+   turbulence ladder, a JSON case runner, controlled steady incompressible
+   solving, a public benchmark suite, and a 3D tetra scalar-diffusion smoke
+   benchmark.
+8. **Publication cleanup**: separated public reusable capabilities from private
+   CAD/STL/Parasolid/NX/Fluent artifacts and documented what is implemented
+   versus what remains a roadmap item.
 
 ## Why This Exists
 
@@ -154,6 +214,7 @@ high-fidelity Fluent validation. The first batch adds:
 - optional FastFluent source/build preflight,
 - deterministic `cavity2d` mock workflow,
 - controlled real `cavity2d`, `channel2d`, and `obstacle2d` execution against the local FastFluent source,
+- vendored C++ FastFluent source under `cpp/fastfluent_core` for default source-root discovery,
 - native executable summaries and residual-history CSVs when source hooks are installed,
 - VTK XML field parsing for speed, density, centerline, outlet, wake, and refinement proxy metrics,
 - recipe-derived lattice-domain trust summaries,

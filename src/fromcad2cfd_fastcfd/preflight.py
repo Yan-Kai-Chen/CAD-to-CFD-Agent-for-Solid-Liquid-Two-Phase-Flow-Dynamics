@@ -15,6 +15,7 @@ from .capabilities import capability_inventory
 
 
 SOURCE_ROOT_ENV_VARS = ("FROMCAD2CFD_FASTFLUENT_ROOT", "FASTFLUENT_ROOT")
+VENDORED_SOURCE_ROOT = Path(__file__).resolve().parents[2] / "cpp" / "fastfluent_core"
 
 
 @dataclass(frozen=True)
@@ -49,10 +50,12 @@ def _source_root_candidates(explicit: str | None = None) -> list[Path]:
     candidates: list[Path] = []
     if explicit:
         candidates.append(Path(explicit))
-    for env_name in SOURCE_ROOT_ENV_VARS:
-        value = os.environ.get(env_name)
-        if value:
-            candidates.append(Path(value))
+    else:
+        for env_name in SOURCE_ROOT_ENV_VARS:
+            value = os.environ.get(env_name)
+            if value:
+                candidates.append(Path(value))
+        candidates.append(VENDORED_SOURCE_ROOT)
     unique: list[Path] = []
     seen: set[str] = set()
     for candidate in candidates:
@@ -68,6 +71,18 @@ def _find_source_root(explicit: str | None = None) -> Path | None:
         if (candidate / "src").is_dir() and (candidate / "examples").is_dir():
             return candidate
     return None
+
+
+def resolve_fastfluent_source_root(explicit: str | Path | None = None) -> Path:
+    root = _find_source_root(str(explicit) if explicit else None)
+    if root:
+        return root
+    if explicit:
+        raise ValueError(f"FastFluent source root was not found or is incomplete: {explicit}")
+    raise ValueError(
+        "FastFluent source root was not found. Expected vendored cpp/fastfluent_core "
+        "or set FROMCAD2CFD_FASTFLUENT_ROOT / FASTFLUENT_ROOT."
+    )
 
 
 def _find_first(*commands: str) -> str | None:
@@ -113,7 +128,11 @@ def detect_fastcfd_environment(source_root: str | None = None) -> FastCFDPreflig
             wsl_command=wsl_command,
             platform_system=platform.system(),
             known_blockers=blockers,
-            notes=notes + ["Set FROMCAD2CFD_FASTFLUENT_ROOT or FASTFLUENT_ROOT to enable real backend checks."],
+            notes=notes
+            + [
+                "Expected vendored cpp/fastfluent_core, or set FROMCAD2CFD_FASTFLUENT_ROOT / FASTFLUENT_ROOT "
+                "to enable real backend checks."
+            ],
         )
     status = "success" if compiler and make_tool and not blockers else "partial"
     return FastCFDPreflightReport(

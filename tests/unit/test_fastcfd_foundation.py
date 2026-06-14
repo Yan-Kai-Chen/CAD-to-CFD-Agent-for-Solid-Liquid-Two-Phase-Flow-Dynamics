@@ -32,7 +32,7 @@ from fromcad2cfd_fastcfd.native_summary import (
 from fromcad2cfd_fastcfd.pilot_decision import build_pilot_decision
 from fromcad2cfd_fastcfd.physics_validator import validate_physics
 from fromcad2cfd_fastcfd.prediction import build_prediction_from_output
-from fromcad2cfd_fastcfd.preflight import detect_fastcfd_environment, run_preflight
+from fromcad2cfd_fastcfd.preflight import detect_fastcfd_environment, resolve_fastfluent_source_root, run_preflight
 from fromcad2cfd_fastcfd.registry import registry_inventory, registry_markdown
 from fromcad2cfd_fastcfd.rheology import (
     build_rheology_passport,
@@ -361,6 +361,17 @@ def test_fastcfd_preflight_gracefully_skips_missing_root(tmp_path):
     assert report.status == "skipped"
     assert result["status"] == "skipped"
     assert "capabilities" in result["outputs"]
+
+
+def test_fastcfd_preflight_discovers_vendored_cpp_core():
+    source_root = resolve_fastfluent_source_root()
+    report = detect_fastcfd_environment()
+
+    assert source_root.name == "fastfluent_core"
+    assert (source_root / "src").is_dir()
+    assert (source_root / "examples").is_dir()
+    assert report.source_root_status == "found"
+    assert report.source_root is not None
 
 
 def test_fastcfd_write_demo_job_and_mock_runner(tmp_path, monkeypatch):

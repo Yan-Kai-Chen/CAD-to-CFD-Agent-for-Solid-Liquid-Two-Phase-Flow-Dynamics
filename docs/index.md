@@ -19,6 +19,7 @@ CAD geometry pillar:
 
 FastCFD / FastFluent preliminary CFD pillar:
 
+- `../cpp/README.md`
 - `fastcfd/quickstart.md`
 - `fastcfd/lattice_trust_and_pilot_decision.md`
 - `fastcfd/unstructured_mesh_gateway.md`

@@ -60,10 +60,13 @@ CAD geometry pillar
           -> FreeCAD/OpenCascade coarse solidification
 
 FastCFD / CFD screening pillar
+  -> cpp/fastfluent_core
+      -> C++ FastFluent / FreeLB-derived solver core
+      -> LBM, CA, free-surface, non-Newtonian, examples, and benchmarks
   -> fromcad2cfd_fastcfd
       -> semantic scene registry
       -> physics passport
-      -> mock and controlled FastFluent backends
+      -> mock and controlled FastFluent backends using the vendored C++ source root by default
       -> unstructured_fvm Gmsh import, named-zone preservation, mesh-quality gate, boundary contract, FV geometry, 2D triangle and 3D tetra scalar diffusion, CSR linear systems, manufactured Stokes momentum, pressure projection, iterative flow benchmark, boundary-aware channel validation, convergence evidence, public obstacle-channel evidence, VOF-lite alpha transport, algebraic eddy-viscosity turbulent-channel benchmark, standard k-epsilon turbulent-channel benchmark, pressure-corrected k-epsilon benchmark, Menter k-omega SST benchmark, JSON case runner, controlled steady incompressible pressure-correction route, public benchmark suite, turbulence evidence ladder, and VTU preview
       -> VOF, turbulence, and rheology passports plus Fluent setup hints
       -> evidence-checked Fluent hint compiler
@@ -81,16 +84,18 @@ The common CAD contract lets Fluent-oriented modules consume geometry outputs
 without knowing whether a model was created or repaired in SolidWorks, Siemens
 NX, or a coarse mesh-to-solid helper.
 
-The FastCFD / FastFluent pillar is separate from CAD modeling. It uses bounded
-scene, job, and physics contracts to run low-cost preliminary CFD screens,
-extract field-derived QoI, issue prediction reports, rank simple parameter
-variants, and prepare evidence for later Fluent work. Its current unstructured
-route is an engineering validation and evidence layer: it imports Gmsh v4 ASCII
-meshes, preserves physical names, writes mesh-quality reports, builds
-finite-volume geometry operators, assembles CSR linear systems, solves 2D
-triangle and 3D tetra scalar manufactured diffusion, runs Stokes and
-pressure-projection benchmarks, produces VTU previews, and adds
-boundary-aware Poiseuille channel validation,
+The FastCFD / FastFluent pillar is separate from CAD modeling. It includes the
+vendored C++ FastFluent core under `cpp/fastfluent_core` plus the Python
+agent-facing validation and orchestration layer under `src/fromcad2cfd_fastcfd`.
+The Python layer uses bounded scene, job, and physics contracts to run low-cost
+preliminary CFD screens, extract field-derived QoI, issue prediction reports,
+rank simple parameter variants, and prepare evidence for later Fluent work. Its
+current unstructured route is an engineering validation and evidence layer: it
+imports Gmsh v4 ASCII meshes, preserves physical names, writes mesh-quality
+reports, builds finite-volume geometry operators, assembles CSR linear systems,
+solves 2D triangle and 3D tetra scalar manufactured diffusion, runs Stokes and
+pressure-projection benchmarks, produces VTU previews, and adds boundary-aware
+Poiseuille channel validation,
 mesh-convergence evidence, public body-fitted obstacle-channel evidence,
 VOF-lite alpha-transport evidence, a simplified algebraic eddy-viscosity
 turbulent-channel solve, a bounded standard k-epsilon two-equation channel
@@ -114,6 +119,7 @@ post-processing remain roadmap modules.
 - `fromcad2cfd_nx`: Siemens NX backend based on validated NXOpen journal jobs.
 - `fromcad2cfd_mcp_nx`: safe Siemens NX stdio MCP server with high-level job builders.
 - `fromcad2cfd_mesh`: mesh inspection and optional FreeCAD/OpenCascade coarse solidification.
+- `cpp/fastfluent_core`: vendored C++ FastFluent / FreeLB-derived solver core with GPLv3 license, examples, benchmarks, LBM/CA/free-surface/non-Newtonian components, and Makefile-based builds.
 - `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates, structured pilot cases, VOF/turbulence/rheology setup-passport tooling, evidence-checked Fluent hint compilation, and the first unstructured mesh, boundary-contract, geometry, 2D triangle and 3D tetra scalar diffusion, linear-system, Stokes momentum, pressure-projection, iterative flow benchmark, boundary-aware channel validation, channel-convergence, public obstacle-channel, VOF-lite alpha-transport, algebraic eddy-viscosity turbulent-channel, standard k-epsilon turbulent-channel, pressure-corrected k-epsilon, Menter k-omega SST, JSON case-runner, controlled steady incompressible, public benchmark-suite, and turbulence-ladder gates.
 - `fromcad2cfd_fluent_meshing`: Fluent Meshing planning gate; full Fluent execution remains planned.
 - `fromcad2cfd_fluent_solver`: Fluent Solver roadmap module.

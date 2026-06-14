@@ -6,7 +6,7 @@ from .capabilities import capability_inventory
 from .fastfluent_backend import run_fastfluent_cavity2d_job, write_cavity2d_job
 from .fluent_hints import compile_fluent_setup_hints
 from .mock_runner import run_mock_job, write_demo_job
-from .preflight import detect_fastcfd_environment, run_preflight
+from .preflight import detect_fastcfd_environment, resolve_fastfluent_source_root, run_preflight
 from .prediction import build_prediction_from_output, build_prediction_report
 from .rheology import run_rheology_benchmark_file
 from .screening import run_parameter_screening
@@ -22,6 +22,7 @@ __all__ = [
     "build_prediction_report",
     "compile_fluent_setup_hints",
     "detect_fastcfd_environment",
+    "resolve_fastfluent_source_root",
     "read_job",
     "run_fastfluent_cavity2d_job",
     "run_mock_job",
