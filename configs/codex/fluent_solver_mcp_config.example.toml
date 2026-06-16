@@ -1,0 +1,8 @@
+# Project-level Codex MCP config draft for the FromCAD2CFD Fluent Solver server.
+# Install the package first:
+#   python -m pip install -e ".[mcp]"
+
+[mcp_servers.fromcad2cfd_fluent_solver]
+command = "python"
+args = ["-m", "fromcad2cfd_mcp_fluent_solver.server"]
+cwd = "<REPO_ROOT>"

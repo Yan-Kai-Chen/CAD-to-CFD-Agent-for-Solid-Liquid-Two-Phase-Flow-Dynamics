@@ -1,0 +1,112 @@
+{
+  "schema_version": "fromcad2cfd_fluent_solver_plan_v1",
+  "plan_name": "basic_air_steam_fill",
+  "mesh_input": "sandbox/input/basic_air_steam_fill.msh.h5",
+  "case_output": "sandbox/output/basic_air_steam_fill.cas.h5",
+  "data_output": "sandbox/output/basic_air_steam_fill.dat.h5",
+  "physics": {
+    "solver": "pressure-based",
+    "time": "transient",
+    "energy": true,
+    "species_model": "species-transport",
+    "turbulence_model": "k-omega-sst",
+    "density": "ideal-gas-mixture"
+  },
+  "materials": {
+    "mixture": ["air", "water-vapor"]
+  },
+  "boundaries": {
+    "inlet": {
+      "type": "mass-flow-inlet",
+      "mass_flow_rate_kg_s": 0.61,
+      "total_temperature_k": 443.15,
+      "species_mass_fraction": {
+        "h2o": 1.0,
+        "o2": 0.0
+      }
+    },
+    "model": {
+      "type": "wall",
+      "thermal_bc": "convection",
+      "heat_transfer_coefficient_w_m2_k": 200.0,
+      "free_stream_temperature_k": 293.15
+    },
+    "outer_wall": {
+      "type": "wall",
+      "thermal_bc": "convection",
+      "heat_transfer_coefficient_w_m2_k": 5000.0,
+      "free_stream_temperature_k": 293.15
+    }
+  },
+  "transient": {
+    "mode": "adaptive",
+    "total_time_s": 4.1,
+    "initial_time_step_s": 0.001,
+    "min_time_step_s": 0.001,
+    "max_time_step_s": 0.05,
+    "courant_number": 2.0,
+    "max_iterations_per_step": 20
+  },
+  "autosave": {
+    "root_name": "sandbox/output/basic_air_steam_fill_autosave",
+    "data_frequency_steps": 20,
+    "case_frequency": "if-case-is-modified",
+    "suffix_type": "time-step"
+  },
+  "monitors": {
+    "global": [
+      "flow-time",
+      "delta-time",
+      "iters-per-timestep",
+      "vol_avg_abs_pressure",
+      "vol_avg_temperature",
+      "vol_max_temperature",
+      "vol_min_temperature",
+      "vol_max_velocity",
+      "vol_avg_h2o_mass_fraction",
+      "vol_avg_o2_mass_fraction",
+      "vol_avg_n2_mass_fraction",
+      "inlet_mass_flow_rate"
+    ],
+    "wall": [
+      "flow-time",
+      "delta-time",
+      "all_walls_avg_abs_pressure",
+      "all_walls_max_abs_pressure",
+      "all_walls_avg_wall_adjacent_temperature",
+      "all_walls_max_wall_adjacent_temperature",
+      "all_walls_avg_wall_shear",
+      "all_walls_max_wall_shear",
+      "all_walls_total_heat_transfer_rate",
+      "outer_wall_avg_abs_pressure",
+      "outer_wall_max_abs_pressure",
+      "outer_wall_avg_wall_adjacent_temperature",
+      "outer_wall_max_wall_adjacent_temperature",
+      "outer_wall_total_heat_transfer_rate",
+      "model_avg_abs_pressure",
+      "model_max_abs_pressure",
+      "model_avg_wall_adjacent_temperature",
+      "model_max_wall_adjacent_temperature"
+    ]
+  },
+  "source_terms": [
+    {
+      "name": "near_wall_limited_condensation",
+      "zone": "fluid",
+      "source_model": "near_wall_limited_condensation_v1",
+      "parameters": {
+        "active_start_s": 0.1,
+        "active_end_s": 4.0,
+        "estimated_condensation_rate_kg_s": 0.0098,
+        "estimated_latent_power_w": 19600.0,
+        "temperature_ramp_k": [360.0, 420.0],
+        "h2o_mass_fraction_ramp": [0.30, 0.65]
+      }
+    }
+  ],
+  "execution": {
+    "direct_fluent_launch": false,
+    "processor_count": 32,
+    "requires_local_fluent": true
+  }
+}

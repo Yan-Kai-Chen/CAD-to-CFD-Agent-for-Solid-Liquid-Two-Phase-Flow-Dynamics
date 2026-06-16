@@ -1,4 +1,15 @@
 postprocessing:
   enabled: false
-  case_data: "sandbox/input/model.cas.h5"
-  reports: "sandbox/reports"
+  schema_version: "fromcad2cfd_fluent_postprocessing_plan_v1"
+  plan_name: "basic_monitor_summary"
+  global_monitor: "examples/postprocessing/basic_monitor_summary/global_monitors.out"
+  wall_monitor: "examples/postprocessing/basic_monitor_summary/wall_exposure_indicators.out"
+  reports: "sandbox/reports/basic_monitor_summary"
+  outputs:
+    write_json_summary: true
+    write_markdown_summary: true
+    write_video_plan_only: true
+  safety:
+    do_not_commit_case_data: true
+    fluent_gui_automation_disabled_by_default: true
+    pressure_is_fluid_load_proxy_not_solid_stress: true

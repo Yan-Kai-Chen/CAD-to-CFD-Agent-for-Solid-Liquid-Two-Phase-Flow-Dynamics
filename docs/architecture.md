@@ -122,8 +122,8 @@ post-processing remain roadmap modules.
 - `cpp/fastfluent_core`: vendored C++ FastFluent / FreeLB-derived solver core with GPLv3 license, examples, benchmarks, LBM/CA/free-surface/non-Newtonian components, and Makefile-based builds.
 - `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates, structured pilot cases, VOF/turbulence/rheology setup-passport tooling, evidence-checked Fluent hint compilation, and the first unstructured mesh, boundary-contract, geometry, 2D triangle and 3D tetra scalar diffusion, linear-system, Stokes momentum, pressure-projection, iterative flow benchmark, boundary-aware channel validation, channel-convergence, public obstacle-channel, VOF-lite alpha-transport, algebraic eddy-viscosity turbulent-channel, standard k-epsilon turbulent-channel, pressure-corrected k-epsilon, Menter k-omega SST, JSON case-runner, controlled steady incompressible, public benchmark-suite, and turbulence-ladder gates.
 - `fromcad2cfd_fluent_meshing`: Fluent Meshing planning gate; full Fluent execution remains planned.
-- `fromcad2cfd_fluent_solver`: Fluent Solver roadmap module.
-- `fromcad2cfd_postprocessing`: CFD post-processing roadmap module.
+- `fromcad2cfd_fluent_solver`: public-safe Fluent Solver plan validation, monitor contracts, template generation, and resume-plan guardrails.
+- `fromcad2cfd_postprocessing`: Fluent report-monitor parsing, summary reports, video frame plans, and fluid-load proxy metrics.
 
 ## Safety Boundary
 

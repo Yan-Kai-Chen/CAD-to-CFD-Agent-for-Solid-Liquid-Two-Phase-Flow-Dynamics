@@ -1,5 +1,26 @@
 fluent_solver:
   enabled: false
-  mesh_input: "sandbox/input/model.msh.h5"
-  case_output: "sandbox/output/model.cas.h5"
-  data_output: "sandbox/output/model.dat.h5"
+  schema_version: "fromcad2cfd_fluent_solver_plan_v1"
+  plan_name: "basic_air_steam_fill"
+  mesh_input: "sandbox/input/basic_air_steam_fill.msh.h5"
+  case_output: "sandbox/output/basic_air_steam_fill.cas.h5"
+  data_output: "sandbox/output/basic_air_steam_fill.dat.h5"
+  physics:
+    solver: "pressure-based"
+    time: "transient"
+    energy: true
+    species_model: "species-transport"
+    turbulence_model: "k-omega-sst"
+    density: "ideal-gas-mixture"
+  transient:
+    mode: "adaptive"
+    total_time_s: 4.1
+    initial_time_step_s: 0.001
+    min_time_step_s: 0.001
+    max_time_step_s: 0.05
+    courant_number: 2.0
+    max_iterations_per_step: 20
+  safety:
+    direct_fluent_launch: false
+    public_mode_rejects_absolute_paths: true
+    private_case_data_must_not_be_committed: true

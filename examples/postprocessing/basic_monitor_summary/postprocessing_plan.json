@@ -1,0 +1,18 @@
+{
+  "schema_version": "fromcad2cfd_fluent_postprocessing_plan_v1",
+  "plan_name": "basic_monitor_summary",
+  "global_monitor": "examples/postprocessing/basic_monitor_summary/global_monitors.out",
+  "wall_monitor": "examples/postprocessing/basic_monitor_summary/wall_exposure_indicators.out",
+  "outputs": {
+    "report_dir": "sandbox/reports/basic_monitor_summary"
+  },
+  "metrics": [
+    "avg_abs_pressure",
+    "avg_temperature",
+    "max_temperature",
+    "avg_h2o_mass_fraction",
+    "wall_heat_absorption",
+    "model_pressure_load_proxy",
+    "wall_shear_proxy"
+  ]
+}

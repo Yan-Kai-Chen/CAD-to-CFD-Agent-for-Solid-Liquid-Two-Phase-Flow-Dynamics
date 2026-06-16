@@ -1,0 +1,6 @@
+"wall_exposure_indicators"
+"Time Step" "flow-time etc.."
+("Time Step" "flow-time" "delta-time" "all_walls_avg_abs_pressure" "all_walls_max_abs_pressure" "all_walls_avg_wall_adjacent_temperature" "all_walls_max_wall_adjacent_temperature" "all_walls_avg_wall_shear" "all_walls_max_wall_shear" "all_walls_total_heat_transfer_rate" "outer_wall_avg_abs_pressure" "outer_wall_max_abs_pressure" "outer_wall_avg_wall_adjacent_temperature" "outer_wall_max_wall_adjacent_temperature" "outer_wall_total_heat_transfer_rate" "model_avg_abs_pressure" "model_max_abs_pressure" "model_avg_wall_adjacent_temperature" "model_max_wall_adjacent_temperature")
+0 0 0.001 101325 101325 293.15 293.15 0 0 0 101325 101325 293.15 293.15 0 101325 101325 293.15 293.15
+100 0.1 0.001 118600 119000 310.0 442.0 0.21 4.0 -18000 118650 119000 309.0 442.0 -16000 118550 118900 316.0 438.0
+200 0.2 0.001 130100 130500 333.0 442.7 0.33 6.6 -26000 130120 130500 331.0 442.7 -22500 130000 130400 344.0 438.2

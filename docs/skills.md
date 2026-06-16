@@ -21,7 +21,9 @@ The framework uses project-local skills to keep CAD automation conservative and 
 
 - `skills/fromcad2cfd-fluent-meshing`
 - `skills/fromcad2cfd-fluent-solver`
+  - Use for public-safe Fluent Solver plan validation, monitor contracts, PyFluent template generation, and resume guardrails.
 - `skills/fromcad2cfd-postprocessing`
+  - Use for Fluent monitor parsing, pressure/temperature/species/wall-heat summaries, timestamped video planning, and fluid-load proxy interpretation.
 
 ## Runtime Policy
 

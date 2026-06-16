@@ -1,0 +1,6 @@
+"global_monitors"
+"Time Step" "flow-time etc.."
+("Time Step" "flow-time" "delta-time" "iters-per-timestep" "vol_avg_abs_pressure" "vol_avg_temperature" "vol_max_temperature" "vol_min_temperature" "vol_max_velocity" "vol_avg_h2o_mass_fraction" "vol_avg_o2_mass_fraction" "vol_avg_n2_mass_fraction" "inlet_mass_flow_rate")
+0 0 0.001 0 101325 293.15 293.15 293.15 0 0.0 0.232 0.768 0
+100 0.1 0.001 20 118500 315.0 443.15 293.15 18.0 0.050 0.220 0.730 0.61
+200 0.2 0.001 20 130000 334.0 444.0 293.45 46.0 0.106 0.207 0.687 0.61

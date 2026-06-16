@@ -28,4 +28,10 @@ FastCFD / FastFluent preliminary CFD pillar:
 Fluent handoff planning:
 
 - `fluent_meshing/interface_draft.md`
+- `fluent_solver/interface_draft.md`
+- `fluent_solver/solver_plan_contract.md`
+- `fluent_solver/resume_and_monitoring.md`
+- `postprocessing/interface_draft.md`
+- `postprocessing/monitor_contract.md`
+- `postprocessing/video_and_metrics_contract.md`
 - `roadmap.md`

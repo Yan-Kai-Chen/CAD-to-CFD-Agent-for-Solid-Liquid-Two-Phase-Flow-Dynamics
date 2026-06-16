@@ -110,6 +110,10 @@ src/fromcad2cfd_mesh/            Mesh inspection and solidification helper
 
 src/fromcad2cfd_fastcfd/         FastCFD / FastFluent agentic CFD layer
 src/fromcad2cfd_fluent_meshing/  Fluent Meshing preflight boundary
+src/fromcad2cfd_fluent_solver/   Fluent Solver plan validation and templates
+src/fromcad2cfd_postprocessing/  Fluent monitor parsing and reports
+src/fromcad2cfd_mcp_fluent_solver/  Safe Fluent Solver MCP stdio server
+src/fromcad2cfd_mcp_postprocessing/ Safe post-processing MCP stdio server
 
 cpp/fastfluent_core/             C++ FastFluent solver core
 docs/                            Architecture and workflow documentation
@@ -181,12 +185,39 @@ fromcad2cfd fastcfd unstructured inspect-mesh examples/unstructured/channel2d.ms
 fromcad2cfd fastcfd unstructured run-benchmark-suite --iterations 8 --format json
 ```
 
+### Validate A Fluent Solver Plan
+
+```powershell
+fromcad2cfd fluent-solver validate-plan --plan examples/fluent_solver/basic_air_steam_fill/solver_plan.json
+fromcad2cfd fluent-solver monitor-contract
+```
+
+Generate an advisory PyFluent template for local review:
+
+```powershell
+fromcad2cfd fluent-solver write-template `
+  --plan examples/fluent_solver/basic_air_steam_fill/solver_plan.json `
+  --output sandbox/output/basic_air_steam_fill_template.py
+```
+
+### Summarize Fluent Monitor Outputs
+
+```powershell
+fromcad2cfd post summarize-run `
+  --global-monitor examples/postprocessing/basic_monitor_summary/global_monitors.out `
+  --wall-monitor examples/postprocessing/basic_monitor_summary/wall_exposure_indicators.out `
+  --output-dir sandbox/reports/basic_monitor_summary `
+  --model-name basic_monitor_summary
+```
+
 More detailed commands are kept in the module-specific documentation:
 
 - [SolidWorks quickstart](docs/solidworks/quickstart.md)
 - [NX quickstart](docs/nx/quickstart.md)
 - [FastCFD quickstart](docs/fastcfd/quickstart.md)
 - [FreeCAD solidification route](docs/mesh/freecad_solidify.md)
+- [Fluent Solver interface](docs/fluent_solver/interface_draft.md)
+- [Post-processing interface](docs/postprocessing/interface_draft.md)
 
 ## Public Examples
 
@@ -199,7 +230,9 @@ Examples include:
 - NX controlled journal job generation,
 - synthetic mesh solidification input,
 - public Gmsh unstructured benchmark meshes,
-- FastCFD / FastFluent screening and benchmark artifacts.
+- FastCFD / FastFluent screening and benchmark artifacts,
+- a public-safe Fluent Solver plan,
+- synthetic Fluent report-monitor files for post-processing summaries.
 
 ## Current Boundary
 
@@ -211,14 +244,19 @@ Implemented:
   and preliminary CFD evidence routes,
 - unstructured mesh import, quality checks, finite-volume geometry, and public
   benchmark workflows,
+- Fluent Solver plan validation, monitor contracts, resume-plan guardrails, and
+  advisory PyFluent template generation,
+- Fluent report-monitor parsing, pressure/temperature/species/wall-heat
+  summaries, and video frame-plan generation,
+- safe MCP wrappers for Fluent Solver planning and Fluent post-processing,
 - vendored C++ FastFluent core.
 
 Roadmap:
 
 - broader production CAD repair coverage,
 - deeper Fluent Meshing automation,
-- Fluent Solver setup generation,
-- richer post-processing,
+- broader Fluent Solver setup coverage and optional local execution adapters,
+- richer rendered post-processing after explicit local approval,
 - broader solver validation and performance hardening.
 
 FromCAD2CFD should be treated as an agentic automation and preliminary
