@@ -87,7 +87,7 @@ def _build_gate(source: Path, inputs: dict[str, Any]) -> dict[str, Any]:
         "required_actions": required_actions,
         "fluent_meshing_hints": hints,
         "limitations": [
-            "This gate prepares Fluent Meshing planning only; it does not launch Fluent or generate a mesh.",
+            "This public gate prepares Fluent Meshing handoff evidence; mesh generation belongs to a configured local Fluent adapter.",
             "FastCFD/FastFluent pilot evidence is advisory and must be checked against Fluent mesh-quality reports.",
             "The current gate supports bounded FastCFD recipe cases and does not parse arbitrary Fluent case/data files.",
         ],

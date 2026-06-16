@@ -1,9 +1,9 @@
 # Architecture
 
 The framework is organized as a safety-first CAD-to-CFD automation stack with
-two execution pillars and one Fluent-facing interface layer: CAD geometry
-automation, FastCFD / FastFluent preliminary CFD screening, and Fluent
-planning/post-processing interfaces.
+two portable execution pillars and one Fluent agent workflow layer: CAD
+geometry automation, FastCFD / FastFluent preliminary CFD screening, and
+Fluent solver/post-processing automation through configurable local adapters.
 
 ```text
 Skills and policies
@@ -39,16 +39,19 @@ Skills and policies
       -> public unstructured benchmark suite
       -> evidence-checked Fluent setup hint compiler
       -> physics passport, field QoI, prediction reports, parameter screening
-    -> Fluent-facing interface layer
+    -> Fluent agent workflow layer
       -> Fluent Meshing preflight gate
         -> meshing-preparation reports and handoff hints
       -> Fluent Solver planning interface
         -> solver-plan schema validation
         -> advisory PyFluent template generation
         -> monitor-contract and resume-plan guardrails
+        -> local execution adapter contract
+        -> configured Fluent launch, resume, monitor, and export paths
       -> post-processing interface
         -> monitor parsing and report summaries
         -> video frame-plan generation
+        -> optional local rendering adapters
 ```
 
 ## CAD Backend Topology
@@ -82,6 +85,10 @@ FastCFD / CFD screening pillar
       -> field QoI, lattice trust, prediction, parameter screening, and pilot decision artifacts
   -> fromcad2cfd_fluent_meshing
       -> FastCFD evidence preflight gate
+  -> fromcad2cfd_fluent_solver
+      -> solver plans, monitor contracts, PyFluent templates, resume guardrails, and local execution adapter contracts
+  -> fromcad2cfd_postprocessing
+      -> monitor summaries, fluid-load proxies, video plans, and optional rendering-adapter contracts
 
 Shared reporting
   -> JSON report
@@ -114,11 +121,14 @@ pressure-correction route, and a public benchmark suite for agent setup
 decisions.
 
 The VOF, turbulence, and rheology gates validate setup inputs and Fluent-facing
-hints with explicit evidence. Public-safe Fluent Solver planning and
-post-processing interfaces are now included, but production Fluent execution,
-production-grade general unstructured Navier-Stokes,
-turbulence/multiphase/non-Newtonian coupling, GPU acceleration, and richer
-rendered post-processing remain roadmap modules.
+hints with explicit evidence. Fluent Solver planning, post-processing, and
+local execution adapter contracts are included as part of the agent workflow.
+The public repository keeps machine-specific launch details outside the default
+portable path, while configured private workspaces can connect these contracts
+to licensed Fluent installations, private mesh/case/data files, MPI settings,
+and long-running monitor supervision. Production-grade general unstructured
+Navier-Stokes, deeper turbulence/multiphase/non-Newtonian coupling, GPU
+acceleration, and richer rendered post-processing remain roadmap modules.
 
 ## Modules
 
@@ -131,10 +141,10 @@ rendered post-processing remain roadmap modules.
 - `fromcad2cfd_mesh`: mesh inspection and optional FreeCAD/OpenCascade coarse solidification.
 - `cpp/fastfluent_core`: vendored C++ FastFluent / FreeLB-derived solver core with GPLv3 license, examples, benchmarks, LBM/CA/free-surface/non-Newtonian components, and Makefile-based builds.
 - `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates, structured pilot cases, VOF/turbulence/rheology setup-passport tooling, evidence-checked Fluent hint compilation, and the first unstructured mesh, boundary-contract, geometry, 2D triangle and 3D tetra scalar diffusion, linear-system, Stokes momentum, pressure-projection, iterative flow benchmark, boundary-aware channel validation, channel-convergence, public obstacle-channel, VOF-lite alpha-transport, algebraic eddy-viscosity turbulent-channel, standard k-epsilon turbulent-channel, pressure-corrected k-epsilon, Menter k-omega SST, JSON case-runner, controlled steady incompressible, public benchmark-suite, and turbulence-ladder gates.
-- `fromcad2cfd_fluent_meshing`: Fluent Meshing planning gate; full Fluent execution remains planned.
-- `fromcad2cfd_fluent_solver`: public-safe Fluent Solver plan validation, monitor contracts, template generation, and resume-plan guardrails.
+- `fromcad2cfd_fluent_meshing`: Fluent Meshing planning gate and adapter-ready handoff boundary.
+- `fromcad2cfd_fluent_solver`: public-safe Fluent Solver plan validation, monitor contracts, template generation, resume-plan guardrails, and local execution adapter contracts.
 - `fromcad2cfd_mcp_fluent_solver`: safe MCP stdio wrapper for Fluent Solver planning surfaces.
-- `fromcad2cfd_postprocessing`: Fluent report-monitor parsing, summary reports, video frame plans, and fluid-load proxy metrics.
+- `fromcad2cfd_postprocessing`: Fluent report-monitor parsing, summary reports, video frame plans, optional rendering-adapter contracts, and fluid-load proxy metrics.
 - `fromcad2cfd_mcp_postprocessing`: safe MCP stdio wrapper for post-processing surfaces.
 
 ## Safety Boundary
@@ -161,10 +171,11 @@ The public alpha includes a working SolidWorks automation layer, a
 backend-neutral CAD contract, a locally validated Siemens NX controlled-journal
 backend, a mesh solidification helper, a FastCFD/FastFluent preliminary CFD
 screening layer, an unstructured mesh evidence layer, physics passports, a
-Fluent Meshing preflight gate, public-safe Fluent Solver planning interfaces,
-and public-safe Fluent post-processing interfaces. Full Fluent Meshing
-execution, production Fluent Solver execution, GPU acceleration, and richer
-rendered post-processing remain roadmap modules.
+Fluent Meshing preflight gate, public-safe Fluent Solver workflow contracts,
+local execution adapter definitions, and public-safe Fluent post-processing
+interfaces. Deeper Fluent Meshing automation, production-hardened Fluent
+execution adapters, GPU acceleration, and richer rendered post-processing
+remain roadmap modules.
 
 The repository intentionally excludes private CAD, STL, Parasolid, NX `.prt`,
 Fluent case/data files, generated runtime outputs, and local absolute paths.

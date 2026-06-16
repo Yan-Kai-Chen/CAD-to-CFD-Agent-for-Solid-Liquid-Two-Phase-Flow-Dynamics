@@ -23,8 +23,10 @@ It writes a JSON and Markdown gate report with:
 - required actions,
 - Fluent Meshing planning hints.
 
-It does not launch Fluent, import geometry, generate a mesh, or write case/data
-files.
+The public command writes evidence and planning reports without requiring a
+Fluent runtime. A configured local Fluent Meshing adapter can use the same
+decision contract to import geometry, generate meshes, check quality, and write
+private case/data files inside a local workspace.
 
 Planned commands:
 

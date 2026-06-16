@@ -1,8 +1,15 @@
 # Fluent Solver Interface
 
 The first public-safe Fluent Solver interface validates solver plans and writes
-advisory PyFluent templates. It does not launch Fluent directly and does not
-store private mesh, case, data, license, or local ANSYS installation files.
+advisory PyFluent templates. The default public commands do not need a Fluent
+runtime and do not store private mesh, case, data, license, or local ANSYS
+installation files.
+
+Direct Fluent execution is part of the intended agent workflow when a local
+adapter is configured with an approved Fluent installation, license environment,
+private mesh/case/data files, run directory, and parallel launch policy. The
+portable interface keeps those machine-specific details outside public examples
+while preserving the contract that a local runner can execute.
 
 Implemented commands:
 
@@ -26,6 +33,15 @@ fromcad2cfd-fluent-solver-mcp --describe
 fromcad2cfd-fluent-solver-mcp --list-tools
 ```
 
-The MCP server exposes only plan validation, monitor contract, template writing,
-and resume-plan validation tools. Raw PyFluent, Fluent TUI, arbitrary journals,
-raw source-expression editing, and direct Fluent launch remain disabled.
+The MCP server exposes plan validation, monitor contract, template writing, and
+resume-plan validation tools by default. Raw PyFluent, Fluent TUI, arbitrary
+journals, and source-expression editing should not be exposed as uncontrolled
+agent tools. Local Fluent launch belongs behind a controlled adapter that first
+validates the plan, records the runtime configuration, writes monitor outputs,
+and preserves restart checkpoints.
+
+See also:
+
+```text
+docs/fluent_solver/local_execution_adapter.md
+```

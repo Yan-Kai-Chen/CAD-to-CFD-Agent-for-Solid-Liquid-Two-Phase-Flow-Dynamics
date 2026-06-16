@@ -15,6 +15,7 @@ Next:
 - Richer boundary-condition schema coverage.
 - Material-library contract.
 - Source-term model registry with documented parameters.
-- Local-only PyFluent execution adapter behind explicit approval.
+- Local PyFluent/Fluent execution adapter with explicit runtime configuration,
+  checkpoint handling, and monitor supervision.
 - Fluent case/data verification helpers for private workspaces.
 - Formal run package manifest generation.

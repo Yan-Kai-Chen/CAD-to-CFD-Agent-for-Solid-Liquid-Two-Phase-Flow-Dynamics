@@ -19,9 +19,10 @@ Required top-level fields:
 Public mode rejects local absolute paths and known private path markers.
 
 The first implementation validates plans and writes advisory PyFluent templates.
-It intentionally does not launch Fluent directly. A production run still
-requires a local Fluent installation, license, validated mesh, and operator
-approval.
+The public default path is planning-first so the same plan can be audited
+without requiring a Fluent license. A local execution adapter may launch Fluent
+from this plan after a local Fluent installation, license, validated mesh, run
+directory, parallel policy, and operator or workflow approval are provided.
 
 See:
 

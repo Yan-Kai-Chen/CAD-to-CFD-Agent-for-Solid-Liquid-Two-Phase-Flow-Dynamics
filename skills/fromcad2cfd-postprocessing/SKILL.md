@@ -30,7 +30,8 @@ fromcad2cfd post summarize-run --global-monitor <global.out> --wall-monitor <wal
 fromcad2cfd post write-video-plan --autosave-dir sandbox/input/autosaves --field temperature --output sandbox/reports/video_plan.json
 ```
 
-3. Keep rendering as a local operator step unless the environment and inputs are explicitly approved.
+3. Route rendering through a configured local adapter when the environment and
+   private inputs are available.
 
 ## References
 

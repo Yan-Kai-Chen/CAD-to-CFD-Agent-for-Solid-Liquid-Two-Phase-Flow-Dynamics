@@ -14,7 +14,7 @@ Next:
 
 - Residual plotting.
 - Contour and streamline export plans.
-- Fluent/ParaView local renderer adapters behind explicit approval.
+- Fluent/ParaView local renderer adapters with explicit runtime configuration.
 - Surface distribution percentiles and threshold area fractions.
 - Multi-run comparison plots.
 - Result package manifests for private workspaces.

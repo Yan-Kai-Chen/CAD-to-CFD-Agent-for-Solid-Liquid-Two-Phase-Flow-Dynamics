@@ -2,8 +2,8 @@
 
 **FromCAD2CFD: An Agentic Automation Framework for CAD-to-CFD Workflows in
 Solid-Liquid Two-Phase Flow Dynamics** is a research framework for making CAD
-preparation, preliminary CFD screening, and Fluent-facing planning more
-repeatable and agent-readable.
+preparation, preliminary CFD screening, Fluent solver setup, local Fluent
+execution, and Fluent post-processing more repeatable and agent-readable.
 
 The project is not intended to replace professional CAD systems or ANSYS
 Fluent. Its purpose is to provide a controlled automation layer that can:
@@ -11,7 +11,9 @@ Fluent. Its purpose is to provide a controlled automation layer that can:
 - prepare and inspect CAD geometry through bounded operations,
 - generate reproducible flow-domain and preprocessing artifacts,
 - run fast preliminary CFD checks before expensive Fluent workflows,
-- validate solver and post-processing plans before local Fluent work,
+- validate and generate solver/post-processing plans before local Fluent work,
+- orchestrate configured local Fluent execution when a licensed runtime and
+  private input files are provided,
 - record decisions as JSON and Markdown reports that an AI agent can audit.
 
 ## Workflow Narrative
@@ -23,14 +25,16 @@ The repository is easiest to understand as three connected layers:
    creating, repairing, trimming, and exporting CFD-ready geometry.
 2. `FastCFD / FastFluent preliminary evidence`
    Agent-safe physics and mesh screening before high-cost Fluent work.
-3. `Fluent planning and post-processing interfaces`
-   Public-safe plan validation, template generation, monitor parsing, and
-   post-summary tooling for downstream Fluent workflows.
+3. `Fluent agent workflow layer`
+   Public-safe plan validation, template generation, local execution adapter
+   contracts, monitor parsing, and post-summary tooling for Fluent workflows.
 
 Only the second layer performs CFD-style numerical evidence generation inside
-this public repository. The third layer currently prepares and interprets
-Fluent-side workflows; it does not claim full production Fluent execution from
-the public mainline.
+the public repository without any external solver. The third layer is designed
+to let an agent prepare, launch, monitor, resume, and interpret Fluent runs when
+it is connected to a configured local Fluent installation. The public default
+path stays planning-first and reproducible; environment-specific execution is
+handled through explicit local adapters.
 
 ## Core Capabilities
 
@@ -82,24 +86,31 @@ The output is preliminary engineering evidence: it helps decide whether a CAD
 domain, mesh, boundary setup, or physics assumption is plausible enough to move
 toward Fluent. It is not presented as final CFD validation.
 
-### Fluent Planning And Post-Processing Interfaces
+### Fluent Agent Workflow: Planning, Local Execution, And Post-Processing
 
-The public `Fluent` layer in this repository is currently a planning and
-interpretation surface, not a full local Fluent execution engine.
+The public `Fluent` layer defines how an agent should build and audit Fluent
+workflows. It separates portable workflow contracts from machine-specific
+runtime details such as ANSYS installation paths, licenses, MPI launch options,
+private meshes, and private case/data files.
 
 It currently includes:
 
 - public-safe Fluent Solver plan schemas and validation,
 - monitor-report contracts and resume-plan guardrails,
 - advisory PyFluent template generation for local review,
+- adapter contracts for local Fluent launch, resume, monitor, and export
+  workflows,
 - monitor parsing for pressure, temperature, species, wall, and heat-transfer
   summaries,
 - video-frame and reporting-plan helpers,
 - safe MCP wrappers for Fluent Solver planning and post-processing.
 
-This layer is meant to reduce operator ambiguity before and after Fluent runs.
-It helps an agent decide whether a solver plan is well-formed and whether
-monitor outputs are consistent enough for downstream interpretation.
+This layer is meant to reduce operator ambiguity across the whole Fluent run
+cycle. In a public checkout it can validate plans, write templates, and parse
+synthetic or exported monitors. In a private configured workspace, the same
+contracts are intended to drive local Fluent execution adapters that launch
+Fluent, load meshes or cases, run journals or PyFluent scripts, monitor
+progress, recover from checkpoints, and export plots or videos.
 
 ### Agent Safety And Traceability
 
@@ -128,10 +139,10 @@ AI agent
       -> structured FastFluent backend
       -> unstructured finite-volume evidence backend
       -> prediction, QoI, and Fluent setup hints
-    -> Fluent-facing planning and handoff layer
+    -> Fluent agent workflow layer
       -> Fluent Meshing preflight reports
-      -> Fluent Solver plan validation and templates
-      -> monitor parsing and post-run summaries
+      -> Fluent Solver plan validation, templates, and local execution adapters
+      -> monitor parsing, post-run summaries, and video/report plans
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the longer architecture
@@ -150,7 +161,7 @@ src/fromcad2cfd_mesh/            Mesh inspection and solidification helper
 
 src/fromcad2cfd_fastcfd/         FastCFD / FastFluent agentic CFD layer
 src/fromcad2cfd_fluent_meshing/  Fluent Meshing preflight boundary
-src/fromcad2cfd_fluent_solver/   Fluent Solver plan validation and templates
+src/fromcad2cfd_fluent_solver/   Fluent Solver plans, templates, and adapter contracts
 src/fromcad2cfd_postprocessing/  Fluent monitor parsing and reports
 src/fromcad2cfd_mcp_fluent_solver/  Safe Fluent Solver MCP stdio server
 src/fromcad2cfd_mcp_postprocessing/ Safe post-processing MCP stdio server
@@ -251,8 +262,9 @@ fromcad2cfd post summarize-run `
 ```
 
 These commands validate inputs, generate advisory templates, and summarize
-monitor files. They do not claim that the public repository already provides a
-complete one-command Fluent execution stack.
+monitor files. They are the public-safe part of the Fluent agent workflow. A
+configured local adapter can build on the same plan contract to launch Fluent
+with machine-specific paths, licenses, meshes, and run directories.
 
 More detailed commands are kept in the module-specific documentation:
 
@@ -261,6 +273,7 @@ More detailed commands are kept in the module-specific documentation:
 - [FastCFD quickstart](docs/fastcfd/quickstart.md)
 - [FreeCAD solidification route](docs/mesh/freecad_solidify.md)
 - [Fluent Solver interface](docs/fluent_solver/interface_draft.md)
+- [Local Fluent execution adapter](docs/fluent_solver/local_execution_adapter.md)
 - [Post-processing interface](docs/postprocessing/interface_draft.md)
 
 ## Public Examples
@@ -288,8 +301,8 @@ Implemented:
   and preliminary CFD evidence routes,
 - unstructured mesh import, quality checks, finite-volume geometry, and public
   benchmark workflows,
-- Fluent Solver plan validation, monitor contracts, resume-plan guardrails, and
-  advisory PyFluent template generation,
+- Fluent Solver plan validation, monitor contracts, resume-plan guardrails,
+  advisory PyFluent template generation, and local execution adapter contracts,
 - Fluent report-monitor parsing, pressure/temperature/species/wall-heat
   summaries, and video frame-plan generation,
 - safe MCP wrappers for Fluent Solver planning and Fluent post-processing,
@@ -299,22 +312,23 @@ Roadmap:
 
 - broader production CAD repair coverage,
 - deeper Fluent Meshing automation,
-- broader Fluent Solver setup coverage and optional local execution adapters,
-- richer rendered post-processing after explicit local approval,
+- broader Fluent Solver setup coverage and hardened local execution adapters,
+- richer rendered post-processing through configured local renderer adapters,
 - broader solver validation and performance hardening.
 
 In practical terms:
 
-- `Already real in public mainline`: CAD automation, FastCFD / FastFluent
-  evidence routes, Fluent Solver plan validation, monitor parsing, and safe MCP
-  wrappers.
-- `Not yet claimed in public mainline`: full production Fluent execution,
-  production Fluent Meshing automation, full rendered post-processing, or final
-  high-fidelity CFD validation.
+- `Portable public mainline`: CAD automation, FastCFD / FastFluent evidence
+  routes, Fluent Solver plan validation, monitor parsing, adapter contracts,
+  and safe MCP wrappers.
+- `Environment-specific local workspaces`: licensed Fluent launch, private
+  mesh/case/data handling, MPI/core selection, rendered post-processing, and
+  long-running solver supervision.
 
-FromCAD2CFD should therefore be treated as an agentic automation, preliminary
-engineering-evidence, and Fluent-workflow planning framework. Production CFD
-conclusions still require high-fidelity solver validation.
+FromCAD2CFD should therefore be treated as an agentic CAD-to-CFD automation
+framework with both portable public contracts and configurable private runtime
+adapters. Production CFD conclusions still require high-fidelity solver
+validation.
 
 ## Safety And Private Data Policy
 
