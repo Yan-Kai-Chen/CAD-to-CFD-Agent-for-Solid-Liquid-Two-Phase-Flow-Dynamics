@@ -25,7 +25,7 @@ FastCFD / FastFluent preliminary CFD pillar:
 - `fastcfd/unstructured_mesh_gateway.md`
 - `fastcfd/physics_passports_and_fluent_hints.md`
 
-Fluent handoff planning:
+Fluent handoff interfaces:
 
 - `fluent_meshing/interface_draft.md`
 - `fluent_solver/interface_draft.md`

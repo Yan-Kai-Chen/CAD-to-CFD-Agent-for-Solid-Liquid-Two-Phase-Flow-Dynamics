@@ -2,7 +2,7 @@
 
 **FromCAD2CFD: An Agentic Automation Framework for CAD-to-CFD Workflows in
 Solid-Liquid Two-Phase Flow Dynamics** is a research framework for making CAD
-preparation, preliminary CFD screening, and Fluent-oriented handoff more
+preparation, preliminary CFD screening, and Fluent-facing planning more
 repeatable and agent-readable.
 
 The project is not intended to replace professional CAD systems or ANSYS
@@ -11,7 +11,26 @@ Fluent. Its purpose is to provide a controlled automation layer that can:
 - prepare and inspect CAD geometry through bounded operations,
 - generate reproducible flow-domain and preprocessing artifacts,
 - run fast preliminary CFD checks before expensive Fluent workflows,
+- validate solver and post-processing plans before local Fluent work,
 - record decisions as JSON and Markdown reports that an AI agent can audit.
+
+## Workflow Narrative
+
+The repository is easiest to understand as three connected layers:
+
+1. `CAD geometry automation`
+   SolidWorks, Siemens NX, and optional mesh-to-solid helper routes for
+   creating, repairing, trimming, and exporting CFD-ready geometry.
+2. `FastCFD / FastFluent preliminary evidence`
+   Agent-safe physics and mesh screening before high-cost Fluent work.
+3. `Fluent planning and post-processing interfaces`
+   Public-safe plan validation, template generation, monitor parsing, and
+   post-summary tooling for downstream Fluent workflows.
+
+Only the second layer performs CFD-style numerical evidence generation inside
+this public repository. The third layer currently prepares and interprets
+Fluent-side workflows; it does not claim full production Fluent execution from
+the public mainline.
 
 ## Core Capabilities
 
@@ -63,6 +82,25 @@ The output is preliminary engineering evidence: it helps decide whether a CAD
 domain, mesh, boundary setup, or physics assumption is plausible enough to move
 toward Fluent. It is not presented as final CFD validation.
 
+### Fluent Planning And Post-Processing Interfaces
+
+The public `Fluent` layer in this repository is currently a planning and
+interpretation surface, not a full local Fluent execution engine.
+
+It currently includes:
+
+- public-safe Fluent Solver plan schemas and validation,
+- monitor-report contracts and resume-plan guardrails,
+- advisory PyFluent template generation for local review,
+- monitor parsing for pressure, temperature, species, wall, and heat-transfer
+  summaries,
+- video-frame and reporting-plan helpers,
+- safe MCP wrappers for Fluent Solver planning and post-processing.
+
+This layer is meant to reduce operator ambiguity before and after Fluent runs.
+It helps an agent decide whether a solver plan is well-formed and whether
+monitor outputs are consistent enough for downstream interpretation.
+
 ### Agent Safety And Traceability
 
 The public workflow is built around bounded commands rather than arbitrary code
@@ -90,8 +128,10 @@ AI agent
       -> structured FastFluent backend
       -> unstructured finite-volume evidence backend
       -> prediction, QoI, and Fluent setup hints
-    -> Fluent Meshing / Solver handoff boundaries
-      -> preflight reports and future automation interfaces
+    -> Fluent-facing planning and handoff layer
+      -> Fluent Meshing preflight reports
+      -> Fluent Solver plan validation and templates
+      -> monitor parsing and post-run summaries
 ```
 
 See [docs/architecture.md](docs/architecture.md) for the longer architecture
@@ -210,6 +250,10 @@ fromcad2cfd post summarize-run `
   --model-name basic_monitor_summary
 ```
 
+These commands validate inputs, generate advisory templates, and summarize
+monitor files. They do not claim that the public repository already provides a
+complete one-command Fluent execution stack.
+
 More detailed commands are kept in the module-specific documentation:
 
 - [SolidWorks quickstart](docs/solidworks/quickstart.md)
@@ -259,9 +303,18 @@ Roadmap:
 - richer rendered post-processing after explicit local approval,
 - broader solver validation and performance hardening.
 
-FromCAD2CFD should be treated as an agentic automation and preliminary
-engineering-evidence framework. Production CFD conclusions still require
-high-fidelity solver validation.
+In practical terms:
+
+- `Already real in public mainline`: CAD automation, FastCFD / FastFluent
+  evidence routes, Fluent Solver plan validation, monitor parsing, and safe MCP
+  wrappers.
+- `Not yet claimed in public mainline`: full production Fluent execution,
+  production Fluent Meshing automation, full rendered post-processing, or final
+  high-fidelity CFD validation.
+
+FromCAD2CFD should therefore be treated as an agentic automation, preliminary
+engineering-evidence, and Fluent-workflow planning framework. Production CFD
+conclusions still require high-fidelity solver validation.
 
 ## Safety And Private Data Policy
 
