@@ -40,9 +40,22 @@ fromcad2cfd hypermesh-meshing write-python-template --plan <plan.json> --output 
 fromcad2cfd hypermesh-meshing write-tcl-template --plan <plan.json> --output sandbox/output/hm_template.tcl
 ```
 
-5. Keep direct HyperMesh launch outside uncontrolled public MCP tools; use a
+5. For local runtime verification, write and run the controlled smoke script:
+
+```powershell
+fromcad2cfd hypermesh-meshing write-smoke-tcl --output sandbox/output/hm_smoke.tcl --hm-output sandbox/output/hm_smoke.hm
+fromcad2cfd hypermesh-meshing run-tcl-template --script sandbox/output/hm_smoke.tcl --log sandbox/output/hm_smoke.log --manifest sandbox/output/hm_smoke_manifest.json
+```
+
+6. Keep direct HyperMesh launch outside uncontrolled public MCP tools; use a
    controlled local adapter when a licensed runtime and private geometry are
    available.
+
+## Runtime Evidence
+
+Treat a HyperMesh batch run as successful only when the manifest shows complete
+FromCAD2CFD markers and expected non-empty output files. Record the process exit
+code, but do not rely on it alone.
 
 ## References
 

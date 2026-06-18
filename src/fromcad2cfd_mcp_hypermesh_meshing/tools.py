@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from fromcad2cfd_hypermesh_meshing.adapter import parse_hmbatch_log, write_smoke_blockmesh_tcl
 from fromcad2cfd_hypermesh_meshing.runtime import locate_hypermesh_runtime
 from fromcad2cfd_hypermesh_meshing.schemas import (
     hypermesh_python_template,
@@ -20,6 +21,8 @@ ALLOWED_TOOLS = [
     "fromcad2cfd_hypermesh_meshing_validate_plan",
     "fromcad2cfd_hypermesh_meshing_write_python_template",
     "fromcad2cfd_hypermesh_meshing_write_tcl_template",
+    "fromcad2cfd_hypermesh_meshing_write_smoke_tcl",
+    "fromcad2cfd_hypermesh_meshing_parse_hmbatch_log",
 ]
 
 DISABLED_TOOLS = [
@@ -39,6 +42,8 @@ TOOL_DESCRIPTIONS = {
     "fromcad2cfd_hypermesh_meshing_validate_plan": "Validate a public-safe HyperMesh CFD meshing plan JSON file.",
     "fromcad2cfd_hypermesh_meshing_write_python_template": "Write an advisory HyperMesh Python template from a validated plan.",
     "fromcad2cfd_hypermesh_meshing_write_tcl_template": "Write an advisory HyperMesh Tcl template from a validated plan.",
+    "fromcad2cfd_hypermesh_meshing_write_smoke_tcl": "Write a controlled hmbatch smoke-test Tcl script.",
+    "fromcad2cfd_hypermesh_meshing_parse_hmbatch_log": "Parse FromCAD2CFD markers and declared outputs from a hmbatch log.",
 }
 
 
@@ -84,10 +89,20 @@ def fromcad2cfd_hypermesh_meshing_write_tcl_template(plan_path: str, output_path
     return {"status": "success", "template": str(output)}
 
 
+def fromcad2cfd_hypermesh_meshing_write_smoke_tcl(output_path: str, hm_output_path: str) -> dict[str, Any]:
+    return write_smoke_blockmesh_tcl(output_path, hm_output_path)
+
+
+def fromcad2cfd_hypermesh_meshing_parse_hmbatch_log(log_path: str) -> dict[str, Any]:
+    return parse_hmbatch_log(log_path)
+
+
 MCP_TOOL_FUNCTIONS = [
     fromcad2cfd_hypermesh_meshing_tool_inventory,
     fromcad2cfd_hypermesh_meshing_locate_runtime,
     fromcad2cfd_hypermesh_meshing_validate_plan,
     fromcad2cfd_hypermesh_meshing_write_python_template,
     fromcad2cfd_hypermesh_meshing_write_tcl_template,
+    fromcad2cfd_hypermesh_meshing_write_smoke_tcl,
+    fromcad2cfd_hypermesh_meshing_parse_hmbatch_log,
 ]

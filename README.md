@@ -260,6 +260,19 @@ fromcad2cfd hypermesh-meshing write-tcl-template `
   --output sandbox/output/basic_cfd_tunnel_hm_template.tcl
 ```
 
+Run the controlled local `hmbatch` smoke test when HyperMesh is installed:
+
+```powershell
+fromcad2cfd hypermesh-meshing write-smoke-tcl `
+  --output sandbox/output/hypermesh_smoke/smoke_blockmesh.tcl `
+  --hm-output sandbox/output/hypermesh_smoke/smoke_blockmesh.hm
+
+fromcad2cfd hypermesh-meshing run-tcl-template `
+  --script sandbox/output/hypermesh_smoke/smoke_blockmesh.tcl `
+  --log sandbox/output/hypermesh_smoke/smoke_blockmesh.log `
+  --manifest sandbox/output/hypermesh_smoke/smoke_blockmesh_manifest.json
+```
+
 ### Validate A Fluent Solver Plan
 
 ```powershell
@@ -329,7 +342,8 @@ Implemented:
 - unstructured mesh import, quality checks, finite-volume geometry, and public
   benchmark workflows,
 - HyperMesh CFD meshing plan validation, local runtime discovery, advisory
-  Python/Tcl template generation, and local meshing adapter contracts,
+  Python/Tcl template generation, controlled `hmbatch` smoke execution, and
+  local meshing adapter contracts,
 - Fluent Solver plan validation, monitor contracts, resume-plan guardrails,
   advisory PyFluent template generation, and local execution adapter contracts,
 - Fluent report-monitor parsing, pressure/temperature/species/wall-heat

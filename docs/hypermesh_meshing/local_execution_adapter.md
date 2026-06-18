@@ -14,6 +14,9 @@ runhwx.exe -client HyperWorksDesktop -plugin HyperworksCFD -profile AltairCFD -l
 ```
 
 Use `hmbatch.exe -tcl <script.tcl>` as the fallback route for Tcl workflows.
+This route is already used by the controlled smoke test because it can run
+without GUI interaction and can be checked through log markers and output
+artifacts.
 
 ## Adapter Responsibilities
 
@@ -29,6 +32,25 @@ Use `hmbatch.exe -tcl <script.tcl>` as the fallback route for Tcl workflows.
 - write mesh quality reports;
 - run an independent Fluent mesh import/check when available;
 - fail closed when any required report is missing.
+
+## Run Evidence
+
+The adapter must write a manifest for every local run. At minimum it should
+record:
+
+- generated script path;
+- hmbatch executable path;
+- command arguments;
+- process exit code;
+- log path;
+- FromCAD2CFD marker status;
+- declared output files and sizes;
+- HyperMesh version text;
+- quality-report and Fluent mesh-check status when available.
+
+Do not rely on the HyperMesh process exit code alone. In local testing,
+HyperMesh 2024 returned exit code `1` after a generated smoke script reached
+its expected end marker and wrote a valid `.hm` file.
 
 ## Safety Boundary
 
