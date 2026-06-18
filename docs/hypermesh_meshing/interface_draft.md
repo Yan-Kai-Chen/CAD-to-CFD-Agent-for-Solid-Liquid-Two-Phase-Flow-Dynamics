@@ -17,8 +17,10 @@ fromcad2cfd hypermesh-meshing validate-plan --plan <meshing_plan.json>
 fromcad2cfd hypermesh-meshing write-python-template --plan <meshing_plan.json> --output <template.py>
 fromcad2cfd hypermesh-meshing write-tcl-template --plan <meshing_plan.json> --output <template.tcl>
 fromcad2cfd hypermesh-meshing write-smoke-tcl --output <smoke.tcl> --hm-output <smoke.hm>
+fromcad2cfd hypermesh-meshing write-surface-mesh-tcl --geometry-input <model.x_t> --output <surface.tcl> --hm-output <surface.hm> --target-size-m <size>
 fromcad2cfd hypermesh-meshing run-tcl-template --script <generated.tcl> --log <run.log> --manifest <manifest.json>
 fromcad2cfd hypermesh-meshing parse-hmbatch-log --log <run.log>
+fromcad2cfd hypermesh-meshing parse-surface-mesh-log --log <run.log> --json-report <report.json> --markdown-report <report.md>
 ```
 
 MCP entry point:
@@ -55,3 +57,33 @@ therefore treats the following evidence as authoritative:
 
 The process exit code is still recorded in the manifest, but it is not the only
 pass/fail signal.
+
+## Controlled Surface Pipeline
+
+The production-oriented local path writes a constrained Tcl script with
+`write-surface-mesh-tcl`, runs it through the same generated-script guard, then
+parses the hmbatch log with `parse-surface-mesh-log`.
+
+The script records:
+
+- input geometry path and target surface element size;
+- import status;
+- component, solid, surface, and line counts;
+- bounding boxes and extents;
+- surface count before meshing;
+- face error count from the surface automesh loop;
+- final surface element and node counts;
+- duplicate element check status, cleanup status, and final duplicate count;
+- declared `.hm` output path.
+
+The generated script deletes duplicate surface elements detected by HyperMesh,
+then repeats the duplicate check. The parser returns `passed` only when markers,
+declared outputs, import,
+surface mesh storage, `.hm` write, nonzero elements, nonzero nodes, zero face
+errors, and zero duplicate elements agree. It returns `review` when the core
+output exists but face errors or duplicate elements require inspection, and
+`failed` when required evidence is missing.
+
+This command chain is surface-only. It intentionally does not create tetra,
+prism, hexcore, boundary-layer volume mesh, or any other HyperMesh 3D volume
+mesh.

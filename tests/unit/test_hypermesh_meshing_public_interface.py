@@ -4,7 +4,13 @@ from pathlib import Path
 
 import pytest
 
-from fromcad2cfd_hypermesh_meshing.adapter import parse_hmbatch_log, write_smoke_blockmesh_tcl
+from fromcad2cfd_hypermesh_meshing.adapter import (
+    parse_hmbatch_log,
+    parse_surface_mesh_log,
+    write_smoke_blockmesh_tcl,
+    write_surface_mesh_reports,
+    write_surface_mesh_tcl,
+)
 from fromcad2cfd_hypermesh_meshing.runtime import locate_hypermesh_runtime
 from fromcad2cfd_hypermesh_meshing.schemas import (
     MESHING_PLAN_SCHEMA_VERSION,
@@ -106,6 +112,24 @@ def test_write_smoke_tcl_contains_generated_marker(tmp_path: Path) -> None:
     assert str(hm_output.resolve()).replace("\\", "/") in text
 
 
+def test_write_surface_mesh_tcl_is_surface_only(tmp_path: Path) -> None:
+    script = tmp_path / "surface_mesh.tcl"
+    geometry = tmp_path / "unit.x_t"
+    geometry.write_text("placeholder", encoding="utf-8")
+    hm_output = tmp_path / "unit_surface.hm"
+
+    result = write_surface_mesh_tcl(script, geometry_input=geometry, hm_output=hm_output, target_size_m=0.02)
+
+    text = script.read_text(encoding="utf-8")
+    assert result["status"] == "success"
+    assert "FROMCAD2CFD_HYPERMESH_SURFACE_PIPELINE_BEGIN" in text
+    assert "parasolid_parasolid" in text
+    assert "set mesh_size 0.02" in text
+    assert "3D volume mesh" in text
+    assert "solidmap" not in text.lower()
+    assert "*tetmesh" not in text.lower()
+
+
 def test_parse_hmbatch_log_uses_markers_and_outputs(tmp_path: Path) -> None:
     hm_output = tmp_path / "smoke.hm"
     hm_output.write_text("placeholder", encoding="utf-8")
@@ -129,6 +153,79 @@ def test_parse_hmbatch_log_uses_markers_and_outputs(tmp_path: Path) -> None:
     assert result["declared_outputs_ok"] is True
     assert result["hypermesh_version_seen"] is True
     assert result["raw_exit_code_warning"] is True
+
+
+def test_parse_surface_mesh_log_extracts_quality_metrics(tmp_path: Path) -> None:
+    hm_output = tmp_path / "front300_surface.hm"
+    hm_output.write_text("placeholder", encoding="utf-8")
+    log = tmp_path / "front300_surface.log"
+    log.write_text(
+        "\n".join(
+            [
+                "FROMCAD2CFD_HYPERMESH_SURFACE_PIPELINE_BEGIN",
+                "input_geom=C:/case/front300.x_t",
+                "output_hm_target=C:/case/front300_surface.hm",
+                "mesh_size_m=0.02",
+                "import_status=passed",
+                "comps_count=1",
+                "solids_count=1",
+                "surfaces_count=309",
+                "lines_count=833",
+                "surfaces_extent=1.24 0.9996 1.0",
+                "surface_count_before=309",
+                "interactiveremesh_status=passed",
+                "face_error_count=0",
+                "store_surface_mesh_status=passed",
+                "element_count_after_surface_mesh=17228",
+                "node_count_after_surface_mesh=16805",
+                "duplicate_check_status=passed",
+                "duplicate_element_count=0",
+                "write_status=passed",
+                f"output_hm={str(hm_output).replace(chr(92), '/')}",
+                "FROMCAD2CFD_HYPERMESH_SURFACE_PIPELINE_END",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = parse_surface_mesh_log(log)
+
+    assert result["status"] == "passed"
+    assert result["metrics"]["surfaces_count"] == 309
+    assert result["metrics"]["surfaces_extent"] == [1.24, 0.9996, 1.0]
+    assert result["checks"]["elements_created"] is True
+
+
+def test_write_surface_mesh_reports_writes_json_and_markdown(tmp_path: Path) -> None:
+    hm_output = tmp_path / "front300_surface.hm"
+    hm_output.write_text("placeholder", encoding="utf-8")
+    log = tmp_path / "front300_surface.log"
+    log.write_text(
+        "\n".join(
+            [
+                "FROMCAD2CFD_HYPERMESH_SURFACE_PIPELINE_BEGIN",
+                "import_status=passed",
+                "store_surface_mesh_status=passed",
+                "write_status=passed",
+                "face_error_count=0",
+                "element_count_after_surface_mesh=10",
+                "node_count_after_surface_mesh=8",
+                f"output_hm={str(hm_output).replace(chr(92), '/')}",
+                "FROMCAD2CFD_HYPERMESH_SURFACE_PIPELINE_END",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = write_surface_mesh_reports(
+        log,
+        json_report=tmp_path / "report.json",
+        markdown_report=tmp_path / "report.md",
+    )
+
+    assert result["status"] == "passed"
+    assert (tmp_path / "report.json").exists()
+    assert "HyperMesh Surface Mesh Report" in (tmp_path / "report.md").read_text(encoding="utf-8")
 
 
 def test_parse_hmbatch_log_accepts_generic_workflow_markers(tmp_path: Path) -> None:

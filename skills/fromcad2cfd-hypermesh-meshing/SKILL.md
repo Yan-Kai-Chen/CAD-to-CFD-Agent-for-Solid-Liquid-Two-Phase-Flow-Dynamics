@@ -50,7 +50,16 @@ fromcad2cfd hypermesh-meshing write-smoke-tcl --output sandbox/output/hm_smoke.t
 fromcad2cfd hypermesh-meshing run-tcl-template --script sandbox/output/hm_smoke.tcl --log sandbox/output/hm_smoke.log --manifest sandbox/output/hm_smoke_manifest.json
 ```
 
-6. Keep direct HyperMesh launch outside uncontrolled public MCP tools; use a
+6. For private geometry on a licensed workstation, write and run the controlled
+   surface-only pipeline:
+
+```powershell
+fromcad2cfd hypermesh-meshing write-surface-mesh-tcl --geometry-input <model.x_t> --output sandbox/output/hm_surface.tcl --hm-output sandbox/output/hm_surface.hm --target-size-m 0.02
+fromcad2cfd hypermesh-meshing run-tcl-template --script sandbox/output/hm_surface.tcl --log sandbox/output/hm_surface.log --manifest sandbox/output/hm_surface_manifest.json
+fromcad2cfd hypermesh-meshing parse-surface-mesh-log --log sandbox/output/hm_surface.log --json-report sandbox/output/hm_surface_report.json --markdown-report sandbox/output/hm_surface_report.md
+```
+
+7. Keep direct HyperMesh launch outside uncontrolled public MCP tools; use a
    controlled local adapter when a licensed runtime and private geometry are
    available.
 
@@ -59,7 +68,7 @@ fromcad2cfd hypermesh-meshing run-tcl-template --script sandbox/output/hm_smoke.
 - After import, report entity counts for components, solids, surfaces, lines, nodes, and elements.
 - Report the bounding box and convert plan mesh sizes into the detected model unit before meshing.
 - For low-level Tcl surface meshing, use `*interactiveremeshsurf` to set element size and keep `*set_meshfaceparams` parameters in their documented order; do not pass the element size as the shape-type argument.
-- After surface meshing, run a surface check that records intersecting pairs, duplicate elements, sharp-angle elements, unmeshed surfaces, and unmeshed/free edges.
+- After surface meshing, record face errors, final element count, node count, and duplicate element count. Add deeper GUI-calibrated surface checks only after confirming that they do not create a HyperMesh 3D volume mesh.
 - Treat `volume_mesh` and `boundary_layer` keys as downstream Fluent-side concerns when they appear in legacy plans.
 
 ## Runtime Evidence

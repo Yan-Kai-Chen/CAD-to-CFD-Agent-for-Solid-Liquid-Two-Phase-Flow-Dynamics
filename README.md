@@ -273,6 +273,29 @@ fromcad2cfd hypermesh-meshing run-tcl-template `
   --manifest sandbox/output/hypermesh_smoke/smoke_blockmesh_manifest.json
 ```
 
+Run a controlled local 2D surface-mesh pipeline for private geometry:
+
+```powershell
+fromcad2cfd hypermesh-meshing write-surface-mesh-tcl `
+  --geometry-input sandbox/input/private_tunnel.x_t `
+  --output sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.tcl `
+  --hm-output sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.hm `
+  --target-size-m 0.02
+
+fromcad2cfd hypermesh-meshing run-tcl-template `
+  --script sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.tcl `
+  --log sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.log `
+  --manifest sandbox/output/hypermesh_surface/private_tunnel_surface_20mm_manifest.json
+
+fromcad2cfd hypermesh-meshing parse-surface-mesh-log `
+  --log sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.log `
+  --json-report sandbox/output/hypermesh_surface/private_tunnel_surface_20mm_report.json `
+  --markdown-report sandbox/output/hypermesh_surface/private_tunnel_surface_20mm_report.md
+```
+
+This HyperMesh adapter stops at the accepted 2D surface mesh. Downstream 3D
+volume meshing remains a Fluent-side workflow stage.
+
 ### Validate A Fluent Solver Plan
 
 ```powershell
