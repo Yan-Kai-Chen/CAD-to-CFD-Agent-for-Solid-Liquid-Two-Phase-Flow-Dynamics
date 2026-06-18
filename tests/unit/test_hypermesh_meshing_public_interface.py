@@ -119,6 +119,37 @@ def test_parse_hmbatch_log_uses_markers_and_outputs(tmp_path: Path) -> None:
     assert result["raw_exit_code_warning"] is True
 
 
+def test_parse_hmbatch_log_accepts_generic_workflow_markers(tmp_path: Path) -> None:
+    hm_output = tmp_path / "front300_import_only.hm"
+    hm_output.write_text("placeholder", encoding="utf-8")
+    log = tmp_path / "front300_import.log"
+    log.write_text(
+        "\n".join(
+            [
+                "FROMCAD2CFD_HYPERMESH_IMPORT_BEGIN",
+                "import_status=passed",
+                f"output_hm={str(hm_output).replace(chr(92), '/')}",
+                "FROMCAD2CFD_HYPERMESH_IMPORT_END",
+                "Altair HyperMesh v2024.0.0.26",
+                "HM exiting with code 1",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    result = parse_hmbatch_log(log)
+
+    assert result["markers_ok"] is True
+    assert result["declared_outputs_ok"] is True
+    assert result["markers"] == [
+        {
+            "begin": "FROMCAD2CFD_HYPERMESH_IMPORT_BEGIN",
+            "end": "FROMCAD2CFD_HYPERMESH_IMPORT_END",
+            "complete": True,
+        }
+    ]
+
+
 def test_parse_hmbatch_log_fails_missing_output(tmp_path: Path) -> None:
     log = tmp_path / "smoke.log"
     log.write_text(

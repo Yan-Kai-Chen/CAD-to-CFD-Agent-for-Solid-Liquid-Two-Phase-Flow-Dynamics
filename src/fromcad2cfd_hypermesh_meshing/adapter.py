@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -123,15 +124,7 @@ def parse_hmbatch_log(log_path: str | Path) -> dict[str, Any]:
 
     log = Path(log_path)
     text = log.read_text(encoding="utf-8", errors="replace") if log.exists() else ""
-    marker_pairs = [
-        (SMOKE_BEGIN, SMOKE_END),
-        (TEMPLATE_BEGIN, TEMPLATE_END),
-    ]
-    found_pairs = [
-        {"begin": begin, "end": end, "complete": begin in text and end in text}
-        for begin, end in marker_pairs
-        if begin in text or end in text
-    ]
+    found_pairs = _marker_pairs(text)
     declared_outputs = _declared_outputs(text)
     output_checks = [
         {
@@ -160,6 +153,23 @@ def _declared_outputs(text: str) -> list[str]:
         if line.startswith("output_hm="):
             outputs.append(line.split("=", 1)[1].strip())
     return outputs
+
+
+def _marker_pairs(text: str) -> list[dict[str, Any]]:
+    known = [
+        (SMOKE_BEGIN, SMOKE_END),
+        (TEMPLATE_BEGIN, TEMPLATE_END),
+    ]
+    pairs: dict[str, dict[str, Any]] = {}
+    for begin, end in known:
+        if begin in text or end in text:
+            pairs[begin] = {"begin": begin, "end": end, "complete": begin in text and end in text}
+    for match in re.finditer(r"(FROMCAD2CFD_HYPERMESH_[A-Z0-9_]+)_(BEGIN|END)", text):
+        prefix = match.group(1)
+        begin = f"{prefix}_BEGIN"
+        end = f"{prefix}_END"
+        pairs[begin] = {"begin": begin, "end": end, "complete": begin in text and end in text}
+    return list(pairs.values())
 
 
 def _assert_generated_script(script: Path) -> None:
