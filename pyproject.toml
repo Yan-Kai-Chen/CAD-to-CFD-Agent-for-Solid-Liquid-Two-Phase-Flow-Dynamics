@@ -36,6 +36,7 @@ mcp = ["mcp>=1,<2"]
 fromcad2cfd = "fromcad2cfd.cli:main"
 fromcad2cfd-nx-mcp = "fromcad2cfd_mcp_nx.server:main"
 fromcad2cfd-fluent-solver-mcp = "fromcad2cfd_mcp_fluent_solver.server:main"
+fromcad2cfd-hypermesh-meshing-mcp = "fromcad2cfd_mcp_hypermesh_meshing.server:main"
 fromcad2cfd-post-mcp = "fromcad2cfd_mcp_postprocessing.server:main"
 
 [tool.setuptools.packages.find]

@@ -40,6 +40,12 @@ Skills and policies
       -> evidence-checked Fluent setup hint compiler
       -> physics passport, field QoI, prediction reports, parameter screening
     -> Fluent agent workflow layer
+      -> HyperMesh CFD meshing interface
+        -> meshing-plan schema validation
+        -> HyperMesh runtime discovery
+        -> advisory Python/Tcl template generation
+        -> local batch meshing adapter contract
+        -> Fluent boundary-zone and quality-report preservation
       -> Fluent Meshing preflight gate
         -> meshing-preparation reports and handoff hints
       -> Fluent Solver planning interface
@@ -85,6 +91,8 @@ FastCFD / CFD screening pillar
       -> field QoI, lattice trust, prediction, parameter screening, and pilot decision artifacts
   -> fromcad2cfd_fluent_meshing
       -> FastCFD evidence preflight gate
+  -> fromcad2cfd_hypermesh_meshing
+      -> HyperMesh CFD meshing plans, runtime discovery, advisory Python/Tcl templates, Fluent zone naming, and local meshing adapter contracts
   -> fromcad2cfd_fluent_solver
       -> solver plans, monitor contracts, PyFluent templates, resume guardrails, and local execution adapter contracts
   -> fromcad2cfd_postprocessing
@@ -121,14 +129,15 @@ pressure-correction route, and a public benchmark suite for agent setup
 decisions.
 
 The VOF, turbulence, and rheology gates validate setup inputs and Fluent-facing
-hints with explicit evidence. Fluent Solver planning, post-processing, and
-local execution adapter contracts are included as part of the agent workflow.
-The public repository keeps machine-specific launch details outside the default
-portable path, while configured private workspaces can connect these contracts
-to licensed Fluent installations, private mesh/case/data files, MPI settings,
-and long-running monitor supervision. Production-grade general unstructured
-Navier-Stokes, deeper turbulence/multiphase/non-Newtonian coupling, GPU
-acceleration, and richer rendered post-processing remain roadmap modules.
+hints with explicit evidence. HyperMesh meshing plans, Fluent Solver planning,
+post-processing, and local execution adapter contracts are included as part of
+the agent workflow. The public repository keeps machine-specific launch details
+outside the default portable path, while configured private workspaces can
+connect these contracts to licensed HyperMesh and Fluent installations, private
+geometry/mesh/case/data files, MPI settings, and long-running monitor
+supervision. Production-grade general unstructured Navier-Stokes, deeper
+turbulence/multiphase/non-Newtonian coupling, GPU acceleration, and richer
+rendered post-processing remain roadmap modules.
 
 ## Modules
 
@@ -141,6 +150,8 @@ acceleration, and richer rendered post-processing remain roadmap modules.
 - `fromcad2cfd_mesh`: mesh inspection and optional FreeCAD/OpenCascade coarse solidification.
 - `cpp/fastfluent_core`: vendored C++ FastFluent / FreeLB-derived solver core with GPLv3 license, examples, benchmarks, LBM/CA/free-surface/non-Newtonian components, and Makefile-based builds.
 - `fromcad2cfd_fastcfd`: preliminary FastCFD/FastFluent CFD prediction and physics-screening workflows with validation gates, structured pilot cases, VOF/turbulence/rheology setup-passport tooling, evidence-checked Fluent hint compilation, and the first unstructured mesh, boundary-contract, geometry, 2D triangle and 3D tetra scalar diffusion, linear-system, Stokes momentum, pressure-projection, iterative flow benchmark, boundary-aware channel validation, channel-convergence, public obstacle-channel, VOF-lite alpha-transport, algebraic eddy-viscosity turbulent-channel, standard k-epsilon turbulent-channel, pressure-corrected k-epsilon, Menter k-omega SST, JSON case-runner, controlled steady incompressible, public benchmark-suite, and turbulence-ladder gates.
+- `fromcad2cfd_hypermesh_meshing`: public-safe HyperMesh CFD meshing plan validation, runtime discovery, advisory Python/Tcl template generation, Fluent boundary-zone contracts, and local batch meshing adapter contracts.
+- `fromcad2cfd_mcp_hypermesh_meshing`: safe MCP stdio wrapper for HyperMesh CFD meshing planning surfaces.
 - `fromcad2cfd_fluent_meshing`: Fluent Meshing planning gate and adapter-ready handoff boundary.
 - `fromcad2cfd_fluent_solver`: public-safe Fluent Solver plan validation, monitor contracts, template generation, resume-plan guardrails, and local execution adapter contracts.
 - `fromcad2cfd_mcp_fluent_solver`: safe MCP stdio wrapper for Fluent Solver planning surfaces.
@@ -170,12 +181,12 @@ selector patterns. It is not an agent-facing execution surface.
 The public alpha includes a working SolidWorks automation layer, a
 backend-neutral CAD contract, a locally validated Siemens NX controlled-journal
 backend, a mesh solidification helper, a FastCFD/FastFluent preliminary CFD
-screening layer, an unstructured mesh evidence layer, physics passports, a
-Fluent Meshing preflight gate, public-safe Fluent Solver workflow contracts,
-local execution adapter definitions, and public-safe Fluent post-processing
-interfaces. Deeper Fluent Meshing automation, production-hardened Fluent
-execution adapters, GPU acceleration, and richer rendered post-processing
-remain roadmap modules.
+screening layer, an unstructured mesh evidence layer, physics passports,
+HyperMesh CFD meshing plan contracts, a Fluent Meshing preflight gate,
+public-safe Fluent Solver workflow contracts, local execution adapter
+definitions, and public-safe Fluent post-processing interfaces. Production-
+hardened HyperMesh/Fluent execution adapters, GPU acceleration, and richer
+rendered post-processing remain roadmap modules.
 
 The repository intentionally excludes private CAD, STL, Parasolid, NX `.prt`,
 Fluent case/data files, generated runtime outputs, and local absolute paths.

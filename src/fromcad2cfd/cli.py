@@ -7,6 +7,7 @@ from fromcad2cfd_cad import cli as cad_cli
 from fromcad2cfd_fastcfd import cli as fastcfd_cli
 from fromcad2cfd_fluent_meshing import cli as fluent_meshing_cli
 from fromcad2cfd_fluent_solver import cli as fluent_solver_cli
+from fromcad2cfd_hypermesh_meshing import cli as hypermesh_meshing_cli
 from fromcad2cfd_mesh import cli as mesh_cli
 from fromcad2cfd_nx import cli as nx_cli
 from fromcad2cfd_postprocessing import cli as post_cli
@@ -27,6 +28,7 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser("fastcfd", help="Run agent-safe FastCFD pilot simulation workflows.")
     sub.add_parser("fluent-meshing", help="Run Fluent Meshing planning gate commands.")
     sub.add_parser("fluent-solver", help="Validate Fluent Solver plans and write public-safe templates.")
+    sub.add_parser("hypermesh-meshing", help="Validate HyperMesh CFD meshing plans and write adapter templates.")
     sub.add_parser("post", help="Parse Fluent report monitors and write postprocessing summaries.")
     return parser
 
@@ -47,6 +49,8 @@ def main(argv: list[str] | None = None) -> int:
         return fluent_meshing_cli.main(argv[1:])
     if argv and argv[0] == "fluent-solver":
         return fluent_solver_cli.main(argv[1:])
+    if argv and argv[0] == "hypermesh-meshing":
+        return hypermesh_meshing_cli.main(argv[1:])
     if argv and argv[0] == "post":
         return post_cli.main(argv[1:])
 

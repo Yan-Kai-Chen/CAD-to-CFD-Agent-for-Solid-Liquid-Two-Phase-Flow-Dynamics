@@ -19,6 +19,8 @@ The framework uses project-local skills to keep CAD automation conservative and 
 
 ## CFD Workflow
 
+- `skills/fromcad2cfd-hypermesh-meshing`
+  - Use for public-safe HyperMesh CFD meshing plan validation, Fluent boundary-zone preservation, advisory Python/Tcl template generation, local runtime discovery, and controlled meshing adapter preparation.
 - `skills/fromcad2cfd-fluent-meshing`
 - `skills/fromcad2cfd-fluent-solver`
   - Use for public-safe Fluent Solver plan validation, monitor contracts, PyFluent template generation, and resume guardrails.

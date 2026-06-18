@@ -25,6 +25,11 @@ FastCFD / FastFluent preliminary CFD pillar:
 - `fastcfd/unstructured_mesh_gateway.md`
 - `fastcfd/physics_passports_and_fluent_hints.md`
 
+HyperMesh meshing:
+
+- `hypermesh_meshing/interface_draft.md`
+- `hypermesh_meshing/local_execution_adapter.md`
+
 Fluent agent workflow:
 
 - `fluent_meshing/interface_draft.md`

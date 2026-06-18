@@ -140,6 +140,7 @@ AI agent
       -> unstructured finite-volume evidence backend
       -> prediction, QoI, and Fluent setup hints
     -> Fluent agent workflow layer
+      -> HyperMesh CFD meshing plans, templates, and local meshing adapters
       -> Fluent Meshing preflight reports
       -> Fluent Solver plan validation, templates, and local execution adapters
       -> monitor parsing, post-run summaries, and video/report plans
@@ -160,9 +161,11 @@ src/fromcad2cfd_mcp_nx/          Safe NX MCP stdio server
 src/fromcad2cfd_mesh/            Mesh inspection and solidification helper
 
 src/fromcad2cfd_fastcfd/         FastCFD / FastFluent agentic CFD layer
+src/fromcad2cfd_hypermesh_meshing/ HyperMesh CFD meshing plans and adapter contracts
 src/fromcad2cfd_fluent_meshing/  Fluent Meshing preflight boundary
 src/fromcad2cfd_fluent_solver/   Fluent Solver plans, templates, and adapter contracts
 src/fromcad2cfd_postprocessing/  Fluent monitor parsing and reports
+src/fromcad2cfd_mcp_hypermesh_meshing/ Safe HyperMesh Meshing MCP stdio server
 src/fromcad2cfd_mcp_fluent_solver/  Safe Fluent Solver MCP stdio server
 src/fromcad2cfd_mcp_postprocessing/ Safe post-processing MCP stdio server
 
@@ -200,6 +203,8 @@ Optional integrations:
 - SolidWorks requires a local SolidWorks installation and `pywin32`.
 - Siemens NX journal execution requires `run_journal.exe`.
 - FreeCAD mesh solidification requires `FreeCADCmd.exe`.
+- HyperMesh meshing adapters require a local Altair HyperMesh / HyperMesh CFD
+  installation.
 - Real FastFluent runs require a working C++ build environment; the source root
   defaults to `cpp/fastfluent_core`.
 
@@ -234,6 +239,25 @@ fromcad2cfd fastcfd mock-demo --project fastcfd_mock_cavity2d --model-name fastc
 ```powershell
 fromcad2cfd fastcfd unstructured inspect-mesh examples/unstructured/channel2d.msh --format json
 fromcad2cfd fastcfd unstructured run-benchmark-suite --iterations 8 --format json
+```
+
+### Validate A HyperMesh CFD Meshing Plan
+
+```powershell
+fromcad2cfd hypermesh-meshing locate-runtime
+fromcad2cfd hypermesh-meshing validate-plan --plan examples/hypermesh_meshing/basic_cfd_tunnel/meshing_plan.json
+```
+
+Generate advisory HyperMesh templates for local review:
+
+```powershell
+fromcad2cfd hypermesh-meshing write-python-template `
+  --plan examples/hypermesh_meshing/basic_cfd_tunnel/meshing_plan.json `
+  --output sandbox/output/basic_cfd_tunnel_hm_template.py
+
+fromcad2cfd hypermesh-meshing write-tcl-template `
+  --plan examples/hypermesh_meshing/basic_cfd_tunnel/meshing_plan.json `
+  --output sandbox/output/basic_cfd_tunnel_hm_template.tcl
 ```
 
 ### Validate A Fluent Solver Plan
@@ -272,6 +296,8 @@ More detailed commands are kept in the module-specific documentation:
 - [NX quickstart](docs/nx/quickstart.md)
 - [FastCFD quickstart](docs/fastcfd/quickstart.md)
 - [FreeCAD solidification route](docs/mesh/freecad_solidify.md)
+- [HyperMesh Meshing interface](docs/hypermesh_meshing/interface_draft.md)
+- [Local HyperMesh execution adapter](docs/hypermesh_meshing/local_execution_adapter.md)
 - [Fluent Solver interface](docs/fluent_solver/interface_draft.md)
 - [Local Fluent execution adapter](docs/fluent_solver/local_execution_adapter.md)
 - [Post-processing interface](docs/postprocessing/interface_draft.md)
@@ -288,6 +314,7 @@ Examples include:
 - synthetic mesh solidification input,
 - public Gmsh unstructured benchmark meshes,
 - FastCFD / FastFluent screening and benchmark artifacts,
+- a public-safe HyperMesh CFD meshing plan,
 - a public-safe Fluent Solver plan,
 - synthetic Fluent report-monitor files for post-processing summaries.
 
@@ -301,6 +328,8 @@ Implemented:
   and preliminary CFD evidence routes,
 - unstructured mesh import, quality checks, finite-volume geometry, and public
   benchmark workflows,
+- HyperMesh CFD meshing plan validation, local runtime discovery, advisory
+  Python/Tcl template generation, and local meshing adapter contracts,
 - Fluent Solver plan validation, monitor contracts, resume-plan guardrails,
   advisory PyFluent template generation, and local execution adapter contracts,
 - Fluent report-monitor parsing, pressure/temperature/species/wall-heat
@@ -311,6 +340,7 @@ Implemented:
 Roadmap:
 
 - broader production CAD repair coverage,
+- production-hardened HyperMesh CFD batch meshing adapters and quality parsers,
 - deeper Fluent Meshing automation,
 - broader Fluent Solver setup coverage and hardened local execution adapters,
 - richer rendered post-processing through configured local renderer adapters,

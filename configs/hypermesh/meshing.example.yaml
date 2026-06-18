@@ -1,0 +1,39 @@
+schema_version: "fromcad2cfd_hypermesh_meshing_plan_v1"
+plan_name: "basic_cfd_tunnel_hypermesh_plan"
+geometry_input: "sandbox/input/basic_cfd_tunnel.step"
+hypermesh_model_output: "sandbox/output/basic_cfd_tunnel.hm"
+fluent_mesh_output: "sandbox/output/basic_cfd_tunnel.msh"
+run_directory: "sandbox/output/basic_cfd_tunnel_hypermesh_run"
+units:
+  length_unit: "mm"
+  scale_to_m: 0.001
+boundaries:
+  inlet:
+    type: "inlet"
+    description: "Upstream inlet face of the fluid domain"
+  outlet:
+    type: "outlet"
+    description: "Downstream outlet face of the fluid domain"
+  outer_wall:
+    type: "wall"
+    description: "Outer tunnel wall"
+  model_wall:
+    type: "wall"
+    description: "Internal model surface"
+surface_mesh:
+  target_size_mm: 5.0
+  min_size_mm: 1.0
+  max_size_mm: 10.0
+boundary_layer:
+  enabled: true
+  first_height_mm: 0.15
+  layers: 6
+  growth_rate: 1.25
+volume_mesh:
+  method: "hybrid_prism_tetra"
+  target_size_mm: 8.0
+quality:
+  max_skewness: 0.9
+  max_aspect_ratio: 20.0
+export:
+  format: "fluent_msh"
