@@ -7,11 +7,10 @@ from pathlib import Path
 from typing import Any
 
 
-MESHING_PLAN_SCHEMA_VERSION = "fromcad2cfd_hypermesh_meshing_plan_v1"
+MESHING_PLAN_SCHEMA_VERSION = "fromcad2cfd_hypermesh_surface_meshing_plan_v1"
 
 ALLOWED_BOUNDARY_TYPES = {"inlet", "outlet", "wall", "symmetry", "interface", "farfield"}
-ALLOWED_VOLUME_METHODS = {"cfd_tetra", "hybrid_prism_tetra", "hexcore_advisory"}
-ALLOWED_EXPORT_FORMATS = {"fluent_msh", "fluent_cas_msh"}
+ALLOWED_EXPORT_FORMATS = {"hypermesh_hm", "fluent_surface_msh"}
 
 
 def read_json(path: str | Path) -> dict[str, Any]:
@@ -25,7 +24,7 @@ def write_json(path: str | Path, payload: dict[str, Any]) -> None:
 
 
 def validate_meshing_plan(payload: dict[str, Any], *, public_mode: bool = True) -> dict[str, Any]:
-    """Validate a public-safe HyperMesh CFD meshing plan."""
+    """Validate a public-safe HyperMesh CFD surface-meshing plan."""
 
     errors: list[str] = []
     warnings: list[str] = []
@@ -35,25 +34,23 @@ def validate_meshing_plan(payload: dict[str, Any], *, public_mode: bool = True) 
         "plan_name",
         "geometry_input",
         "hypermesh_model_output",
-        "fluent_mesh_output",
+        "surface_mesh_output",
         "units",
         "boundaries",
         "surface_mesh",
-        "volume_mesh",
         "quality",
     ):
         if key not in payload:
             errors.append(f"Missing required key: {key}.")
 
-    for key in ("geometry_input", "hypermesh_model_output", "fluent_mesh_output"):
+    for key in ("geometry_input", "hypermesh_model_output", "surface_mesh_output"):
         if key in payload:
             _validate_public_path(str(payload[key]), key, public_mode, errors)
 
     _validate_units(payload.get("units"), errors)
     _validate_boundaries(payload.get("boundaries"), errors, warnings)
     _validate_surface_mesh(payload.get("surface_mesh"), errors)
-    _validate_boundary_layer(payload.get("boundary_layer", {}), errors, warnings)
-    _validate_volume_mesh(payload.get("volume_mesh"), errors)
+    _warn_ignored_3d_controls(payload, warnings)
     _validate_quality(payload.get("quality"), errors, warnings)
     _validate_export(payload.get("export", {}), errors)
 
@@ -69,7 +66,7 @@ def validate_meshing_plan(payload: dict[str, Any], *, public_mode: bool = True) 
 
 
 def hypermesh_python_template(plan: dict[str, Any]) -> str:
-    """Generate an advisory HyperMesh CFD Python template from a validated plan."""
+    """Generate an advisory HyperMesh CFD surface-meshing Python template from a validated plan."""
 
     validation = validate_meshing_plan(plan, public_mode=False)
     if validation["status"] != "passed":
@@ -96,11 +93,10 @@ def hypermesh_python_template(plan: dict[str, Any]) -> str:
             "    # TODO: create or obtain the active HyperMesh model/session.",
             "    # TODO: import PLAN['geometry_input'] with unit handling.",
             "    # TODO: create CFD boundary components using PLAN['boundaries'].",
-            "    # TODO: apply surface mesh controls from PLAN['surface_mesh'].",
-            "    # TODO: apply boundary-layer controls from PLAN.get('boundary_layer', {}).",
-            "    # TODO: create the volume mesh using PLAN['volume_mesh'].",
-            "    # TODO: run HyperMesh quality checks from PLAN['quality'].",
-            "    # TODO: export PLAN['fluent_mesh_output'] using the Fluent CFD export profile.",
+            "    # TODO: inspect the imported bounding box and convert PLAN['surface_mesh'] sizes to model units.",
+            "    # TODO: create only the 2D surface mesh; do not create tetra/prism/hex volume mesh in HyperMesh.",
+            "    # TODO: run surface quality checks from PLAN['quality'].",
+            "    # TODO: write PLAN['hypermesh_model_output'] and PLAN['surface_mesh_output'].",
             "    manifest = RUN_DIR / 'hypermesh_meshing_manifest.json'",
             "    manifest.write_text(json.dumps({'status': 'template_only', 'plan_name': PLAN['plan_name']}, indent=2), encoding='utf-8')",
             "",
@@ -112,7 +108,7 @@ def hypermesh_python_template(plan: dict[str, Any]) -> str:
 
 
 def hypermesh_tcl_template(plan: dict[str, Any]) -> str:
-    """Generate an advisory HyperMesh Tcl template from a validated plan."""
+    """Generate an advisory HyperMesh surface-meshing Tcl template from a validated plan."""
 
     validation = validate_meshing_plan(plan, public_mode=False)
     if validation["status"] != "passed":
@@ -127,8 +123,9 @@ def hypermesh_tcl_template(plan: dict[str, Any]) -> str:
             'puts "plan_name=' + str(plan["plan_name"]) + '"',
             "# TODO: hm_answernext yes",
             "# TODO: import geometry, create components, assign CFD zones.",
-            "# TODO: surface mesh, boundary-layer mesh, volume mesh.",
-            "# TODO: quality check and Fluent mesh export.",
+            "# TODO: inspect bounding box and convert mesh sizes to model units.",
+            "# TODO: create only the 2D surface mesh; no HyperMesh volume mesh.",
+            "# TODO: surface quality check and surface mesh export.",
             'puts "template_status=template_only"',
             'puts "FROMCAD2CFD_HYPERMESH_MESHING_TEMPLATE_END"',
             "exit",
@@ -180,32 +177,10 @@ def _validate_surface_mesh(surface_mesh: Any, errors: list[str]) -> None:
             errors.append(f"surface_mesh.{key} must be positive when provided.")
 
 
-def _validate_boundary_layer(boundary_layer: Any, errors: list[str], warnings: list[str]) -> None:
-    if not boundary_layer:
-        warnings.append("No boundary_layer object was provided; CFD wall resolution may be insufficient.")
-        return
-    if not isinstance(boundary_layer, dict):
-        errors.append("boundary_layer must be an object.")
-        return
-    if not boundary_layer.get("enabled", False):
-        warnings.append("boundary_layer.enabled is false; confirm this is intentional for CFD.")
-        return
-    if _positive_float(boundary_layer.get("first_height_mm")) is None:
-        errors.append("boundary_layer.first_height_mm must be positive when enabled.")
-    if _positive_int(boundary_layer.get("layers")) is None:
-        errors.append("boundary_layer.layers must be a positive integer when enabled.")
-    if _positive_float(boundary_layer.get("growth_rate")) is None:
-        errors.append("boundary_layer.growth_rate must be positive when enabled.")
-
-
-def _validate_volume_mesh(volume_mesh: Any, errors: list[str]) -> None:
-    if not isinstance(volume_mesh, dict):
-        errors.append("volume_mesh must be an object.")
-        return
-    if volume_mesh.get("method") not in ALLOWED_VOLUME_METHODS:
-        errors.append(f"volume_mesh.method must be one of: {', '.join(sorted(ALLOWED_VOLUME_METHODS))}.")
-    if "target_size_mm" in volume_mesh and _positive_float(volume_mesh.get("target_size_mm")) is None:
-        errors.append("volume_mesh.target_size_mm must be positive when provided.")
+def _warn_ignored_3d_controls(payload: dict[str, Any], warnings: list[str]) -> None:
+    for key in ("boundary_layer", "volume_mesh"):
+        if key in payload:
+            warnings.append(f"{key} is ignored by the HyperMesh surface-only adapter.")
 
 
 def _validate_quality(quality: Any, errors: list[str], warnings: list[str]) -> None:

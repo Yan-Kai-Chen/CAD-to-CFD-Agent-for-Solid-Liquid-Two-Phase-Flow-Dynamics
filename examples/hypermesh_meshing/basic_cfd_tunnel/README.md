@@ -1,6 +1,7 @@
 # Basic HyperMesh CFD Tunnel Example
 
-This public-safe example defines the contract for a HyperMesh CFD meshing run.
+This public-safe example defines the contract for a HyperMesh CFD
+two-dimensional surface-meshing run.
 It does not include private CAD or generated mesh files.
 
 Validate the plan:
@@ -22,4 +23,6 @@ fromcad2cfd hypermesh-meshing write-tcl-template `
 ```
 
 The production adapter should replace template TODO blocks with recorded and
-reviewed HyperMesh CFD Python/Tcl operations.
+reviewed HyperMesh CFD Python/Tcl operations. The HyperMesh portion stops at
+the accepted surface mesh; downstream three-dimensional meshing is handled
+outside this adapter.

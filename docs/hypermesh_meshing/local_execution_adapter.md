@@ -1,8 +1,8 @@
 # Local HyperMesh Execution Adapter
 
 The local HyperMesh adapter is the machine-specific bridge between portable
-FromCAD2CFD meshing plans and a licensed Altair HyperMesh / HyperMesh CFD
-runtime.
+FromCAD2CFD surface-meshing plans and a licensed Altair HyperMesh /
+HyperMesh CFD runtime.
 
 ## Preferred Runtime
 
@@ -26,12 +26,15 @@ artifacts.
 - import geometry with unit checks;
 - create or map Fluent boundary-zone components;
 - apply surface mesh controls;
-- apply boundary-layer controls;
-- create the volume mesh;
-- export Fluent-compatible mesh files;
+- create only the two-dimensional surface mesh;
+- export the accepted surface mesh artifact;
 - write mesh quality reports;
-- run an independent Fluent mesh import/check when available;
+- hand off three-dimensional meshing and solver setup to the downstream Fluent
+  workflow when available;
 - fail closed when any required report is missing.
+
+The adapter must not create tetra, prism, hexcore, boundary-layer volume mesh,
+or any other three-dimensional mesh inside HyperMesh.
 
 ## Run Evidence
 
@@ -61,5 +64,5 @@ injection as agent tools. High-level adapter actions should be bounded:
 - `launch_meshing_run`
 - `monitor_meshing_run`
 - `parse_quality_report`
-- `export_fluent_mesh`
+- `export_surface_mesh`
 - `package_meshing_run`

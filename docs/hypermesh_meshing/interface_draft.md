@@ -1,7 +1,8 @@
 # HyperMesh Meshing Interface
 
 The HyperMesh meshing layer defines the agent-facing contract for creating
-CFD-ready meshes through local Altair HyperMesh / HyperMesh CFD.
+CFD-ready two-dimensional surface meshes through local Altair HyperMesh /
+HyperMesh CFD.
 
 The public default commands validate plans, locate local runtimes, and generate
 advisory Python/Tcl templates. Direct meshing execution belongs behind a
@@ -27,10 +28,12 @@ fromcad2cfd-hypermesh-meshing-mcp --describe
 fromcad2cfd-hypermesh-meshing-mcp --list-tools
 ```
 
-The adapter should preserve Fluent boundary-zone names, generate boundary-layer
-controls where required, export Fluent-compatible mesh files, and write
-machine-readable quality reports before the Fluent solver setup is allowed to
-continue.
+The adapter should preserve Fluent boundary-zone names, generate only the
+two-dimensional surface mesh, export the accepted surface mesh artifact, and
+write machine-readable quality reports before downstream Fluent meshing or
+solver setup is allowed to continue. HyperMesh is not responsible for tetra,
+prism, hexcore, boundary-layer volume mesh, or any other three-dimensional
+volume mesh in this workflow.
 
 ## Batch Smoke Test
 

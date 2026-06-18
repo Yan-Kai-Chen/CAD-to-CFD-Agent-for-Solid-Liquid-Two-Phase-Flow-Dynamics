@@ -140,7 +140,7 @@ AI agent
       -> unstructured finite-volume evidence backend
       -> prediction, QoI, and Fluent setup hints
     -> Fluent agent workflow layer
-      -> HyperMesh CFD meshing plans, templates, and local meshing adapters
+      -> HyperMesh CFD surface-meshing plans, templates, and local adapters
       -> Fluent Meshing preflight reports
       -> Fluent Solver plan validation, templates, and local execution adapters
       -> monitor parsing, post-run summaries, and video/report plans
@@ -161,7 +161,7 @@ src/fromcad2cfd_mcp_nx/          Safe NX MCP stdio server
 src/fromcad2cfd_mesh/            Mesh inspection and solidification helper
 
 src/fromcad2cfd_fastcfd/         FastCFD / FastFluent agentic CFD layer
-src/fromcad2cfd_hypermesh_meshing/ HyperMesh CFD meshing plans and adapter contracts
+src/fromcad2cfd_hypermesh_meshing/ HyperMesh CFD surface-meshing plans and adapter contracts
 src/fromcad2cfd_fluent_meshing/  Fluent Meshing preflight boundary
 src/fromcad2cfd_fluent_solver/   Fluent Solver plans, templates, and adapter contracts
 src/fromcad2cfd_postprocessing/  Fluent monitor parsing and reports
@@ -203,7 +203,7 @@ Optional integrations:
 - SolidWorks requires a local SolidWorks installation and `pywin32`.
 - Siemens NX journal execution requires `run_journal.exe`.
 - FreeCAD mesh solidification requires `FreeCADCmd.exe`.
-- HyperMesh meshing adapters require a local Altair HyperMesh / HyperMesh CFD
+- HyperMesh surface-meshing adapters require a local Altair HyperMesh / HyperMesh CFD
   installation.
 - Real FastFluent runs require a working C++ build environment; the source root
   defaults to `cpp/fastfluent_core`.
@@ -241,7 +241,7 @@ fromcad2cfd fastcfd unstructured inspect-mesh examples/unstructured/channel2d.ms
 fromcad2cfd fastcfd unstructured run-benchmark-suite --iterations 8 --format json
 ```
 
-### Validate A HyperMesh CFD Meshing Plan
+### Validate A HyperMesh CFD Surface-Meshing Plan
 
 ```powershell
 fromcad2cfd hypermesh-meshing locate-runtime
@@ -327,7 +327,7 @@ Examples include:
 - synthetic mesh solidification input,
 - public Gmsh unstructured benchmark meshes,
 - FastCFD / FastFluent screening and benchmark artifacts,
-- a public-safe HyperMesh CFD meshing plan,
+- a public-safe HyperMesh CFD surface-meshing plan,
 - a public-safe Fluent Solver plan,
 - synthetic Fluent report-monitor files for post-processing summaries.
 
@@ -341,7 +341,7 @@ Implemented:
   and preliminary CFD evidence routes,
 - unstructured mesh import, quality checks, finite-volume geometry, and public
   benchmark workflows,
-- HyperMesh CFD meshing plan validation, local runtime discovery, advisory
+- HyperMesh CFD surface-meshing plan validation, local runtime discovery, advisory
   Python/Tcl template generation, controlled `hmbatch` smoke execution, and
   local meshing adapter contracts,
 - Fluent Solver plan validation, monitor contracts, resume-plan guardrails,
@@ -354,7 +354,7 @@ Implemented:
 Roadmap:
 
 - broader production CAD repair coverage,
-- production-hardened HyperMesh CFD batch meshing adapters and quality parsers,
+- production-hardened HyperMesh CFD batch surface-meshing adapters and quality parsers,
 - deeper Fluent Meshing automation,
 - broader Fluent Solver setup coverage and hardened local execution adapters,
 - richer rendered post-processing through configured local renderer adapters,

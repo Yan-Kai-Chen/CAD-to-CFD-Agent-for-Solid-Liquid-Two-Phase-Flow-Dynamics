@@ -21,7 +21,7 @@ def _valid_plan() -> dict[str, object]:
         "plan_name": "unit_hypermesh_plan",
         "geometry_input": "sandbox/input/unit.step",
         "hypermesh_model_output": "sandbox/output/unit.hm",
-        "fluent_mesh_output": "sandbox/output/unit.msh",
+        "surface_mesh_output": "sandbox/output/unit_surface.msh",
         "units": {"length_unit": "mm", "scale_to_m": 0.001},
         "boundaries": {
             "inlet": {"type": "inlet", "description": "inlet face"},
@@ -30,10 +30,8 @@ def _valid_plan() -> dict[str, object]:
             "model_wall": {"type": "wall", "description": "model wall"},
         },
         "surface_mesh": {"target_size_mm": 5.0, "min_size_mm": 1.0},
-        "boundary_layer": {"enabled": True, "first_height_mm": 0.1, "layers": 5, "growth_rate": 1.2},
-        "volume_mesh": {"method": "hybrid_prism_tetra", "target_size_mm": 8.0},
         "quality": {"max_skewness": 0.9, "max_aspect_ratio": 20.0},
-        "export": {"format": "fluent_msh"},
+        "export": {"format": "fluent_surface_msh"},
     }
 
 
@@ -64,6 +62,20 @@ def test_hypermesh_templates_include_plan_name() -> None:
     assert "unit_hypermesh_plan" in tcl_text
     assert "template_only" in python_text
     assert "template_only" in tcl_text
+    assert "2D surface mesh" in python_text
+    assert "no HyperMesh volume mesh" in tcl_text
+
+
+def test_validate_hypermesh_plan_warns_ignored_3d_controls() -> None:
+    plan = _valid_plan()
+    plan["volume_mesh"] = {"method": "hybrid_prism_tetra", "target_size_mm": 8.0}
+    plan["boundary_layer"] = {"enabled": True, "first_height_mm": 0.1, "layers": 5, "growth_rate": 1.2}
+
+    result = validate_meshing_plan(plan)
+
+    assert result["status"] == "passed"
+    assert "volume_mesh is ignored by the HyperMesh surface-only adapter." in result["warnings"]
+    assert "boundary_layer is ignored by the HyperMesh surface-only adapter." in result["warnings"]
 
 
 def test_runtime_discovery_accepts_missing_extra_root() -> None:

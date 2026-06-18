@@ -1,11 +1,11 @@
 ---
 name: fromcad2cfd-hypermesh-meshing
-description: Public-safe HyperMesh CFD meshing setup and local execution-adapter preparation for FromCAD2CFD. Use when validating HyperMesh meshing plans, preserving Fluent boundary-zone names, generating advisory Python/Tcl templates, locating HyperMesh runtimes, or preparing controlled local HyperMesh batch meshing without exposing private geometry or raw scripts.
+description: Public-safe HyperMesh CFD two-dimensional surface-meshing setup and local execution-adapter preparation for FromCAD2CFD. Use when validating HyperMesh surface-meshing plans, preserving Fluent boundary-zone names, generating advisory Python/Tcl templates, locating HyperMesh runtimes, or preparing controlled local HyperMesh batch surface meshing without exposing private geometry or raw scripts.
 ---
 
 # FromCAD2CFD HyperMesh Meshing
 
-Use this skill for HyperMesh CFD meshing plan validation and controlled
+Use this skill for HyperMesh CFD surface-meshing plan validation and controlled
 local execution-adapter preparation.
 
 ## Rules
@@ -15,13 +15,15 @@ local execution-adapter preparation.
 - Validate a meshing plan before generating templates.
 - Inspect the imported geometry bounding box before choosing mesh sizes; HyperMesh model units may be meters even when engineering intent is expressed in millimeters.
 - Preserve Fluent boundary-zone names such as `inlet`, `outlet`, `outer_wall`, and `model_wall`.
+- Stop the HyperMesh workflow at the accepted two-dimensional surface mesh.
+- Do not create tetra, prism, hexcore, boundary-layer volume mesh, or any other three-dimensional mesh inside HyperMesh.
 - Treat generated Python/Tcl scripts as review artifacts unless a local operator or configured workflow explicitly approves execution.
 - Do not expose arbitrary Tcl, arbitrary Python, GUI command injection, or raw HyperMesh commands as uncontrolled MCP tools.
 - Route direct HyperMesh launch through a local adapter that records runtime configuration, validates the plan, writes quality reports, and preserves run manifests.
 
 ## Workflow
 
-1. Create or edit a meshing plan JSON matching `fromcad2cfd_hypermesh_meshing_plan_v1`.
+1. Create or edit a surface-meshing plan JSON matching `fromcad2cfd_hypermesh_surface_meshing_plan_v1`.
 2. Validate it:
 
 ```powershell
@@ -58,8 +60,7 @@ fromcad2cfd hypermesh-meshing run-tcl-template --script sandbox/output/hm_smoke.
 - Report the bounding box and convert plan mesh sizes into the detected model unit before meshing.
 - For low-level Tcl surface meshing, use `*interactiveremeshsurf` to set element size and keep `*set_meshfaceparams` parameters in their documented order; do not pass the element size as the shape-type argument.
 - After surface meshing, run a surface check that records intersecting pairs, duplicate elements, sharp-angle elements, unmeshed surfaces, and unmeshed/free edges.
-- Do not attempt volume meshing until surface checks are acceptable or the remaining bad entities have been isolated in report groups.
-- If tetmesh fails with zero tetra elements, classify the failure from the log before retrying: missing Tcl parameter strings, failed nodal setup/free edges, intersecting surface elements, duplicate elements, or bad-angle elements require different fixes.
+- Treat `volume_mesh` and `boundary_layer` keys as downstream Fluent-side concerns when they appear in legacy plans.
 
 ## Runtime Evidence
 

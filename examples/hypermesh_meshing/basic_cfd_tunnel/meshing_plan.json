@@ -1,9 +1,9 @@
 {
-  "schema_version": "fromcad2cfd_hypermesh_meshing_plan_v1",
+  "schema_version": "fromcad2cfd_hypermesh_surface_meshing_plan_v1",
   "plan_name": "basic_cfd_tunnel_hypermesh_plan",
   "geometry_input": "sandbox/input/basic_cfd_tunnel.step",
   "hypermesh_model_output": "sandbox/output/basic_cfd_tunnel.hm",
-  "fluent_mesh_output": "sandbox/output/basic_cfd_tunnel.msh",
+  "surface_mesh_output": "sandbox/output/basic_cfd_tunnel_surface.msh",
   "run_directory": "sandbox/output/basic_cfd_tunnel_hypermesh_run",
   "units": {
     "length_unit": "mm",
@@ -32,21 +32,11 @@
     "min_size_mm": 1.0,
     "max_size_mm": 10.0
   },
-  "boundary_layer": {
-    "enabled": true,
-    "first_height_mm": 0.15,
-    "layers": 6,
-    "growth_rate": 1.25
-  },
-  "volume_mesh": {
-    "method": "hybrid_prism_tetra",
-    "target_size_mm": 8.0
-  },
   "quality": {
     "max_skewness": 0.9,
     "max_aspect_ratio": 20.0
   },
   "export": {
-    "format": "fluent_msh"
+    "format": "fluent_surface_msh"
   }
 }
