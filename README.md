@@ -1,319 +1,164 @@
 # FromCAD2CFD
 
 **FromCAD2CFD: An Agentic Automation Framework for CAD-to-CFD Workflows in
-Solid-Liquid Two-Phase Flow Dynamics** is a research framework for making CAD
-preparation, preliminary CFD screening, Fluent solver setup, local Fluent
-execution, and Fluent post-processing more repeatable and agent-readable.
+Solid-Liquid Two-Phase Flow Dynamics** is a research software project that
+connects CAD preparation, meshing, fast screening, and Fluent-side workflow
+management into one agent-usable pipeline.
 
-The project is not intended to replace professional CAD systems or ANSYS
-Fluent. Its purpose is to provide a controlled automation layer that can:
+The repository is organized around four blocks:
 
-- prepare and inspect CAD geometry through bounded operations,
-- generate reproducible flow-domain and preprocessing artifacts,
-- run fast preliminary CFD checks before expensive Fluent workflows,
-- validate and generate solver/post-processing plans before local Fluent work,
-- orchestrate configured local Fluent execution when a licensed runtime and
-  private input files are provided,
-- record decisions as JSON and Markdown reports that an AI agent can audit.
+1. `Modeling`
+2. `FastFluent`
+3. `Meshing`
+4. `Fluent`
 
-## Workflow Narrative
+It does not try to replace SolidWorks, Siemens NX, HyperMesh, or ANSYS Fluent.
+It provides the automation layer that makes those tools easier to plan, audit,
+and reuse.
 
-The repository is easiest to understand as three connected layers:
+## Choose A Starting Point
 
-1. `CAD geometry automation`
-   SolidWorks, Siemens NX, and optional mesh-to-solid helper routes for
-   creating, repairing, trimming, and exporting CFD-ready geometry.
-2. `FastCFD / FastFluent preliminary evidence`
-   Agent-safe physics and mesh screening before high-cost Fluent work.
-3. `Fluent agent workflow layer`
-   Public-safe plan validation, template generation, local execution adapter
-   contracts, monitor parsing, and post-summary tooling for Fluent workflows.
+| Block | Use it for | First command |
+| --- | --- | --- |
+| `Modeling` | Prepare CAD geometry, repair surfaces, and build flow-domain solids. | `fromcad2cfd nx capabilities --format markdown` |
+| `FastFluent` | Run low-cost CFD checks before committing to expensive Fluent runs. | `fromcad2cfd fastcfd registry --format markdown` |
+| `Meshing` | Validate HyperMesh surface-meshing plans and batch-run controlled scripts. | `fromcad2cfd hypermesh-meshing locate-runtime` |
+| `Fluent` | Validate solver plans and summarize monitor outputs from Fluent workflows. | `fromcad2cfd fluent-solver validate-plan --plan examples/fluent_solver/basic_air_steam_fill/solver_plan.json` |
 
-Only the second layer performs CFD-style numerical evidence generation inside
-the public repository without any external solver. The third layer is designed
-to let an agent prepare, launch, monitor, resume, and interpret Fluent runs when
-it is connected to a configured local Fluent installation. The public default
-path stays planning-first and reproducible; environment-specific execution is
-handled through explicit local adapters.
+## What You Can Do Today
 
-## Core Capabilities
+- build or edit CFD-ready geometry through bounded SolidWorks and NX workflows;
+- convert coarse mesh geometry into solid-friendly preprocessing inputs;
+- run FastFluent screening before expensive Fluent work;
+- inspect public unstructured meshes and generate low-cost CFD evidence;
+- validate HyperMesh surface-meshing plans and run controlled batch scripts;
+- validate Fluent solver plans, prepare templates, and summarize monitor
+  outputs after runs.
 
-### CAD Geometry Automation
-
-FromCAD2CFD provides safe wrappers around CAD operations used repeatedly in
-CAD-to-CFD preprocessing.
-
-- **SolidWorks**: controlled COM-based model creation, copied-model editing,
-  dimension-safe modification, boolean operations, shell/thicken, fillet,
-  chamfer, sweep, loft, revolve, STEP export, and reports.
-- **Siemens NX**: controlled NXOpen journal workflows for primitive modeling,
-  transforms, boolean operations, Parasolid import, sheet/surface operations,
-  trimming, plane cuts, fluid-domain construction, and bounded reverse-modeling
-  steps.
-- **Mesh solidification helper**: optional FreeCAD/OpenCascade route for coarse
-  STL-to-solid candidate generation when a boolean-capable solid is more useful
-  than a high-fidelity analytic reconstruction.
-
-CAD automation is intentionally conservative: original models are copied before
-editing, ambiguous selectors stop the workflow, and every operation is expected
-to produce machine-readable reports.
-
-### FastCFD / FastFluent Agentic CFD Layer
-
-FastCFD / FastFluent is the project CFD pillar. It combines an agent-facing
-control layer with a lightweight solver evidence layer so geometry and physics
-choices can be checked before high-fidelity Fluent validation.
-
-It currently includes:
-
-- validated job and scene schemas,
-- a registry of allowed case templates and solver routes,
-- physics passports for single-phase, VOF setup, turbulence setup, and
-  non-Newtonian rheology,
-- controlled mock and real FastFluent backend execution,
-- field-derived QoI, prediction reports, parameter screening, and pilot
-  decision artifacts,
-- Gmsh-based unstructured mesh import, named-zone preservation, mesh-quality
-  gates, finite-volume geometry, and public benchmark cases,
-- controlled unstructured evidence routes for scalar diffusion, Stokes-style
-  momentum, pressure projection, steady incompressible channel flow,
-  obstacle-channel checks, VOF-lite alpha transport, and bounded turbulence
-  model comparisons,
-- a vendored C++ FastFluent solver core under
-  [`cpp/fastfluent_core`](cpp/fastfluent_core).
-
-The output is preliminary engineering evidence: it helps decide whether a CAD
-domain, mesh, boundary setup, or physics assumption is plausible enough to move
-toward Fluent. It is not presented as final CFD validation.
-
-### Fluent Agent Workflow: Planning, Local Execution, And Post-Processing
-
-The public `Fluent` layer defines how an agent should build and audit Fluent
-workflows. It separates portable workflow contracts from machine-specific
-runtime details such as ANSYS installation paths, licenses, MPI launch options,
-private meshes, and private case/data files.
-
-It currently includes:
-
-- public-safe Fluent Solver plan schemas and validation,
-- monitor-report contracts and resume-plan guardrails,
-- advisory PyFluent template generation for local review,
-- adapter contracts for local Fluent launch, resume, monitor, and export
-  workflows,
-- monitor parsing for pressure, temperature, species, wall, and heat-transfer
-  summaries,
-- video-frame and reporting-plan helpers,
-- safe MCP wrappers for Fluent Solver planning and post-processing.
-
-This layer is meant to reduce operator ambiguity across the whole Fluent run
-cycle. In a public checkout it can validate plans, write templates, and parse
-synthetic or exported monitors. In a private configured workspace, the same
-contracts are intended to drive local Fluent execution adapters that launch
-Fluent, load meshes or cases, run journals or PyFluent scripts, monitor
-progress, recover from checkpoints, and export plots or videos.
-
-### Agent Safety And Traceability
-
-The public workflow is built around bounded commands rather than arbitrary code
-execution. The framework emphasizes:
-
-- explicit input/output paths,
-- no overwrite of original CAD or mesh inputs,
-- validated schemas before execution,
-- fail-closed physics and mesh gates,
-- JSON/Markdown reports for agent reasoning,
-- public synthetic examples instead of private research geometry.
-
-## Architecture
+## Workflow
 
 ```text
-AI agent
-  -> skills, policies, and MCP-safe tool surfaces
-    -> CAD geometry automation
-      -> SolidWorks backend
-      -> Siemens NX backend
-      -> mesh solidification helper
-    -> FastCFD / FastFluent agentic CFD layer
-      -> scene and job validation
-      -> physics passports
-      -> structured FastFluent backend
-      -> unstructured finite-volume evidence backend
-      -> prediction, QoI, and Fluent setup hints
-    -> Fluent agent workflow layer
-      -> HyperMesh CFD surface-meshing plans, templates, and local adapters
-      -> Fluent Meshing preflight reports
-      -> Fluent Solver plan validation, templates, and local execution adapters
-      -> monitor parsing, post-run summaries, and video/report plans
+Modeling
+  -> CAD body, repaired surface, or flow-domain geometry
+Meshing
+  -> reviewed surface mesh and meshing evidence
+FastFluent
+  -> low-cost CFD evidence before expensive solving
+Fluent
+  -> validated solver workflow, local execution handoff, and post-run summaries
 ```
 
-See [docs/architecture.md](docs/architecture.md) for the longer architecture
-note.
+Each block answers one practical question:
 
-## Repository Layout
+- `Modeling`: is the geometry usable?
+- `Meshing`: is the discretization path under control?
+- `FastFluent`: is the setup physically plausible before full solving?
+- `Fluent`: is the final solver workflow correctly prepared and interpretable?
 
-```text
-src/fromcad2cfd/                 Root CLI
+## Blocks In Detail
 
-src/fromcad2cfd_cad/             Shared CAD backend contract
-src/fromcad2cfd_solidworks/      SolidWorks automation backend
-src/fromcad2cfd_nx/              Siemens NX controlled-journal backend
-src/fromcad2cfd_mcp_nx/          Safe NX MCP stdio server
-src/fromcad2cfd_mesh/            Mesh inspection and solidification helper
+### Modeling
 
-src/fromcad2cfd_fastcfd/         FastCFD / FastFluent agentic CFD layer
-src/fromcad2cfd_hypermesh_meshing/ HyperMesh CFD surface-meshing plans and adapter contracts
-src/fromcad2cfd_fluent_meshing/  Fluent Meshing preflight boundary
-src/fromcad2cfd_fluent_solver/   Fluent Solver plans, templates, and adapter contracts
-src/fromcad2cfd_postprocessing/  Fluent monitor parsing and reports
-src/fromcad2cfd_mcp_hypermesh_meshing/ Safe HyperMesh Meshing MCP stdio server
-src/fromcad2cfd_mcp_fluent_solver/  Safe Fluent Solver MCP stdio server
-src/fromcad2cfd_mcp_postprocessing/ Safe post-processing MCP stdio server
+Geometry preparation and repair before meshing or solving.
 
-cpp/fastfluent_core/             C++ FastFluent solver core
-docs/                            Architecture and workflow documentation
-examples/                        Public synthetic examples
-skills/                          Codex skill definitions
-tests/                           Unit tests
-```
+- **SolidWorks**: copied-model editing, booleans, shell/thicken, fillet,
+  chamfer, revolve, sweep, loft, rebuild, and export.
+- **Siemens NX**: controlled journal-based modeling, transforms, booleans,
+  sheet and surface operations, reverse-modeling steps, and Parasolid handoff.
+- **Mesh solidification helpers**: coarse STL-to-solid preparation for reverse
+  or rough imported geometry.
 
-## Installation
+### FastFluent
 
-From a local checkout:
+FastFluent is the project's fast local CFD evidence layer.
+
+- `src/fromcad2cfd_fastcfd` provides schemas, registry, physics passports,
+  screening, reports, and workflow control.
+- `cpp/fastfluent_core` provides the C++ numerical backend inherited into this
+  project.
+
+The current public surface includes structured and unstructured evidence
+routes, QoI extraction, screening reports, and VOF/turbulence/rheology support.
+
+### Meshing
+
+Meshing sits between geometry and solver execution.
+
+- **HyperMesh meshing**: controlled local CFD surface-mesh preparation.
+- **Fluent meshing handoff checks**: validation that downstream meshing starts
+  from a clean enough state.
+
+The accepted public scope today is **surface meshing**, not full production
+volume meshing.
+
+### Fluent
+
+Fluent manages solver-side workflow logic.
+
+- public solver-plan validation;
+- resume-plan guardrails;
+- advisory PyFluent templates;
+- monitor contracts and post-processing summaries;
+- MCP-safe planning and post-processing surfaces.
+
+The design separates the **portable public contract** from the
+**machine-specific local adapter** that depends on licenses, ANSYS paths,
+private meshes, private case/data files, and local run policies.
+
+## First Run
+
+### 1. Install
 
 ```powershell
 python -m pip install -e ".[dev]"
-```
-
-After installation:
-
-```powershell
-fromcad2cfd --version
-fromcad2cfd --help
-```
-
-If the Python user `Scripts` directory is not on `PATH`, use the module form:
-
-```powershell
 python -m fromcad2cfd --version
 python -m fromcad2cfd --help
 ```
 
-Optional integrations:
+Optional local dependencies:
 
-- SolidWorks requires a local SolidWorks installation and `pywin32`.
-- Siemens NX journal execution requires `run_journal.exe`.
-- FreeCAD mesh solidification requires `FreeCADCmd.exe`.
-- HyperMesh surface-meshing adapters require a local Altair HyperMesh / HyperMesh CFD
-  installation.
-- Real FastFluent runs require a working C++ build environment; the source root
-  defaults to `cpp/fastfluent_core`.
+- SolidWorks
+- Siemens NX plus `run_journal.exe`
+- FreeCAD
+- Altair HyperMesh / HyperMesh CFD
+- C++ build environment for real FastFluent runs
+- licensed local Fluent environment
 
-## Quickstart
-
-### Inspect Available Capabilities
+### 2. Check Available Entry Points
 
 ```powershell
-fromcad2cfd cad contract
+python -m fromcad2cfd --help
+python -m fromcad2cfd hypermesh-meshing --help
+python -m fromcad2cfd fluent-solver --help
+```
+
+### 3. Run A First Command In Each Block
+
+**Modeling**
+
+```powershell
 fromcad2cfd solidworks preflight
 fromcad2cfd nx capabilities --format markdown
-fromcad2cfd fastcfd capabilities --format markdown
 ```
 
-### Run A Public CAD Example
-
-```powershell
-fromcad2cfd solidworks create-cylinder --radius-mm 10 --height-mm 20
-fromcad2cfd nx write-basic-solid-pack-job --project nx_basic_solid_pack_demo
-```
-
-### Run A FastCFD Screening Example
+**FastFluent**
 
 ```powershell
 fromcad2cfd fastcfd registry --format markdown
-fromcad2cfd fastcfd preflight
-fromcad2cfd fastcfd mock-demo --project fastcfd_mock_cavity2d --model-name fastcfd_mock_cavity2d
-```
-
-### Inspect Or Solve A Public Unstructured Example
-
-```powershell
 fromcad2cfd fastcfd unstructured inspect-mesh examples/unstructured/channel2d.msh --format json
-fromcad2cfd fastcfd unstructured run-benchmark-suite --iterations 8 --format json
 ```
 
-### Validate A HyperMesh CFD Surface-Meshing Plan
+**Meshing**
 
 ```powershell
 fromcad2cfd hypermesh-meshing locate-runtime
 fromcad2cfd hypermesh-meshing validate-plan --plan examples/hypermesh_meshing/basic_cfd_tunnel/meshing_plan.json
 ```
 
-Generate advisory HyperMesh templates for local review:
-
-```powershell
-fromcad2cfd hypermesh-meshing write-python-template `
-  --plan examples/hypermesh_meshing/basic_cfd_tunnel/meshing_plan.json `
-  --output sandbox/output/basic_cfd_tunnel_hm_template.py
-
-fromcad2cfd hypermesh-meshing write-tcl-template `
-  --plan examples/hypermesh_meshing/basic_cfd_tunnel/meshing_plan.json `
-  --output sandbox/output/basic_cfd_tunnel_hm_template.tcl
-```
-
-Run the controlled local `hmbatch` smoke test when HyperMesh is installed:
-
-```powershell
-fromcad2cfd hypermesh-meshing write-smoke-tcl `
-  --output sandbox/output/hypermesh_smoke/smoke_blockmesh.tcl `
-  --hm-output sandbox/output/hypermesh_smoke/smoke_blockmesh.hm
-
-fromcad2cfd hypermesh-meshing run-tcl-template `
-  --script sandbox/output/hypermesh_smoke/smoke_blockmesh.tcl `
-  --log sandbox/output/hypermesh_smoke/smoke_blockmesh.log `
-  --manifest sandbox/output/hypermesh_smoke/smoke_blockmesh_manifest.json
-```
-
-Run a controlled local 2D surface-mesh pipeline for private geometry:
-
-```powershell
-fromcad2cfd hypermesh-meshing write-surface-mesh-tcl `
-  --geometry-input sandbox/input/private_tunnel.x_t `
-  --output sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.tcl `
-  --hm-output sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.hm `
-  --target-size-m 0.02
-
-fromcad2cfd hypermesh-meshing run-tcl-template `
-  --script sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.tcl `
-  --log sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.log `
-  --manifest sandbox/output/hypermesh_surface/private_tunnel_surface_20mm_manifest.json
-
-fromcad2cfd hypermesh-meshing parse-surface-mesh-log `
-  --log sandbox/output/hypermesh_surface/private_tunnel_surface_20mm.log `
-  --json-report sandbox/output/hypermesh_surface/private_tunnel_surface_20mm_report.json `
-  --markdown-report sandbox/output/hypermesh_surface/private_tunnel_surface_20mm_report.md
-```
-
-This HyperMesh adapter stops at the accepted 2D surface mesh. Downstream 3D
-volume meshing remains a Fluent-side workflow stage.
-
-### Validate A Fluent Solver Plan
+**Fluent**
 
 ```powershell
 fromcad2cfd fluent-solver validate-plan --plan examples/fluent_solver/basic_air_steam_fill/solver_plan.json
-fromcad2cfd fluent-solver monitor-contract
-```
-
-Generate an advisory PyFluent template for local review:
-
-```powershell
-fromcad2cfd fluent-solver write-template `
-  --plan examples/fluent_solver/basic_air_steam_fill/solver_plan.json `
-  --output sandbox/output/basic_air_steam_fill_template.py
-```
-
-### Summarize Fluent Monitor Outputs
-
-```powershell
 fromcad2cfd post summarize-run `
   --global-monitor examples/postprocessing/basic_monitor_summary/global_monitors.out `
   --wall-monitor examples/postprocessing/basic_monitor_summary/wall_exposure_indicators.out `
@@ -321,89 +166,72 @@ fromcad2cfd post summarize-run `
   --model-name basic_monitor_summary
 ```
 
-These commands validate inputs, generate advisory templates, and summarize
-monitor files. They are the public-safe part of the Fluent agent workflow. A
-configured local adapter can build on the same plan contract to launch Fluent
-with machine-specific paths, licenses, meshes, and run directories.
+## Project Map
 
-More detailed commands are kept in the module-specific documentation:
+### Modeling
 
+- `src/fromcad2cfd_solidworks`
+- `src/fromcad2cfd_nx`
+- `src/fromcad2cfd_mcp_nx`
+- `src/fromcad2cfd_mesh`
+
+### FastFluent
+
+- `src/fromcad2cfd_fastcfd`
+- `cpp/fastfluent_core`
+- `examples/fastcfd`
+- `examples/unstructured`
+
+### Meshing
+
+- `src/fromcad2cfd_hypermesh_meshing`
+- `src/fromcad2cfd_mcp_hypermesh_meshing`
+- `src/fromcad2cfd_fluent_meshing`
+- `examples/hypermesh_meshing`
+
+### Fluent
+
+- `src/fromcad2cfd_fluent_solver`
+- `src/fromcad2cfd_postprocessing`
+- `src/fromcad2cfd_mcp_fluent_solver`
+- `src/fromcad2cfd_mcp_postprocessing`
+
+## Documentation
+
+- [Architecture](docs/architecture.md)
+- [Documentation index](docs/index.md)
 - [SolidWorks quickstart](docs/solidworks/quickstart.md)
 - [NX quickstart](docs/nx/quickstart.md)
-- [FastCFD quickstart](docs/fastcfd/quickstart.md)
-- [FreeCAD solidification route](docs/mesh/freecad_solidify.md)
-- [HyperMesh Meshing interface](docs/hypermesh_meshing/interface_draft.md)
-- [Local HyperMesh execution adapter](docs/hypermesh_meshing/local_execution_adapter.md)
-- [Fluent Solver interface](docs/fluent_solver/interface_draft.md)
-- [Local Fluent execution adapter](docs/fluent_solver/local_execution_adapter.md)
+- [FastFluent quickstart](docs/fastcfd/quickstart.md)
+- [HyperMesh meshing interface](docs/hypermesh_meshing/interface_draft.md)
+- [Fluent solver interface](docs/fluent_solver/interface_draft.md)
 - [Post-processing interface](docs/postprocessing/interface_draft.md)
 
-## Public Examples
+## Public Scope
 
-All repository examples are synthetic and public-safe. They are meant to show
-the workflow contract, not to disclose private research device geometry.
+Already real in public mainline:
 
-Examples include:
+- bounded SolidWorks and NX modeling workflows;
+- mesh solidification helpers;
+- FastFluent screening and public unstructured benchmark routes;
+- HyperMesh surface-mesh planning and controlled local batch support;
+- Fluent solver planning and post-processing summaries;
+- MCP-safe tool surfaces for selected workflow stages.
 
-- simple CAD geometry generation,
-- NX controlled journal job generation,
-- synthetic mesh solidification input,
-- public Gmsh unstructured benchmark meshes,
-- FastCFD / FastFluent screening and benchmark artifacts,
-- a public-safe HyperMesh CFD surface-meshing plan,
-- a public-safe Fluent Solver plan,
-- synthetic Fluent report-monitor files for post-processing summaries.
+Still environment-specific or intentionally outside public scope:
 
-## Current Boundary
+- private CAD models and research geometry;
+- full production volume-mesh workflows;
+- machine-specific Fluent launch and supervision details;
+- final high-fidelity CFD validation and engineering sign-off.
 
-Implemented:
-
-- controlled SolidWorks and NX CAD automation foundations,
-- public-safe CAD and mesh examples,
-- FastCFD / FastFluent job validation, physics passports, prediction reports,
-  and preliminary CFD evidence routes,
-- unstructured mesh import, quality checks, finite-volume geometry, and public
-  benchmark workflows,
-- HyperMesh CFD surface-meshing plan validation, local runtime discovery, advisory
-  Python/Tcl template generation, controlled `hmbatch` smoke execution, and
-  local meshing adapter contracts,
-- Fluent Solver plan validation, monitor contracts, resume-plan guardrails,
-  advisory PyFluent template generation, and local execution adapter contracts,
-- Fluent report-monitor parsing, pressure/temperature/species/wall-heat
-  summaries, and video frame-plan generation,
-- safe MCP wrappers for Fluent Solver planning and Fluent post-processing,
-- vendored C++ FastFluent core.
-
-Roadmap:
-
-- broader production CAD repair coverage,
-- production-hardened HyperMesh CFD batch surface-meshing adapters and quality parsers,
-- deeper Fluent Meshing automation,
-- broader Fluent Solver setup coverage and hardened local execution adapters,
-- richer rendered post-processing through configured local renderer adapters,
-- broader solver validation and performance hardening.
-
-In practical terms:
-
-- `Portable public mainline`: CAD automation, FastCFD / FastFluent evidence
-  routes, Fluent Solver plan validation, monitor parsing, adapter contracts,
-  and safe MCP wrappers.
-- `Environment-specific local workspaces`: licensed Fluent launch, private
-  mesh/case/data handling, MPI/core selection, rendered post-processing, and
-  long-running solver supervision.
-
-FromCAD2CFD should therefore be treated as an agentic CAD-to-CFD automation
-framework with both portable public contracts and configurable private runtime
-adapters. Production CFD conclusions still require high-fidelity solver
-validation.
-
-## Safety And Private Data Policy
+## Safety
 
 This repository must not include proprietary CAD models, private STL/Parasolid
-or NX/SolidWorks outputs, Fluent case/data files, license files, or local
-absolute paths.
+or NX/SolidWorks outputs, Fluent case/data files, generated local meshes,
+license files, or local absolute paths.
 
-Generated or private artifacts should stay in ignored local folders such as:
+Typical ignored local folders:
 
 ```text
 sandbox/input/
@@ -413,26 +241,23 @@ sandbox/reports/
 06_logs/
 ```
 
-Core safety rules:
+Core rules:
 
-- never overwrite original CAD files,
-- copy inputs before editing,
-- use unique or timestamped outputs,
-- stop on ambiguous model, body, face, feature, or dimension selectors,
-- validate physics and mesh gates before solver execution,
+- never overwrite original CAD files;
+- copy inputs before editing;
+- use unique or timestamped outputs;
+- stop on ambiguous geometry selectors;
+- validate mesh and physics gates before advancing;
 - write JSON and Markdown reports.
 
 ## Licensing
 
-The Python agent framework is published under the root Apache-2.0 license.
+The Python framework is published under the root Apache-2.0 license.
 
 The vendored C++ FastFluent core retains its original GPLv3 license; see
 [`cpp/fastfluent_core/LICENSE`](cpp/fastfluent_core/LICENSE).
 
-Compiled executables, object files, generated VTK outputs, Fluent case/data
-files, and unreviewed CAD/STL geometry data are intentionally excluded.
-
-## Development Checks
+## Development
 
 ```powershell
 python -m compileall src tests
@@ -441,7 +266,4 @@ python -m pytest
 
 ## Citation
 
-If you use this project in academic work, cite it using
-[CITATION.cff](CITATION.cff).
-
-Technical references are listed in [docs/references.md](docs/references.md).
+If you use this project in academic work, cite it using [CITATION.cff](CITATION.cff).
