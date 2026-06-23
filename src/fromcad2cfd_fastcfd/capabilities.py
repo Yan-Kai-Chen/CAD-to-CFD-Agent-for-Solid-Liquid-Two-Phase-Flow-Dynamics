@@ -446,6 +446,21 @@ CAPABILITY_REGISTRY: dict[str, Any] = {
             ],
             "entrypoint": "fromcad2cfd fastcfd practical-native-demo-pack",
         },
+        "practical_native_setup_pack": {
+            "status": "implemented_s3",
+            "checks": [
+                "public-safe 1D line geometry manifest",
+                "public-safe 2D channel geometry manifest with obstacle zone tagging",
+                "boundary-zone counts and boundary-condition contract validation",
+                "initial temperature field CSV",
+                "initial scalar field CSV",
+                "initial velocity field CSV",
+                "S2-compatible heat, scalar, and wax case templates",
+                "setup manifest and Markdown summary",
+                "explicit no-Fluent-launch boundary",
+            ],
+            "entrypoint": "fromcad2cfd fastcfd practical-native-setup-demo",
+        },
         "structured_fastfluent_backend_status": {
             "status": "implemented_s1_status_only",
             "checks": [
@@ -715,6 +730,10 @@ CAPABILITY_REGISTRY: dict[str, Any] = {
         "practical_native_utilities": {
             "status": "implemented_s2",
             "role": "Small native heat, scalar, material-property, source-term, sweep, and wax-application computations that provide practical screening evidence without Fluent.",
+        },
+        "practical_native_setup": {
+            "status": "implemented_s3",
+            "role": "Geometry-independent setup utilities for public native geometry manifests, boundary-condition contracts, initial fields, and practical case templates.",
         },
     },
     "backend_families": {

@@ -29,6 +29,7 @@ from .native_simulation_pack import run_native_simulation_validation_pack
 from .physics_validator import contract_has_blocking_errors, validate_physics
 from .prediction import build_prediction_from_output, write_prediction_artifacts
 from .practical_native_demo_pack import run_practical_native_demo_pack
+from .practical_setup import run_practical_native_setup_demo
 from .preflight import run_preflight
 from .registry import registry_inventory, registry_markdown
 from .rheology import run_rheology_benchmark_file, write_demo_rheology_case
@@ -289,6 +290,13 @@ def build_parser() -> argparse.ArgumentParser:
     )
     practical_native_demo.add_argument("--output-dir", required=True, help="Directory for S2 practical native artifacts.")
     practical_native_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    practical_setup_demo = sub.add_parser(
+        "practical-native-setup-demo",
+        help="Run the S3 practical native geometry, boundary-condition, initial-field, and case-template setup pack.",
+    )
+    practical_setup_demo.add_argument("--output-dir", required=True, help="Directory for S3 practical native setup artifacts.")
+    practical_setup_demo.add_argument("--format", choices=("json", "markdown"), default="json")
 
     unstructured = sub.add_parser("unstructured", help="Run unstructured FastFluent mesh gateway commands.")
     unstructured_sub = unstructured.add_subparsers(dest="unstructured_command", required=True)
@@ -1063,6 +1071,27 @@ def main(argv: list[str] | None = None) -> int:
             print(f"- Source ramp/clamp: `{acceptance.get('source_term_ramp_clamp_demo')}`")
             print(f"- Parameter sweep: `{acceptance.get('parameter_sweep_demo')}`")
             print(f"- Wax application demo: `{acceptance.get('wax_application_demo')}`")
+            print(f"- Fluent launched: `{manifest.get('metadata', {}).get('fluent_launched')}`")
+            for key, value in artifacts.items():
+                print(f"- {key}: `{value}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
+    if args.command == "practical-native-setup-demo":
+        result = run_practical_native_setup_demo(output_dir=args.output_dir)
+        if args.format == "markdown":
+            artifacts = result.get("outputs", {}).get("artifacts", {})
+            manifest = result.get("outputs", {}).get("manifest", {})
+            acceptance = manifest.get("acceptance_summary", {})
+            channel = manifest.get("channel_2d_summary", {})
+            print("# FastFluent S3 Practical Native Setup Pack\n")
+            print(f"- Status: `{result.get('status')}`")
+            print(f"- Channel nodes: `{channel.get('node_count')}`")
+            print(f"- Boundary contract valid: `{acceptance.get('boundary_condition_contract_valid')}`")
+            print(f"- Initial temperature field: `{acceptance.get('initial_temperature_field_generated')}`")
+            print(f"- Initial scalar field: `{acceptance.get('initial_scalar_field_generated')}`")
+            print(f"- Initial velocity field: `{acceptance.get('initial_velocity_field_generated')}`")
+            print(f"- Case templates: `{acceptance.get('case_templates_generated')}`")
             print(f"- Fluent launched: `{manifest.get('metadata', {}).get('fluent_launched')}`")
             for key, value in artifacts.items():
                 print(f"- {key}: `{value}`")

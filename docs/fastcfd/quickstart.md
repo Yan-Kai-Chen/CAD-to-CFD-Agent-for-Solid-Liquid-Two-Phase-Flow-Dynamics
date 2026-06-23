@@ -271,6 +271,34 @@ S2 validates practical FastFluent-native utilities and artifact generation. It
 does not launch Fluent, call PyFluent, edit Fluent case/data files, emit raw
 Fluent TUI, generate UDF source, or prove high-fidelity CFD accuracy.
 
+## S3 Practical Native Setup Utilities
+
+The S3 setup pack generates public-safe geometry manifests,
+boundary-condition contracts, initial field CSVs, and S2-compatible case
+templates.
+
+```powershell
+python -m fromcad2cfd fastcfd practical-native-setup-demo --output-dir sandbox/output/fastfluent_practical_native_setup_demo --format markdown
+```
+
+It writes:
+
+- `geometry/line_1d_geometry_manifest.json`
+- `geometry/channel_2d_geometry_manifest.json`
+- `boundary_conditions/boundary_condition_contract.json`
+- `initial_fields/temperature_field.csv`
+- `initial_fields/scalar_field.csv`
+- `initial_fields/velocity_field.csv`
+- `case_templates/heat_diffusion_1d_case.json`
+- `case_templates/scalar_transport_1d_case.json`
+- `case_templates/wax_practical_case.json`
+- `practical_setup_manifest.json`
+- `practical_setup_summary.md`
+
+S3 is a native setup artifact layer. It does not launch Fluent, call PyFluent,
+edit Fluent case/data files, emit raw Fluent TUI, generate UDF source, or
+replace CAD meshing and production CFD validation.
+
 ## Wax Rheology / Phase-Change Passport
 
 The wax route turns public material and thermal-property inputs into a bounded

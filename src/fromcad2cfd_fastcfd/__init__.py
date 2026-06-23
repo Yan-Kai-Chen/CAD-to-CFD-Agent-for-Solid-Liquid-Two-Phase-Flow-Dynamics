@@ -18,6 +18,7 @@ from .native_simulation_pack import create_native_simulation_case_registry, run_
 from .preflight import detect_fastcfd_environment, resolve_fastfluent_source_root, run_preflight
 from .prediction import build_prediction_from_output, build_prediction_report
 from .practical_native_demo_pack import run_practical_native_demo_pack
+from .practical_setup import run_practical_native_setup_demo
 from .rheology import run_rheology_benchmark_file
 from .screening import run_parameter_screening
 from .schemas import FastCFDJob, FastCFDScene, read_job
@@ -64,6 +65,7 @@ __all__ = [
     "run_mock_job",
     "run_native_simulation_validation_pack",
     "run_practical_native_demo_pack",
+    "run_practical_native_setup_demo",
     "run_parameter_screening",
     "run_preflight",
     "run_rheology_benchmark_file",

@@ -34,6 +34,8 @@ and reuse.
   convergence histories, QoIs, and passport-simulation alignment reports;
 - run practical FastFluent-native heat, scalar, material-property,
   source-term, parameter-sweep, and wax application utilities;
+- generate practical native setup artifacts: geometry manifests, boundary
+  contracts, initial field CSVs, and native case templates;
 - inspect public unstructured meshes and generate low-cost CFD evidence;
 - validate HyperMesh surface-meshing plans and run controlled batch scripts;
 - validate Fluent solver plans, preview FastFluent patch handoff, prepare
@@ -95,6 +97,7 @@ python -m fromcad2cfd fastcfd steam-air-handoff-demo --output-dir sandbox/output
 python -m fromcad2cfd fastcfd steam-air-v2-demo --output-dir sandbox/output/steam_air_v2_demo
 python -m fromcad2cfd fastcfd solid-liquid-handoff-demo --output-dir sandbox/output/solid_liquid_suspension_demo
 python -m fromcad2cfd fastcfd practical-native-demo-pack --output-dir sandbox/output/fastfluent_practical_native_demo_pack
+python -m fromcad2cfd fastcfd practical-native-setup-demo --output-dir sandbox/output/fastfluent_practical_native_setup_demo
 python -m fromcad2cfd fastcfd existing-passport-patch-demo --output-dir sandbox/output/fastfluent_h1_existing_patch_demo
 ```
 
@@ -112,6 +115,10 @@ diffusion, scalar transport, material-property fields, source-term ramp/clamp
 behavior, parameter sweeps, and a wax application demo. It writes CSV/JSON field
 and history outputs plus a `practical_native_manifest.json` without launching
 Fluent.
+
+The practical setup demo pack writes public geometry manifests, boundary
+condition contracts, initial temperature/scalar/velocity field CSVs, and
+S2-compatible native case templates.
 
 ### Meshing
 
@@ -241,6 +248,7 @@ fromcad2cfd post summarize-run `
 - [FastFluent quickstart](docs/fastcfd/quickstart.md)
 - [FastFluent S1 native simulation delivery](docs/FASTFLUENT_S1_NATIVE_SIMULATION_DELIVERY_20260623.md)
 - [FastFluent S2 practical native function expansion delivery](docs/FASTFLUENT_S2_PRACTICAL_NATIVE_FUNCTION_EXPANSION_DELIVERY_20260623.md)
+- [FastFluent S3 practical native setup utilities delivery](docs/FASTFLUENT_S3_PRACTICAL_NATIVE_SETUP_UTILITIES_DELIVERY_20260623.md)
 - [HyperMesh meshing interface](docs/hypermesh_meshing/interface_draft.md)
 - [Fluent solver interface](docs/fluent_solver/interface_draft.md)
 - [Post-processing interface](docs/postprocessing/interface_draft.md)
