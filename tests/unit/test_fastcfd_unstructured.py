@@ -78,7 +78,7 @@ def test_unstructured_backend_is_declared():
     assert inventory["validation_gates"]["unstructured_turbulence_ladder"]["status"] == "implemented_u24_u25"
     assert inventory["validation_gates"]["unstructured_case_runner"]["status"] == "implemented_u26"
     assert inventory["validation_gates"]["unstructured_boundary_condition_schema"]["status"] == "implemented_u27"
-    assert inventory["validation_gates"]["unstructured_steady_incompressible_solver"]["status"] == "implemented_u28"
+    assert inventory["validation_gates"]["unstructured_steady_incompressible_solver"]["status"] == "implemented_s4_hardened"
     assert inventory["validation_gates"]["unstructured_public_benchmark_suite"]["status"] == "implemented_u29"
     assert inventory["validation_gates"]["unstructured_tetra_diffusion_smoke"]["status"] == "implemented_u30"
     assert inventory["backend_families"]["unstructured_fvm"]["status"] == "physics_extended_benchmarking_u0_u30"
@@ -625,8 +625,19 @@ def test_unstructured_steady_incompressible_case_solves_from_default_bcs(tmp_pat
     assert qoi["acceptance"]["linear_systems_converged"] is True
     assert qoi["acceptance"]["velocity_boundary_preserved"] is True
     assert qoi["acceptance"]["mass_flux_imbalance_within_controlled_tolerance"] is True
+    assert qoi["acceptance"]["divergence_within_advisory_tolerance"] is True
+    assert qoi["acceptance"]["mass_flux_imbalance_within_advisory_tolerance"] is True
     assert qoi["metrics"]["mass_flux"]["relative_imbalance"] < 0.1
     assert qoi["metrics"]["final_divergence_l2"] < qoi["metrics"]["initial_divergence_l2"]
+    hardening = result["outputs"]["hardening_summary"]
+    assert hardening["schema_version"] == "fastfluent_steady_incompressible_hardening_v1"
+    assert hardening["status"] == "passed"
+    assert hardening["evidence_level"] == "native_advisory"
+    assert hardening["decision"]["usable_as_native_advisory_seed"] is True
+    assert hardening["decision"]["usable_for_screening_evidence"] is True
+    assert hardening["decision"]["usable_for_final_cfd_validation"] is False
+    assert hardening["gate_results"]["mass_flux_imbalance_within_controlled_tolerance"] is True
+    assert hardening["gate_results"]["mass_flux_imbalance_within_advisory_tolerance"] is True
     assert result["outputs"]["solver_execution"] == "steady_incompressible_pressure_correction"
     for key in [
         "mesh_manifest",
@@ -636,6 +647,7 @@ def test_unstructured_steady_incompressible_case_solves_from_default_bcs(tmp_pat
         "steady_linear_systems",
         "steady_residual_history",
         "steady_qoi",
+        "steady_hardening_summary",
         "steady_solution_vtu",
         "steady_report",
         "steady_status",

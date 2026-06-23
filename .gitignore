@@ -61,6 +61,8 @@ local_config.*
 sandbox/input/*
 sandbox/output/*
 sandbox/reports/*
+sandbox/o/
+sandbox/pytest_tmp_baseline/
 !sandbox/input/.gitkeep
 !sandbox/output/.gitkeep
 !sandbox/reports/.gitkeep

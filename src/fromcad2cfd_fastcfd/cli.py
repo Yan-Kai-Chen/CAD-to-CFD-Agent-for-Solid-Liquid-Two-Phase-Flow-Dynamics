@@ -8,7 +8,24 @@ from pathlib import Path
 
 from fromcad2cfd_cad import AgentResult
 
+from .boundary.boundary_contract import run_boundary_contract_demo
 from .capabilities import capability_inventory, capability_markdown
+from .core.case_spec import explain_case_spec_markdown, read_case_spec, validate_case_spec
+from .core.evidence_bundle import summarize_evidence_bundle_markdown, validate_evidence_bundle
+from .controlled_runner import (
+    controlled_runner_markdown,
+    controlled_runner_validation_markdown,
+    run_controlled_runner,
+    run_controlled_runner_demo,
+    validate_controlled_runner,
+)
+from .execution_gate import (
+    audit_execution_gate,
+    execution_gate_markdown,
+    execution_gate_validation_markdown,
+    run_execution_gate_demo,
+    validate_execution_gate,
+)
 from .fastfluent_backend import (
     run_fastfluent_cavity2d_job,
     run_fastfluent_job,
@@ -23,8 +40,26 @@ from .fluent_patch_compiler import (
     run_steam_air_handoff_demo,
     write_solver_plan_patch_bundle,
 )
+from .flow_pack import (
+    build_flow_pack,
+    export_flow_pack_evidence_bundle,
+    flow_pack_markdown,
+    flow_pack_validation_markdown,
+    validate_flow_pack,
+)
 from .horizontal_validation_pack import run_horizontal_validation_pack
+from .materials.material_contract import run_material_contract_demo
+from .mesh.mesh_gateway import generate_structured_mesh_demo, inspect_mesh_gateway
 from .mock_runner import run_mock_job, write_demo_job
+from .motion import motion_report_markdown, sample_motion_contract, validate_motion_contract, write_demo_motion_case
+from .motion_adapter import adapt_motion_to_mesh, motion_adapter_markdown
+from .motion_quasi_steady import (
+    moving_obstacle_markdown,
+    quasi_steady_markdown,
+    run_moving_obstacle_evidence_demo,
+    run_quasi_steady_motion_case,
+)
+from .motion_solver_preflight import motion_solver_preflight_markdown, run_motion_solver_preflight
 from .native_simulation_pack import run_native_simulation_validation_pack
 from .physics_validator import contract_has_blocking_errors, validate_physics
 from .prediction import build_prediction_from_output, write_prediction_artifacts
@@ -32,11 +67,28 @@ from .practical_native_demo_pack import run_practical_native_demo_pack
 from .practical_setup import run_practical_native_setup_demo
 from .preflight import run_preflight
 from .registry import registry_inventory, registry_markdown
+from .result_pack import (
+    compile_native_result_pack,
+    compile_result_pack,
+    result_pack_markdown,
+    result_pack_validation_markdown,
+    run_result_pack_demo,
+    validate_result_pack,
+)
+from .route_plan import (
+    compile_route_plan,
+    route_plan_markdown,
+    route_plan_validation_markdown,
+    run_route_plan_demo,
+    validate_route_plan,
+)
+from .route_selector import route_catalog, route_selection_markdown, run_route_selector_demo, select_route
 from .rheology import run_rheology_benchmark_file, write_demo_rheology_case
 from .screening import run_parameter_screening
 from .scene_compiler import compile_scene_file_to_job, read_scene, validate_scene_semantics, write_scene
 from .schemas import read_job
 from .paths import unique_path
+from .solver_capability_matrix import solver_capability_matrix, solver_capability_matrix_markdown, write_solver_capability_matrix
 from .solid_liquid_suspension import (
     run_solid_liquid_handoff_demo,
     validate_solid_liquid_suspension_case_file,
@@ -47,6 +99,13 @@ from .steam_air_condensation_v2 import (
     run_steam_air_v2_demo,
     validate_steam_air_condensation_v2_case_file,
     write_demo_steam_air_v2_case,
+)
+from .transport_core import (
+    demo_transport_case,
+    run_transport_coupling_case,
+    run_transport_coupling_demo,
+    transport_markdown,
+    validate_transport_case,
 )
 from .unstructured.channel_validation import run_channel_convergence_case, run_channel_validation_case
 from .unstructured.benchmark_suite import run_public_benchmark_suite
@@ -71,6 +130,7 @@ from .wax_rheology_phase_change import (
     validate_wax_rheology_phase_change_case_file,
     write_demo_wax_rheology_case,
 )
+from .workflow_runner import run_workflow, run_workflow_demo, workflow_markdown
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -80,8 +140,259 @@ def build_parser() -> argparse.ArgumentParser:
     capabilities = sub.add_parser("capabilities", help="Print the FastCFD capability inventory.")
     capabilities.add_argument("--format", choices=("json", "markdown"), default="json")
 
+    solver_matrix = sub.add_parser("solver-capability-matrix", help="Print or write the FastFluent native solver capability matrix.")
+    solver_matrix.add_argument("--output-dir", default=None)
+    solver_matrix.add_argument("--format", choices=("json", "markdown"), default="markdown")
+
+    motion = sub.add_parser("motion", help="Validate and sample safe kinematic motion contracts.")
+    motion_sub = motion.add_subparsers(dest="motion_command", required=True)
+    motion_demo = motion_sub.add_parser("write-demo", help="Write a public motion contract demo file.")
+    motion_demo.add_argument("--output-dir", required=True)
+    motion_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+    motion_validate = motion_sub.add_parser("validate", help="Validate a motion contract JSON file.")
+    motion_validate.add_argument("motion_file")
+    motion_validate.add_argument("--format", choices=("json", "markdown"), default="json")
+    motion_sample = motion_sub.add_parser("sample", help="Sample a motion contract into JSON, CSV, and Markdown evidence.")
+    motion_sample.add_argument("motion_file")
+    motion_sample.add_argument("--output-dir", required=True)
+    motion_sample.add_argument("--time-step-s", type=float, default=0.1)
+    motion_sample.add_argument("--total-time-s", type=float, default=1.0)
+    motion_sample.add_argument("--format", choices=("json", "markdown"), default="json")
+    motion_adapt = motion_sub.add_parser("adapt-mesh", help="Bind a motion contract to mesh boundary patches and motion-CFL gates.")
+    motion_adapt.add_argument("motion_file")
+    motion_adapt.add_argument("mesh_file")
+    motion_adapt.add_argument("--output-dir", required=True)
+    motion_adapt.add_argument("--time-step-s", type=float, default=0.1)
+    motion_adapt.add_argument("--total-time-s", type=float, default=1.0)
+    motion_adapt.add_argument("--characteristic-length-m", type=float, default=None)
+    motion_adapt.add_argument("--cfl-warn", type=float, default=0.5)
+    motion_adapt.add_argument("--cfl-fail", type=float, default=1.0)
+    motion_adapt.add_argument("--format", choices=("json", "markdown"), default="json")
+    motion_solver_preflight = motion_sub.add_parser(
+        "solver-preflight",
+        help="Check whether a motion mesh adapter may be attached before solver dispatch.",
+    )
+    motion_solver_preflight.add_argument("motion_adapter_file")
+    motion_solver_preflight.add_argument("--output-dir", required=True)
+    motion_solver_preflight.add_argument("--case-file", default=None)
+    motion_solver_preflight.add_argument("--solver-family", default="steady_incompressible")
+    motion_solver_preflight.add_argument(
+        "--execution-mode",
+        choices=("static_grid_motion_evidence", "require_dynamic_mesh", "block_on_motion"),
+        default="static_grid_motion_evidence",
+    )
+    motion_solver_preflight.add_argument("--format", choices=("json", "markdown"), default="json")
+    motion_quasi = motion_sub.add_parser("quasi-steady", help="Run a bounded quasi-steady static-grid motion evidence sequence.")
+    motion_quasi.add_argument("case_file")
+    motion_quasi.add_argument("motion_adapter_file")
+    motion_quasi.add_argument("--output-dir", required=True)
+    motion_quasi.add_argument(
+        "--execution-mode",
+        choices=("static_grid_motion_evidence", "require_dynamic_mesh", "block_on_motion"),
+        default="static_grid_motion_evidence",
+    )
+    motion_quasi.add_argument("--max-snapshots", type=int, default=None)
+    motion_quasi.add_argument("--format", choices=("json", "markdown"), default="json")
+    motion_obstacle = motion_sub.add_parser("moving-obstacle-demo", help="Run the public moving-obstacle evidence demo.")
+    motion_obstacle.add_argument("--output-dir", required=True)
+    motion_obstacle.add_argument("--nx", type=int, default=12)
+    motion_obstacle.add_argument("--ny", type=int, default=6)
+    motion_obstacle.add_argument("--time-step-s", type=float, default=0.05)
+    motion_obstacle.add_argument("--total-time-s", type=float, default=0.2)
+    motion_obstacle.add_argument("--iterations", type=int, default=2)
+    motion_obstacle.add_argument("--format", choices=("json", "markdown"), default="json")
+
     registry = sub.add_parser("registry", help="Print the FastCFD source-of-truth registry.")
     registry.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    validate_case = sub.add_parser("validate-case", help="Validate a FastFluent CaseSpec v3 file.")
+    validate_case.add_argument("case_file")
+    validate_case.add_argument("--output-dir", default=None)
+    validate_case.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    explain_case = sub.add_parser("explain-case", help="Explain a FastFluent CaseSpec v3 file.")
+    explain_case.add_argument("case_file")
+    explain_case.add_argument("--format", choices=("json", "markdown"), default="markdown")
+
+    evidence = sub.add_parser("evidence", help="Validate or summarize FastFluent EvidenceBundle v3 outputs.")
+    evidence_sub = evidence.add_subparsers(dest="evidence_command", required=True)
+    validate_bundle = evidence_sub.add_parser("validate-bundle", help="Validate an EvidenceBundle v3 directory.")
+    validate_bundle.add_argument("bundle_dir")
+    validate_bundle.add_argument("--format", choices=("json", "markdown"), default="json")
+    summarize_bundle = evidence_sub.add_parser("summarize-bundle", help="Summarize an EvidenceBundle v3 directory.")
+    summarize_bundle.add_argument("bundle_dir")
+    summarize_bundle.add_argument("--format", choices=("json", "markdown"), default="markdown")
+
+    bc = sub.add_parser("bc", help="Run FastFluent boundary-condition contract commands.")
+    bc_sub = bc.add_subparsers(dest="bc_command", required=True)
+    bc_demo = bc_sub.add_parser("validate-demo-pack", help="Write and validate a public boundary-condition contract demo pack.")
+    bc_demo.add_argument("--output-dir", required=True)
+    bc_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    materials = sub.add_parser("materials", help="Run FastFluent material contract commands.")
+    materials_sub = materials.add_subparsers(dest="materials_command", required=True)
+    materials_demo = materials_sub.add_parser("validate-demo-pack", help="Write and validate a public material contract demo pack.")
+    materials_demo.add_argument("--output-dir", required=True)
+    materials_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    mesh = sub.add_parser("mesh", help="Run FastFluent Mesh Gateway v2 commands.")
+    mesh_sub = mesh.add_subparsers(dest="mesh_command", required=True)
+    mesh_inspect = mesh_sub.add_parser("inspect", help="Inspect a Gmsh mesh through Mesh Gateway v2.")
+    mesh_inspect.add_argument("mesh_file")
+    mesh_inspect.add_argument("--output-dir", required=True)
+    mesh_inspect.add_argument("--required-patches", default="inlet,outlet,wall")
+    mesh_inspect.add_argument("--format", choices=("json", "markdown"), default="json")
+    structured_demo = mesh_sub.add_parser("generate-structured-demo", help="Generate a structured Mesh Gateway v2 demo.")
+    structured_demo.add_argument("--output-dir", required=True)
+    structured_demo.add_argument("--nx", type=int, default=20)
+    structured_demo.add_argument("--ny", type=int, default=8)
+    structured_demo.add_argument("--length-m", type=float, default=1.0)
+    structured_demo.add_argument("--height-m", type=float, default=0.1)
+    structured_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    flow_pack = sub.add_parser("flow-pack", help="Build and validate setup-only FastFluent Flow Packs.")
+    flow_pack_sub = flow_pack.add_subparsers(dest="flow_pack_command", required=True)
+    flow_pack_build = flow_pack_sub.add_parser("build", help="Build a Flow Pack from a CaseSpec v3 file.")
+    flow_pack_build.add_argument("case_file")
+    flow_pack_build.add_argument("--output-dir", required=True)
+    flow_pack_build.add_argument("--mesh-file", default=None)
+    flow_pack_build.add_argument("--mesh-mode", choices=("auto", "structured-demo", "gmsh", "none"), default="auto")
+    flow_pack_build.add_argument("--required-patches", default=None)
+    flow_pack_build.add_argument("--format", choices=("json", "markdown"), default="json")
+    flow_pack_demo = flow_pack_sub.add_parser("build-demo", help="Build the public channel-flow Flow Pack demo.")
+    flow_pack_demo.add_argument("--output-dir", required=True)
+    flow_pack_demo.add_argument("--case-file", default="examples/fastcfd/casespec_v3/channel_flow_case.json")
+    flow_pack_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+    flow_pack_validate = flow_pack_sub.add_parser("validate", help="Validate a Flow Pack output directory.")
+    flow_pack_validate.add_argument("flow_pack_dir")
+    flow_pack_validate.add_argument("--format", choices=("json", "markdown"), default="json")
+    flow_pack_export = flow_pack_sub.add_parser("export-evidence-bundle", help="Export a setup-only EvidenceBundle v3 from a Flow Pack.")
+    flow_pack_export.add_argument("flow_pack_dir")
+    flow_pack_export.add_argument("--output-dir", default=None)
+    flow_pack_export.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    route_selector = sub.add_parser("route-selector", help="Select the next controlled FastFluent route from setup evidence.")
+    route_selector_sub = route_selector.add_subparsers(dest="route_selector_command", required=True)
+    route_catalog_cmd = route_selector_sub.add_parser("catalog", help="Print the M5 route selector catalog.")
+    route_catalog_cmd.add_argument("--format", choices=("json", "markdown"), default="json")
+    route_select = route_selector_sub.add_parser("select", help="Select the next route from a Flow Pack directory.")
+    route_select.add_argument("flow_pack_dir")
+    route_select.add_argument("--output-dir", default=None)
+    route_select.add_argument("--format", choices=("json", "markdown"), default="json")
+    route_demo = route_selector_sub.add_parser("demo", help="Build a public Flow Pack demo and select the next route.")
+    route_demo.add_argument("--output-dir", required=True)
+    route_demo.add_argument("--case-file", default="examples/fastcfd/casespec_v3/channel_flow_case.json")
+    route_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    route_plan = sub.add_parser("route-plan", help="Compile M5 route selections into pre-execution route plans.")
+    route_plan_sub = route_plan.add_subparsers(dest="route_plan_command", required=True)
+    route_plan_compile = route_plan_sub.add_parser("compile", help="Compile a route_selection.json file or directory into a route plan.")
+    route_plan_compile.add_argument("route_selection")
+    route_plan_compile.add_argument("--output-dir", required=True)
+    route_plan_compile.add_argument("--profile", choices=("agent", "ci"), default="agent")
+    route_plan_compile.add_argument("--no-materialize-job", action="store_true")
+    route_plan_compile.add_argument("--format", choices=("json", "markdown"), default="json")
+    route_plan_validate = route_plan_sub.add_parser("validate", help="Validate a route plan file or directory.")
+    route_plan_validate.add_argument("route_plan")
+    route_plan_validate.add_argument("--format", choices=("json", "markdown"), default="json")
+    route_plan_demo = route_plan_sub.add_parser("demo", help="Run the public route-selector demo and compile an M6 route plan.")
+    route_plan_demo.add_argument("--output-dir", required=True)
+    route_plan_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    execution_gate = sub.add_parser("execution-gate", help="Audit route plans before any controlled solver execution.")
+    execution_gate_sub = execution_gate.add_subparsers(dest="execution_gate_command", required=True)
+    execution_gate_audit = execution_gate_sub.add_parser("audit", help="Dry-run audit a route plan and write an execution package.")
+    execution_gate_audit.add_argument("route_plan")
+    execution_gate_audit.add_argument("--output-dir", required=True)
+    execution_gate_audit.add_argument("--source-root", default=None)
+    execution_gate_audit.add_argument("--format", choices=("json", "markdown"), default="json")
+    execution_gate_validate = execution_gate_sub.add_parser("validate", help="Validate an execution gate file or directory.")
+    execution_gate_validate.add_argument("execution_gate")
+    execution_gate_validate.add_argument("--format", choices=("json", "markdown"), default="json")
+    execution_gate_demo = execution_gate_sub.add_parser("demo", help="Run the public route-plan demo and audit it with Execution Gate.")
+    execution_gate_demo.add_argument("--output-dir", required=True)
+    execution_gate_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    controlled_runner = sub.add_parser("controlled-runner", help="Record controlled post-gate execution ledgers.")
+    controlled_runner_sub = controlled_runner.add_subparsers(dest="controlled_runner_command", required=True)
+    controlled_runner_run = controlled_runner_sub.add_parser("run", help="Run the M8 Controlled Runner from an execution gate.")
+    controlled_runner_run.add_argument("execution_gate")
+    controlled_runner_run.add_argument("--output-dir", required=True)
+    controlled_runner_run.add_argument("--mode", choices=("dry_run", "mock"), default="dry_run")
+    controlled_runner_run.add_argument("--approval-id", default=None)
+    controlled_runner_run.add_argument("--format", choices=("json", "markdown"), default="json")
+    controlled_runner_validate = controlled_runner_sub.add_parser("validate", help="Validate a Controlled Runner file or directory.")
+    controlled_runner_validate.add_argument("controlled_run")
+    controlled_runner_validate.add_argument("--format", choices=("json", "markdown"), default="json")
+    controlled_runner_demo = controlled_runner_sub.add_parser("demo", help="Run the public M8 Controlled Runner demo.")
+    controlled_runner_demo.add_argument("--output-dir", required=True)
+    controlled_runner_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    result_pack = sub.add_parser("result-pack", help="Compile agent-facing result packages from controlled or native outputs.")
+    result_pack_sub = result_pack.add_subparsers(dest="result_pack_command", required=True)
+    result_pack_compile = result_pack_sub.add_parser("compile", help="Compile a Result Pack from a controlled_run.json file or directory.")
+    result_pack_compile.add_argument("controlled_run")
+    result_pack_compile.add_argument("--output-dir", required=True)
+    result_pack_compile.add_argument("--format", choices=("json", "markdown"), default="json")
+    result_pack_compile_native = result_pack_sub.add_parser("compile-native", help="Compile a Result Pack from a native FastFluent result file or directory.")
+    result_pack_compile_native.add_argument("native_result")
+    result_pack_compile_native.add_argument("--output-dir", required=True)
+    result_pack_compile_native.add_argument("--format", choices=("json", "markdown"), default="json")
+    result_pack_validate = result_pack_sub.add_parser("validate", help="Validate a Result Pack file or directory.")
+    result_pack_validate.add_argument("result_pack")
+    result_pack_validate.add_argument("--format", choices=("json", "markdown"), default="json")
+    result_pack_demo = result_pack_sub.add_parser("demo", help="Run the public M9 Result Pack demo.")
+    result_pack_demo.add_argument("--output-dir", required=True)
+    result_pack_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    transport = sub.add_parser("transport", help="Run S6 unified scalar transport coupling commands.")
+    transport_sub = transport.add_subparsers(dest="transport_command", required=True)
+    transport_write_demo = transport_sub.add_parser("write-demo", help="Write a public S6 transport case JSON.")
+    transport_write_demo.add_argument("--case-file", required=True)
+    transport_write_demo.add_argument(
+        "--quantity",
+        choices=("alpha", "temperature", "species", "particle_concentration", "wax_fraction"),
+        default="alpha",
+    )
+    transport_write_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+    transport_validate = transport_sub.add_parser("validate", help="Validate a S6 transport case JSON.")
+    transport_validate.add_argument("case_file")
+    transport_validate.add_argument("--format", choices=("json", "markdown"), default="json")
+    transport_run = transport_sub.add_parser("run", help="Run a S6 transport case JSON on a mesh or generated public mesh.")
+    transport_run.add_argument("case_file")
+    transport_run.add_argument("--mesh-file", default=None)
+    transport_run.add_argument("--output-dir", required=True)
+    transport_run.add_argument("--format", choices=("json", "markdown"), default="json")
+    transport_demo = transport_sub.add_parser("demo", help="Run a public S6 transport coupling demo.")
+    transport_demo.add_argument("--output-dir", required=True)
+    transport_demo.add_argument(
+        "--quantity",
+        choices=("alpha", "temperature", "species", "particle_concentration", "wax_fraction"),
+        default="alpha",
+    )
+    transport_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    workflow = sub.add_parser("workflow", help="Run S7 full FastFluent agent workflows.")
+    workflow_sub = workflow.add_subparsers(dest="workflow_command", required=True)
+    workflow_run = workflow_sub.add_parser("run", help="Run the S7 workflow from a CaseSpec v3 file.")
+    workflow_run.add_argument("--case-file", required=True)
+    workflow_run.add_argument("--output-dir", required=True)
+    workflow_run.add_argument("--mode", choices=("dry_run", "native_advisory"), default="dry_run")
+    workflow_run.add_argument("--mesh-file", default=None)
+    workflow_run.add_argument("--mesh-mode", choices=("auto", "structured-demo", "gmsh", "none"), default="auto")
+    workflow_run.add_argument("--required-patches", default=None)
+    workflow_run.add_argument("--native-route", choices=("transport",), default="transport")
+    workflow_run.add_argument(
+        "--transport-quantity",
+        choices=("alpha", "temperature", "species", "particle_concentration", "wax_fraction"),
+        default="alpha",
+    )
+    workflow_run.add_argument("--source-root", default=None)
+    workflow_run.add_argument("--format", choices=("json", "markdown"), default="json")
+    workflow_demo = workflow_sub.add_parser("demo", help="Run the public S7 workflow demo.")
+    workflow_demo.add_argument("--output-dir", required=True)
+    workflow_demo.add_argument("--mode", choices=("dry_run", "native_advisory"), default="native_advisory")
+    workflow_demo.add_argument("--format", choices=("json", "markdown"), default="json")
 
     preflight = sub.add_parser("preflight", help="Check optional FastFluent source and build environment.")
     preflight.add_argument("--source-root", default=None, help="Explicit FastFluent source root.")
@@ -309,6 +620,13 @@ def build_parser() -> argparse.ArgumentParser:
     run_case = unstructured_sub.add_parser("run-case", help="Run an agent-safe unstructured case JSON file.")
     run_case.add_argument("case_file", help="Unstructured case JSON file.")
     run_case.add_argument("--output-dir", default=None, help="Directory for case-run artifacts.")
+    run_case.add_argument("--motion-adapter", default=None, help="Optional motion_adapter.json file to preflight before solver dispatch.")
+    run_case.add_argument(
+        "--motion-execution-mode",
+        choices=("static_grid_motion_evidence", "require_dynamic_mesh", "block_on_motion"),
+        default="static_grid_motion_evidence",
+        help="How motion evidence should affect solver dispatch.",
+    )
     run_case.add_argument("--format", choices=("json", "markdown"), default="json")
     write_steady_case = unstructured_sub.add_parser("write-steady-channel-case", help="Write a public steady incompressible channel case JSON.")
     write_steady_case.add_argument("--case-file", required=True, help="Output case JSON path.")
@@ -562,12 +880,494 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(json.dumps(capability_inventory(), ensure_ascii=True, indent=2))
         return 0
+    if args.command == "solver-capability-matrix":
+        matrix = write_solver_capability_matrix(args.output_dir) if args.output_dir else solver_capability_matrix()
+        if args.format == "markdown":
+            print(solver_capability_matrix_markdown(matrix))
+        else:
+            print(json.dumps(matrix, ensure_ascii=True, indent=2))
+        return 0
+    if args.command == "motion":
+        if args.motion_command == "write-demo":
+            result = write_demo_motion_case(args.output_dir)
+            if args.format == "markdown":
+                print(motion_report_markdown({"status": result["status"], "validation": result["validation"]}))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result["status"] == "success" else 2
+        if args.motion_command == "solver-preflight":
+            try:
+                result = run_motion_solver_preflight(
+                    args.motion_adapter_file,
+                    args.output_dir,
+                    solver_family=args.solver_family,
+                    execution_mode=args.execution_mode,
+                    case_file=args.case_file,
+                )
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                result = {"status": "failed", "errors": [str(exc)]}
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+                return 2
+            if args.format == "markdown":
+                print(motion_solver_preflight_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result["solver_dispatch_allowed"] else 2
+        if args.motion_command == "quasi-steady":
+            try:
+                result = run_quasi_steady_motion_case(
+                    args.case_file,
+                    args.motion_adapter_file,
+                    args.output_dir,
+                    execution_mode=args.execution_mode,
+                    max_snapshots=args.max_snapshots,
+                )
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                result = {"status": "failed", "errors": [str(exc)]}
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+                return 2
+            if args.format == "markdown":
+                print(quasi_steady_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result["status"] == "success" else 2
+        if args.motion_command == "moving-obstacle-demo":
+            try:
+                result = run_moving_obstacle_evidence_demo(
+                    args.output_dir,
+                    nx=args.nx,
+                    ny=args.ny,
+                    time_step_s=args.time_step_s,
+                    total_time_s=args.total_time_s,
+                    iterations=args.iterations,
+                )
+            except (OSError, ValueError, json.JSONDecodeError) as exc:
+                result = {"status": "failed", "errors": [str(exc)]}
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+                return 2
+            if args.format == "markdown":
+                print(moving_obstacle_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result["status"] == "success" else 2
+        try:
+            motion_payload = json.loads(Path(args.motion_file).read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            result = {"status": "failed", "errors": [str(exc)]}
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 2
+        if args.motion_command == "validate":
+            result = validate_motion_contract(motion_payload)
+            if args.format == "markdown":
+                print(motion_report_markdown({"status": result["status"], "validation": result}))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result["passed"] else 2
+        if args.motion_command == "sample":
+            result = sample_motion_contract(
+                motion_payload,
+                args.output_dir,
+                time_step_s=args.time_step_s,
+                total_time_s=args.total_time_s,
+            )
+            if args.format == "markdown":
+                print(motion_report_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result["status"] == "success" else 2
+        if args.motion_command == "adapt-mesh":
+            try:
+                result = adapt_motion_to_mesh(
+                    motion_payload,
+                    args.mesh_file,
+                    args.output_dir,
+                    time_step_s=args.time_step_s,
+                    total_time_s=args.total_time_s,
+                    characteristic_length_m=args.characteristic_length_m,
+                    cfl_warn=args.cfl_warn,
+                    cfl_fail=args.cfl_fail,
+                )
+            except (OSError, ValueError) as exc:
+                result = {"status": "failed", "errors": [str(exc)]}
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+                return 2
+            if args.format == "markdown":
+                print(motion_adapter_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result["status"] in {"passed", "warning"} else 2
     if args.command == "registry":
         if args.format == "markdown":
             print(registry_markdown())
         else:
             print(json.dumps(registry_inventory(), ensure_ascii=True, indent=2))
         return 0
+    if args.command == "validate-case":
+        try:
+            payload = read_case_spec(args.case_file)
+            validation = validate_case_spec(payload)
+            result = validation.to_dict()
+            if args.output_dir:
+                output_dir = Path(args.output_dir)
+                output_dir.mkdir(parents=True, exist_ok=True)
+                (output_dir / "case_validation.json").write_text(json.dumps(result, ensure_ascii=True, indent=2), encoding="utf-8")
+                (output_dir / "case_summary.md").write_text(explain_case_spec_markdown(payload, validation), encoding="utf-8")
+                (output_dir / "unsupported_features.json").write_text(
+                    json.dumps({"unsupported_features": validation.unsupported_features}, ensure_ascii=True, indent=2),
+                    encoding="utf-8",
+                )
+                (output_dir / "claim_level.json").write_text(
+                    json.dumps({"claim_level": validation.claim_level}, ensure_ascii=True, indent=2),
+                    encoding="utf-8",
+                )
+                result["artifacts"] = {
+                    "case_validation": str(output_dir / "case_validation.json"),
+                    "case_summary": str(output_dir / "case_summary.md"),
+                    "unsupported_features": str(output_dir / "unsupported_features.json"),
+                    "claim_level": str(output_dir / "claim_level.json"),
+                }
+            if args.format == "markdown":
+                print(explain_case_spec_markdown(payload, validation))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if validation.passed else 2
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            result = {
+                "schema_version": "fastfluent_case_spec_validation_v1",
+                "status": "failed",
+                "passed": False,
+                "errors": [str(exc)],
+            }
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 2
+    if args.command == "explain-case":
+        try:
+            payload = read_case_spec(args.case_file)
+            validation = validate_case_spec(payload)
+            if args.format == "json":
+                print(json.dumps({"validation": validation.to_dict(), "case": payload}, ensure_ascii=True, indent=2))
+            else:
+                print(explain_case_spec_markdown(payload, validation))
+            return 0 if validation.passed else 2
+        except (OSError, ValueError, json.JSONDecodeError) as exc:
+            if args.format == "json":
+                print(json.dumps({"schema_version": "fastfluent_case_spec_validation_v1", "status": "failed", "errors": [str(exc)]}, ensure_ascii=True, indent=2))
+            else:
+                print(f"# FastFluent CaseSpec v3 Summary\n\nValidation: `failed`\n\n## Errors\n\n- {exc}\n")
+            return 2
+    if args.command == "evidence":
+        validation = validate_evidence_bundle(args.bundle_dir)
+        if args.evidence_command == "validate-bundle":
+            if args.format == "markdown":
+                print(summarize_evidence_bundle_markdown(args.bundle_dir, validation))
+            else:
+                print(json.dumps(validation.to_dict(), ensure_ascii=True, indent=2))
+            return 0 if validation.passed else 2
+        if args.evidence_command == "summarize-bundle":
+            if args.format == "json":
+                print(json.dumps({"validation": validation.to_dict()}, ensure_ascii=True, indent=2))
+            else:
+                print(summarize_evidence_bundle_markdown(args.bundle_dir, validation))
+            return 0 if validation.passed else 2
+    if args.command == "bc":
+        if args.bc_command == "validate-demo-pack":
+            result = run_boundary_contract_demo(args.output_dir)
+            if args.format == "markdown":
+                report_path = Path(result["outputs"]["artifacts"]["boundary_validation"])
+                print(report_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+    if args.command == "materials":
+        if args.materials_command == "validate-demo-pack":
+            result = run_material_contract_demo(args.output_dir)
+            if args.format == "markdown":
+                report_path = Path(result["outputs"]["artifacts"]["material_model_report"])
+                print(report_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+    if args.command == "mesh":
+        if args.mesh_command == "inspect":
+            required_patches = tuple(item.strip() for item in args.required_patches.split(",") if item.strip())
+            result = inspect_mesh_gateway(args.mesh_file, output_dir=args.output_dir, required_patches=required_patches)
+            if args.format == "markdown":
+                report_path = Path(result["outputs"]["artifacts"]["mesh_report"])
+                print(report_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.mesh_command == "generate-structured-demo":
+            result = generate_structured_mesh_demo(
+                args.output_dir,
+                nx=args.nx,
+                ny=args.ny,
+                length_m=args.length_m,
+                height_m=args.height_m,
+            )
+            if args.format == "markdown":
+                report_path = Path(result["outputs"]["artifacts"]["mesh_quality_report"])
+                print(report_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+    if args.command == "flow-pack":
+        if args.flow_pack_command == "build":
+            required_patches = tuple(item.strip() for item in args.required_patches.split(",") if item.strip()) if args.required_patches else None
+            result = build_flow_pack(
+                args.case_file,
+                output_dir=args.output_dir,
+                mesh_file=args.mesh_file,
+                mesh_mode=args.mesh_mode,
+                required_patches=required_patches,
+            )
+            if args.format == "markdown":
+                print(flow_pack_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"success", "partial"} else 2
+        if args.flow_pack_command == "build-demo":
+            result = build_flow_pack(
+                args.case_file,
+                output_dir=args.output_dir,
+                mesh_mode="structured-demo",
+            )
+            if args.format == "markdown":
+                print(flow_pack_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"success", "partial"} else 2
+        if args.flow_pack_command == "validate":
+            result = validate_flow_pack(args.flow_pack_dir)
+            if args.format == "markdown":
+                print(flow_pack_validation_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("passed") else 2
+        if args.flow_pack_command == "export-evidence-bundle":
+            result = export_flow_pack_evidence_bundle(args.flow_pack_dir, output_dir=args.output_dir)
+            if args.format == "markdown":
+                summary_path = Path(result["outputs"]["artifacts"]["evidence_bundle_summary"])
+                print(summary_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+    if args.command == "route-selector":
+        if args.route_selector_command == "catalog":
+            catalog = route_catalog()
+            if args.format == "markdown":
+                print("# FastFluent Route Selector Catalog\n")
+                for name, route in catalog["routes"].items():
+                    print(f"## `{name}`\n")
+                    print(f"- Type: `{route.get('route_type')}`")
+                    print(f"- Solver execution allowed by route: `{route.get('allowed_to_execute_solver')}`")
+                    print(f"- Goal: {route.get('goal')}\n")
+            else:
+                print(json.dumps(catalog, ensure_ascii=True, indent=2))
+            return 0
+        if args.route_selector_command == "select":
+            result = select_route(args.flow_pack_dir, output_dir=args.output_dir)
+            if args.format == "markdown":
+                print(route_selection_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+        if args.route_selector_command == "demo":
+            result = run_route_selector_demo(args.output_dir, case_file=args.case_file)
+            if args.format == "markdown":
+                report_path = Path(result["outputs"]["artifacts"]["route_selection_report"])
+                print(report_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") == "success" else 2
+    if args.command == "route-plan":
+        if args.route_plan_command == "compile":
+            result = compile_route_plan(
+                args.route_selection,
+                output_dir=args.output_dir,
+                profile=args.profile,
+                materialize_job=not args.no_materialize_job,
+            )
+            if args.format == "markdown":
+                print(route_plan_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"ready_for_approval", "review_only"} else 2
+        if args.route_plan_command == "validate":
+            result = validate_route_plan(args.route_plan)
+            if args.format == "markdown":
+                print(route_plan_validation_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("passed") else 2
+        if args.route_plan_command == "demo":
+            result = run_route_plan_demo(args.output_dir)
+            if args.format == "markdown":
+                report_path = Path(result["outputs"]["artifacts"]["route_plan_report"])
+                print(report_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"ready_for_approval", "review_only"} else 2
+    if args.command == "execution-gate":
+        if args.execution_gate_command == "audit":
+            result = audit_execution_gate(args.route_plan, output_dir=args.output_dir, source_root=args.source_root)
+            if args.format == "markdown":
+                print(execution_gate_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"ready_for_approval", "review_only"} else 2
+        if args.execution_gate_command == "validate":
+            result = validate_execution_gate(args.execution_gate)
+            if args.format == "markdown":
+                print(execution_gate_validation_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("passed") else 2
+        if args.execution_gate_command == "demo":
+            result = run_execution_gate_demo(args.output_dir)
+            if args.format == "markdown":
+                report_path = Path(result["outputs"]["artifacts"]["runbook"])
+                print(report_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"ready_for_approval", "review_only"} else 2
+    if args.command == "controlled-runner":
+        if args.controlled_runner_command == "run":
+            result = run_controlled_runner(
+                args.execution_gate,
+                output_dir=args.output_dir,
+                mode=args.mode,
+                approval_id=args.approval_id,
+            )
+            if args.format == "markdown":
+                print(controlled_runner_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"ready_not_executed", "success"} else 2
+        if args.controlled_runner_command == "validate":
+            result = validate_controlled_runner(args.controlled_run)
+            if args.format == "markdown":
+                print(controlled_runner_validation_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("passed") else 2
+        if args.controlled_runner_command == "demo":
+            result = run_controlled_runner_demo(args.output_dir)
+            if args.format == "markdown":
+                report_path = Path(result["outputs"]["artifacts"]["execution_transcript"])
+                print(report_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"ready_not_executed", "success"} else 2
+    if args.command == "result-pack":
+        if args.result_pack_command == "compile":
+            result = compile_result_pack(args.controlled_run, output_dir=args.output_dir)
+            if args.format == "markdown":
+                print(result_pack_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"review_only", "workflow_validated_only", "advisory_native_evidence"} else 2
+        if args.result_pack_command == "compile-native":
+            result = compile_native_result_pack(args.native_result, output_dir=args.output_dir)
+            if args.format == "markdown":
+                print(result_pack_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"advisory_native_evidence", "native_evidence_warning"} else 2
+        if args.result_pack_command == "validate":
+            result = validate_result_pack(args.result_pack)
+            if args.format == "markdown":
+                print(result_pack_validation_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("passed") else 2
+        if args.result_pack_command == "demo":
+            result = run_result_pack_demo(args.output_dir)
+            if args.format == "markdown":
+                report_path = Path(result["outputs"]["artifacts"]["decision_brief"])
+                print(report_path.read_text(encoding="utf-8"))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") in {"review_only", "workflow_validated_only", "advisory_native_evidence"} else 2
+    if args.command == "transport":
+        if args.transport_command == "write-demo":
+            payload = demo_transport_case(quantity=args.quantity)
+            case_path = Path(args.case_file)
+            case_path.parent.mkdir(parents=True, exist_ok=True)
+            case_path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
+            result = {
+                "schema_version": "fastfluent_transport_write_demo_v1",
+                "status": "success",
+                "case_file": str(case_path),
+                "case": payload,
+            }
+            if args.format == "markdown":
+                print(
+                    "# FastFluent S6 Transport Demo Case\n\n"
+                    f"- Status: `success`\n- Case file: `{case_path}`\n- Quantity: `{payload['field']['quantity']}`\n"
+                )
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0
+        if args.transport_command == "validate":
+            try:
+                payload = json.loads(Path(args.case_file).read_text(encoding="utf-8"))
+                result = validate_transport_case(payload)
+            except (OSError, json.JSONDecodeError) as exc:
+                result = {
+                    "schema_version": "fastfluent_transport_case_validation_v1",
+                    "status": "failed",
+                    "passed": False,
+                    "errors": [str(exc)],
+                    "warnings": [],
+                }
+            if args.format == "markdown":
+                print("# FastFluent S6 Transport Case Validation\n")
+                print(f"- Status: `{result.get('status')}`")
+                print(f"- Errors: `{result.get('errors', [])}`")
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("passed") else 2
+        if args.transport_command == "run":
+            result = run_transport_coupling_case(args.case_file, mesh_file=args.mesh_file, output_dir=args.output_dir)
+            if args.format == "markdown":
+                print(transport_markdown(result.get("outputs", {}).get("qoi", {})))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("quality_status") in {"passed", "warning"} else 2
+        if args.transport_command == "demo":
+            result = run_transport_coupling_demo(args.output_dir, quantity=args.quantity)
+            if args.format == "markdown":
+                print(transport_markdown(result.get("outputs", {}).get("qoi", {})))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("quality_status") in {"passed", "warning"} else 2
+    if args.command == "workflow":
+        if args.workflow_command == "run":
+            required_patches = tuple(item.strip() for item in args.required_patches.split(",") if item.strip()) if args.required_patches else None
+            result = run_workflow(
+                args.case_file,
+                output_dir=args.output_dir,
+                mode=args.mode,
+                mesh_file=args.mesh_file,
+                mesh_mode=args.mesh_mode,
+                required_patches=required_patches,
+                native_route=args.native_route,
+                transport_quantity=args.transport_quantity,
+                source_root=args.source_root,
+            )
+            if args.format == "markdown":
+                print(workflow_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") not in {"failed", "blocked", "blocked_native_evidence"} else 2
+        if args.workflow_command == "demo":
+            result = run_workflow_demo(args.output_dir, mode=args.mode)
+            if args.format == "markdown":
+                print(workflow_markdown(result))
+            else:
+                print(json.dumps(result, ensure_ascii=True, indent=2))
+            return 0 if result.get("status") not in {"failed", "blocked", "blocked_native_evidence"} else 2
     if args.command == "preflight":
         result = run_preflight(args.source_root).to_dict()
         print(json.dumps(result, ensure_ascii=True, indent=2))
@@ -1118,14 +1918,21 @@ def main(argv: list[str] | None = None) -> int:
                 print(json.dumps(result, ensure_ascii=True, indent=2))
             return 0 if result.get("status") == "success" else 2
         if args.unstructured_command == "run-case":
-            result = run_unstructured_case_file(args.case_file, output_dir=args.output_dir)
+            result = run_unstructured_case_file(
+                args.case_file,
+                output_dir=args.output_dir,
+                motion_adapter_file=args.motion_adapter,
+                motion_execution_mode=args.motion_execution_mode,
+            )
             if args.format == "markdown":
                 qoi = result.get("outputs", {}).get("qoi", {})
                 metrics = qoi.get("metrics", {})
+                motion_preflight = result.get("outputs", {}).get("motion_solver_preflight", {})
                 print(f"# FastFluent Unstructured Case\n\nStatus: `{result.get('status')}`\n")
                 print(f"- Solver: `{qoi.get('solver_family')}`")
                 print(f"- Final divergence L2: `{metrics.get('final_divergence_l2')}`")
                 print(f"- Mass-flux relative imbalance: `{metrics.get('mass_flux', {}).get('relative_imbalance')}`")
+                print(f"- Motion preflight: `{motion_preflight.get('status')}`")
                 print(f"- Errors: `{result.get('errors', [])}`")
             else:
                 print(json.dumps(result, ensure_ascii=True, indent=2))
@@ -1216,7 +2023,9 @@ def main(argv: list[str] | None = None) -> int:
             if args.format == "markdown":
                 qoi = result.get("outputs", {}).get("qoi", {})
                 metrics = qoi.get("metrics", {})
+                hardening = result.get("outputs", {}).get("hardening_summary", {})
                 print(f"# FastFluent Steady Incompressible Case\n\nStatus: `{result.get('status')}`\n")
+                print(f"- Hardening status: `{hardening.get('status')}`")
                 print(f"- Final divergence L2: `{metrics.get('final_divergence_l2')}`")
                 print(f"- Mass-flux relative imbalance: `{metrics.get('mass_flux', {}).get('relative_imbalance')}`")
                 print(f"- Boundary error: `{metrics.get('velocity_boundary_error')}`")

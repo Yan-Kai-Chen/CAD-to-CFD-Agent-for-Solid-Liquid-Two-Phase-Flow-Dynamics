@@ -1,0 +1,76 @@
+{
+  "schema_version": "fastfluent_case_spec_v3",
+  "case_id": "channel_flow_demo",
+  "case_type": "flow.steady_incompressible",
+  "claim_level": "native_evidence",
+  "geometry": {
+    "source": "analytic",
+    "dimension": "2d",
+    "parameters": {
+      "length_m": 1.0,
+      "height_m": 0.1
+    },
+    "zones": [
+      "inlet",
+      "outlet",
+      "top_wall",
+      "bottom_wall",
+      "fluid"
+    ]
+  },
+  "mesh": {
+    "source": "structured",
+    "nx": 100,
+    "ny": 20,
+    "quality_gates": {
+      "max_skewness": 0.85,
+      "min_orthogonal_quality": 0.15
+    }
+  },
+  "materials": {
+    "fluid": {
+      "name": "air",
+      "density_kg_m3": 1.225,
+      "viscosity_pa_s": 0.000018
+    }
+  },
+  "boundary_conditions": {
+    "inlet": {
+      "type": "velocity_inlet",
+      "velocity_m_s": [
+        1.0,
+        0.0
+      ]
+    },
+    "outlet": {
+      "type": "pressure_outlet",
+      "gauge_pressure_pa": 0.0
+    },
+    "top_wall": {
+      "type": "wall_no_slip"
+    },
+    "bottom_wall": {
+      "type": "wall_no_slip"
+    }
+  },
+  "numerics": {
+    "time_mode": "steady",
+    "solver": "projection_fvm",
+    "max_iterations": 500,
+    "residual_tolerance": 0.000001
+  },
+  "qoi_targets": [
+    "mass_balance_error",
+    "pressure_drop",
+    "mean_outlet_velocity",
+    "recirculation_indicator"
+  ],
+  "handoff": {
+    "generate_fluent_hints": true,
+    "generate_solver_plan_patch": true
+  },
+  "metadata": {
+    "public_safe": true,
+    "purpose": "Minimal CaseSpec v3 channel-flow example for agent-facing validation."
+  }
+}

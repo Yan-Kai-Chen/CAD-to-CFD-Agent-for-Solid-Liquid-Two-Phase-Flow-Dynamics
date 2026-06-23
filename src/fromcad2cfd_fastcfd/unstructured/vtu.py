@@ -5,12 +5,13 @@ from __future__ import annotations
 from pathlib import Path
 from xml.sax.saxutils import escape
 
+from ..file_io import ensure_dir, write_text_file
 from .mesh import VTK_CELL_TYPES, UnstructuredMesh
 
 
 def write_mesh_vtu(mesh: UnstructuredMesh, path: str | Path) -> Path:
     output = Path(path)
-    output.parent.mkdir(parents=True, exist_ok=True)
+    ensure_dir(output.parent)
     node_tags = sorted(mesh.nodes)
     node_index = {tag: index for index, tag in enumerate(node_tags)}
     connectivity = []
@@ -67,8 +68,7 @@ def write_mesh_vtu(mesh: UnstructuredMesh, path: str | Path) -> Path:
   </UnstructuredGrid>
 </VTKFile>
 """
-    output.write_text(text, encoding="utf-8")
-    return output
+    return write_text_file(output, text)
 
 
 def write_scalar_solution_vtu(
@@ -80,7 +80,7 @@ def write_scalar_solution_vtu(
     error_values: dict[int, float] | None = None,
 ) -> Path:
     output = Path(path)
-    output.parent.mkdir(parents=True, exist_ok=True)
+    ensure_dir(output.parent)
     node_tags = sorted(mesh.nodes)
     node_index = {tag: index for index, tag in enumerate(node_tags)}
     connectivity = []
@@ -148,8 +148,7 @@ def write_scalar_solution_vtu(
   </UnstructuredGrid>
 </VTKFile>
 """
-    output.write_text(text, encoding="utf-8")
-    return output
+    return write_text_file(output, text)
 
 
 def write_vector_solution_vtu(
@@ -162,7 +161,7 @@ def write_vector_solution_vtu(
     scalar_fields: dict[str, dict[int, float]] | None = None,
 ) -> Path:
     output = Path(path)
-    output.parent.mkdir(parents=True, exist_ok=True)
+    ensure_dir(output.parent)
     node_tags = sorted(mesh.nodes)
     node_index = {tag: index for index, tag in enumerate(node_tags)}
     connectivity = []
@@ -224,8 +223,7 @@ def write_vector_solution_vtu(
   </UnstructuredGrid>
 </VTKFile>
 """
-    output.write_text(text, encoding="utf-8")
-    return output
+    return write_text_file(output, text)
 
 
 def _vector_data_array(name: str, node_tags: list[int], values: dict[int, tuple[float, float, float]]) -> str:

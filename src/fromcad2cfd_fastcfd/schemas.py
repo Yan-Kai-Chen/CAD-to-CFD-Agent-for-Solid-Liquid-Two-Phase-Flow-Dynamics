@@ -7,6 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
+from .file_io import read_json_file, write_json_file
 from .registry import CASE_REGISTRY, require_backend_for_case
 
 
@@ -136,9 +137,7 @@ class FastCFDJob:
     def write(self, path: str | Path) -> Path:
         self.validate()
         output = Path(path)
-        output.parent.mkdir(parents=True, exist_ok=True)
-        output.write_text(json.dumps(self.to_dict(), ensure_ascii=True, indent=2), encoding="utf-8")
-        return output
+        return write_json_file(output, self.to_dict())
 
 
 @dataclass(frozen=True)
@@ -284,7 +283,7 @@ class ClaimLedger:
 
 
 def read_job(path: str | Path) -> FastCFDJob:
-    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    payload = read_json_file(path)
     _assert_no_dangerous_keys(payload)
     job = FastCFDJob(
         case_type=payload["case_type"],

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 import shlex
 
+from ..file_io import read_text_file
 from .mesh import MeshElement, Node, SUPPORTED_BOUNDARY_ELEMENT_TYPES, SUPPORTED_VOLUME_ELEMENT_TYPES, UnstructuredMesh
 
 
@@ -16,7 +17,7 @@ def read_gmsh_v4_ascii(path: str | Path) -> UnstructuredMesh:
     mesh_path = Path(path)
     if mesh_path.suffix.lower() != ".msh":
         raise GmshReadError("FastFluent unstructured import currently accepts Gmsh .msh files only.")
-    lines = mesh_path.read_text(encoding="utf-8").splitlines()
+    lines = read_text_file(mesh_path).splitlines()
     sections = _sections(lines)
     if "MeshFormat" not in sections:
         raise GmshReadError("Missing $MeshFormat section.")

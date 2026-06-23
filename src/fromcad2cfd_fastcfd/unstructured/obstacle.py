@@ -59,7 +59,6 @@ def write_rectangular_obstacle_channel_mesh(
     def is_blocked(i: int, j: int) -> bool:
         return obstacle_i_min <= i < obstacle_i_max and obstacle_j_min <= j < obstacle_j_max
 
-    node_count = (nx + 1) * (ny + 1)
     triangles: list[tuple[int, int, int]] = []
     for j in range(ny):
         for i in range(nx):
@@ -89,6 +88,8 @@ def write_rectangular_obstacle_channel_mesh(
         add_boundary(4, node_tag(obstacle_i_min, j), node_tag(obstacle_i_min, j + 1))
         add_boundary(4, node_tag(obstacle_i_max, j), node_tag(obstacle_i_max, j + 1))
 
+    used_node_tags = sorted({tag for triangle in triangles for tag in triangle} | {segment.node_a for segment in boundaries} | {segment.node_b for segment in boundaries})
+    node_count = len(used_node_tags)
     element_count = len(boundaries) + len(triangles)
     lines = [
         "$MeshFormat",
@@ -114,11 +115,11 @@ def write_rectangular_obstacle_channel_mesh(
         ymax = max(a[1], b[1])
         lines.append(f"{segment.entity_tag} {xmin:.17g} {ymin:.17g} 0 {xmax:.17g} {ymax:.17g} 0 1 {segment.physical_tag}")
     lines.append("1 0 0 0 1 1 0 1 10")
-    lines.extend(["$EndEntities", "$Nodes", f"1 {node_count} 1 {node_count}", f"2 1 0 {node_count}"])
-    lines.extend(str(tag) for tag in range(1, node_count + 1))
-    for j in range(ny + 1):
-        for i in range(nx + 1):
-            lines.append(f"{i / nx:.17g} {j / ny:.17g} 0")
+    lines.extend(["$EndEntities", "$Nodes", f"1 {node_count} {used_node_tags[0]} {used_node_tags[-1]}", f"2 1 0 {node_count}"])
+    lines.extend(str(tag) for tag in used_node_tags)
+    for tag in used_node_tags:
+        x, y = _node_coordinates(tag, nx=nx, ny=ny)
+        lines.append(f"{x:.17g} {y:.17g} 0")
     lines.extend(["$EndNodes", "$Elements", f"{len(boundaries) + 1} {element_count} 1 {element_count}"])
     element_tag = 1
     for segment in boundaries:
@@ -162,10 +163,10 @@ def run_obstacle_channel_evidence(
             "obstacle_mesh": str(mesh_path),
             "mesh_manifest": str(_write_json(target_dir / "mesh_manifest.json", manifest)),
             "mesh_quality": str(_write_json(target_dir / "mesh_quality.json", quality)),
-            "obstacle_boundary_contract": str(_write_json(target_dir / "obstacle_boundary_contract.json", boundary_contract)),
+            "obstacle_boundary_contract": str(_write_json(target_dir / "bc.json", boundary_contract)),
             "mesh_vtu": str(write_mesh_vtu(mesh, target_dir / "mesh.vtu")),
-            "obstacle_qoi": str(_write_json(target_dir / "obstacle_qoi.json", qoi)),
-            "obstacle_report": str(_write_text(target_dir / "obstacle_report.md", _obstacle_markdown(qoi))),
+            "obstacle_qoi": str(_write_json(target_dir / "qoi.json", qoi)),
+            "obstacle_report": str(_write_text(target_dir / "report.md", _obstacle_markdown(qoi))),
         }
         if fv_geometry is not None:
             artifacts["fv_geometry"] = str(_write_json(target_dir / "fv_geometry.json", fv_geometry.to_dict()))
@@ -203,7 +204,7 @@ def run_obstacle_channel_evidence(
                     "solver_execution": "blocked_by_obstacle_channel_evidence",
                 }
             )
-        artifacts["obstacle_status"] = str(_write_json(target_dir / "obstacle_status.json", result.to_dict()))
+        artifacts["obstacle_status"] = str(_write_json(target_dir / "status.json", result.to_dict()))
         return result.to_dict()
     except (GmshReadError, OSError, ValueError) as exc:
         failure = AgentResult.failed(
@@ -213,8 +214,8 @@ def run_obstacle_channel_evidence(
             errors=[str(exc)],
             metadata={"output_dir": str(target_dir)},
         )
-        failure.outputs["artifacts"] = {"obstacle_status": str(target_dir / "obstacle_status.json")}
-        _write_json(target_dir / "obstacle_status.json", failure.to_dict())
+        failure.outputs["artifacts"] = {"obstacle_status": str(target_dir / "status.json")}
+        _write_json(target_dir / "status.json", failure.to_dict())
         return failure.to_dict()
 
 

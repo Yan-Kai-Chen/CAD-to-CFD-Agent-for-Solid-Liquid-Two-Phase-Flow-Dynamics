@@ -33,6 +33,14 @@ SOLVER_SUPPORTED_BOUNDARY_KINDS = {
     "no_slip_wall",
 }
 
+HARDENING_THRESHOLDS = {
+    "velocity_boundary_error_max": 1.0e-8,
+    "divergence_advisory_abs_max": 5.0e-1,
+    "divergence_advisory_ratio_max": 5.0e-1,
+    "mass_flux_advisory_relative_max": 1.0e-1,
+    "mass_flux_block_relative_max": 7.5e-1,
+}
+
 
 def run_steady_incompressible_case(
     mesh_file: str | Path,
@@ -52,7 +60,7 @@ def run_steady_incompressible_case(
     """Run a bounded steady incompressible pressure-correction route."""
 
     mesh_path = Path(mesh_file)
-    target_dir = Path(output_dir) if output_dir else unique_path(mesh_path.parent / f"{mesh_path.stem}_steady_incompressible")
+    target_dir = Path(output_dir) if output_dir else unique_path(mesh_path.parent / f"{mesh_path.stem}_st")
     target_dir.mkdir(parents=True, exist_ok=True)
     try:
         _validate_inputs(density=density, viscosity=viscosity, iterations=iterations, pressure_relaxation=pressure_relaxation)
@@ -65,7 +73,7 @@ def run_steady_incompressible_case(
         artifacts: dict[str, str] = {
             "mesh_manifest": str(_write_json(target_dir / "mesh_manifest.json", manifest)),
             "mesh_quality": str(_write_json(target_dir / "mesh_quality.json", quality)),
-            "steady_boundary_contract": str(_write_json(target_dir / "steady_boundary_contract.json", boundary_contract)),
+            "steady_boundary_contract": str(_write_json(target_dir / "bc.json", boundary_contract)),
             "mesh_vtu": str(write_mesh_vtu(mesh, target_dir / "mesh.vtu")),
         }
         if quality["status"] != "passed":
@@ -85,7 +93,7 @@ def run_steady_incompressible_case(
                     "solver_execution": "blocked_by_mesh_quality",
                 }
             )
-            artifacts["steady_status"] = str(_write_json(target_dir / "steady_status.json", result.to_dict()))
+            artifacts["steady_status"] = str(_write_json(target_dir / "status.json", result.to_dict()))
             return result.to_dict()
         if boundary_contract["status"] != "passed":
             result = AgentResult.failed(
@@ -104,7 +112,7 @@ def run_steady_incompressible_case(
                     "solver_execution": "blocked_by_boundary_contract",
                 }
             )
-            artifacts["steady_status"] = str(_write_json(target_dir / "steady_status.json", result.to_dict()))
+            artifacts["steady_status"] = str(_write_json(target_dir / "status.json", result.to_dict()))
             return result.to_dict()
         if unsupported_for_solver:
             errors = [f"Steady incompressible solver does not implement boundary kinds: {', '.join(unsupported_for_solver)}"]
@@ -125,7 +133,7 @@ def run_steady_incompressible_case(
                     "solver_execution": "blocked_by_solver_boundary_kind",
                 }
             )
-            artifacts["steady_status"] = str(_write_json(target_dir / "steady_status.json", result.to_dict()))
+            artifacts["steady_status"] = str(_write_json(target_dir / "status.json", result.to_dict()))
             return result.to_dict()
         _require_triangles(mesh)
         fv_geometry = build_fv_geometry(mesh)
@@ -143,13 +151,19 @@ def run_steady_incompressible_case(
             linear_tolerance=linear_tolerance,
             max_linear_iterations=max_linear_iterations,
         )
-        artifacts["steady_linear_systems"] = str(_write_json(target_dir / "steady_linear_systems.json", solution["linear_systems"]))
-        artifacts["steady_residual_history"] = str(_write_residual_history(target_dir / "steady_residual_history.csv", solution["residual_history"]))
-        artifacts["steady_qoi"] = str(_write_json(target_dir / "steady_qoi.json", solution["qoi"]))
+        artifacts["steady_linear_systems"] = str(_write_json(target_dir / "lin.json", solution["linear_systems"]))
+        artifacts["steady_residual_history"] = str(_write_residual_history(target_dir / "res.csv", solution["residual_history"]))
+        artifacts["steady_qoi"] = str(_write_json(target_dir / "qoi.json", solution["qoi"]))
+        hardening_summary = _build_hardening_summary(
+            qoi=solution["qoi"],
+            quality=quality,
+            boundary_contract=boundary_contract,
+        )
+        artifacts["steady_hardening_summary"] = str(_write_json(target_dir / "hard.json", hardening_summary))
         artifacts["steady_solution_vtu"] = str(
             write_vector_solution_vtu(
                 mesh,
-                target_dir / "steady_solution.vtu",
+                target_dir / "sol.vtu",
                 solution["velocity"],
                 scalar_fields={
                     "pressure_correction": solution["pressure_correction"],
@@ -157,7 +171,7 @@ def run_steady_incompressible_case(
                 },
             )
         )
-        artifacts["steady_report"] = str(_write_text(target_dir / "steady_report.md", _steady_markdown(solution["qoi"])))
+        artifacts["steady_report"] = str(_write_text(target_dir / "report.md", _steady_markdown(solution["qoi"])))
         if solution["qoi"]["status"] != "passed":
             result = AgentResult.failed(
                 backend="unstructured_fvm",
@@ -173,6 +187,7 @@ def run_steady_incompressible_case(
                     "quality": quality,
                     "boundary_contract": boundary_contract,
                     "qoi": solution["qoi"],
+                    "hardening_summary": hardening_summary,
                     "solver_execution": "steady_incompressible_failed_acceptance",
                 }
             )
@@ -188,11 +203,12 @@ def run_steady_incompressible_case(
                     "boundary_contract": boundary_contract,
                     "fv_geometry": fv_geometry.to_dict(),
                     "qoi": solution["qoi"],
+                    "hardening_summary": hardening_summary,
                     "solver_execution": "steady_incompressible_pressure_correction",
                 },
                 metadata={"mesh_file": str(mesh_path), "output_dir": str(target_dir)},
             )
-        artifacts["steady_status"] = str(_write_json(target_dir / "steady_status.json", result.to_dict()))
+        artifacts["steady_status"] = str(_write_json(target_dir / "status.json", result.to_dict()))
         return result.to_dict()
     except (GmshReadError, OSError, ValueError) as exc:
         failure = AgentResult.failed(
@@ -202,8 +218,8 @@ def run_steady_incompressible_case(
             errors=[str(exc)],
             metadata={"mesh_file": str(mesh_path), "output_dir": str(target_dir)},
         )
-        failure.outputs["artifacts"] = {"steady_status": str(target_dir / "steady_status.json")}
-        _write_json(target_dir / "steady_status.json", failure.to_dict())
+        failure.outputs["artifacts"] = {"steady_status": str(target_dir / "status.json")}
+        _write_json(target_dir / "status.json", failure.to_dict())
         return failure.to_dict()
 
 
@@ -593,8 +609,9 @@ def _build_qoi(
         blocking_errors.append(f"Velocity Dirichlet boundary was not preserved: {boundary_error}.")
     if final_divergence_l2 > max(5.0e-1, 1.25 * initial_divergence_l2):
         blocking_errors.append(f"Final divergence is outside the controlled benchmark tolerance: {final_divergence_l2}.")
-    if mass_flux["relative_imbalance"] > 0.75:
+    if mass_flux["relative_imbalance"] > HARDENING_THRESHOLDS["mass_flux_block_relative_max"]:
         blocking_errors.append(f"Mass-flux imbalance is outside the controlled benchmark tolerance: {mass_flux['relative_imbalance']}.")
+    final_divergence_ratio = final_divergence_l2 / initial_divergence_l2 if initial_divergence_l2 > 0 else 0.0
     return {
         "schema_version": STEADY_INCOMPRESSIBLE_SCHEMA_VERSION,
         "backend": "unstructured_fvm",
@@ -613,16 +630,22 @@ def _build_qoi(
             "max_speed": max_speed,
             "initial_divergence_l2": initial_divergence_l2,
             "final_divergence_l2": final_divergence_l2,
-            "final_divergence_ratio": final_divergence_l2 / initial_divergence_l2 if initial_divergence_l2 > 0 else 0.0,
+            "final_divergence_ratio": final_divergence_ratio,
             "final_velocity_update_l2": final.get("velocity_update_l2"),
             "velocity_boundary_error": boundary_error,
             "mass_flux": mass_flux,
         },
+        "quality_thresholds": dict(HARDENING_THRESHOLDS),
         "acceptance": {
             "linear_systems_converged": systems_converged,
             "velocity_boundary_preserved": boundary_error <= 1.0e-8,
             "divergence_within_controlled_tolerance": final_divergence_l2 <= max(5.0e-1, 1.25 * initial_divergence_l2),
-            "mass_flux_imbalance_within_controlled_tolerance": mass_flux["relative_imbalance"] <= 0.75,
+            "mass_flux_imbalance_within_controlled_tolerance": mass_flux["relative_imbalance"] <= HARDENING_THRESHOLDS["mass_flux_block_relative_max"],
+            "divergence_within_advisory_tolerance": (
+                final_divergence_l2 <= HARDENING_THRESHOLDS["divergence_advisory_abs_max"]
+                and final_divergence_ratio <= HARDENING_THRESHOLDS["divergence_advisory_ratio_max"]
+            ),
+            "mass_flux_imbalance_within_advisory_tolerance": mass_flux["relative_imbalance"] <= HARDENING_THRESHOLDS["mass_flux_advisory_relative_max"],
         },
         "fluent_setup_hints": [
             {
@@ -647,6 +670,139 @@ def _build_qoi(
             "Mass-flux and divergence checks are acceptance evidence for this bounded route, not a universal CFD validation proof.",
         ],
     }
+
+
+def _build_hardening_summary(
+    *,
+    qoi: dict[str, Any],
+    quality: dict[str, Any],
+    boundary_contract: dict[str, Any],
+) -> dict[str, Any]:
+    metrics = qoi.get("metrics", {})
+    acceptance = qoi.get("acceptance", {})
+    mass_flux = metrics.get("mass_flux", {}) if isinstance(metrics.get("mass_flux"), dict) else {}
+    gate_results = {
+        "mesh_quality_passed": quality.get("status") == "passed",
+        "boundary_contract_passed": boundary_contract.get("status") == "passed",
+        "linear_systems_converged": acceptance.get("linear_systems_converged") is True,
+        "velocity_boundary_preserved": acceptance.get("velocity_boundary_preserved") is True,
+        "divergence_within_controlled_tolerance": acceptance.get("divergence_within_controlled_tolerance") is True,
+        "mass_flux_imbalance_within_controlled_tolerance": acceptance.get("mass_flux_imbalance_within_controlled_tolerance") is True,
+        "divergence_within_advisory_tolerance": acceptance.get("divergence_within_advisory_tolerance") is True,
+        "mass_flux_imbalance_within_advisory_tolerance": acceptance.get("mass_flux_imbalance_within_advisory_tolerance") is True,
+    }
+    blocking_errors = list(qoi.get("blocking_errors", []))
+    blocking_gates = {
+        "mesh_quality_passed",
+        "boundary_contract_passed",
+        "linear_systems_converged",
+        "velocity_boundary_preserved",
+        "divergence_within_controlled_tolerance",
+        "mass_flux_imbalance_within_controlled_tolerance",
+    }
+    warning_gates = {
+        "divergence_within_advisory_tolerance",
+        "mass_flux_imbalance_within_advisory_tolerance",
+    }
+    for gate in sorted(blocking_gates):
+        passed = gate_results.get(gate) is True
+        if not passed:
+            blocking_errors.append(f"Hardening gate failed: {gate}.")
+    warnings = [f"Advisory hardening gate is marginal: {gate}." for gate in sorted(warning_gates) if gate_results.get(gate) is not True]
+    status = "failed" if blocking_errors else ("warning" if warnings else "passed")
+    decision = _hardening_decision(status=status, warnings=warnings, metrics=metrics)
+    return {
+        "schema_version": "fastfluent_steady_incompressible_hardening_v1",
+        "status": status,
+        "solver_family": qoi.get("solver_family"),
+        "evidence_level": {
+            "passed": "native_advisory",
+            "warning": "degraded_native_advisory",
+            "failed": "blocked_native_advisory",
+        }[status],
+        "quality_thresholds": qoi.get("quality_thresholds", dict(HARDENING_THRESHOLDS)),
+        "gate_results": gate_results,
+        "metrics": {
+            "initial_divergence_l2": metrics.get("initial_divergence_l2"),
+            "final_divergence_l2": metrics.get("final_divergence_l2"),
+            "final_divergence_ratio": metrics.get("final_divergence_ratio"),
+            "mass_flux_relative_imbalance": mass_flux.get("relative_imbalance"),
+            "velocity_boundary_error": metrics.get("velocity_boundary_error"),
+            "final_velocity_update_l2": metrics.get("final_velocity_update_l2"),
+            "max_speed": metrics.get("max_speed"),
+        },
+        "decision": decision,
+        "warnings": warnings,
+        "blocking_errors": blocking_errors,
+        "limitations": [
+            "This hardening summary is for the bounded steady incompressible route.",
+            "It does not certify arbitrary geometry, arbitrary boundary conditions, or final Fluent-grade CFD accuracy.",
+            "Use it to decide whether the native route is clean enough for agent workflow evidence.",
+        ],
+    }
+
+
+def _hardening_decision(*, status: str, warnings: list[str], metrics: dict[str, Any]) -> dict[str, Any]:
+    actions: list[dict[str, str]] = []
+    if status == "passed":
+        recommended = "package_as_advisory_fastfluent_evidence"
+        actions.append(
+            {
+                "action": "use_as_advisory_seed",
+                "priority": "medium",
+                "reason": "All controlled and advisory hardening gates passed for the bounded native route.",
+            }
+        )
+    elif status == "warning":
+        recommended = "use_for_screening_only_and_repair_before_fluent_handoff"
+        if not _truthy_metric(metrics, "final_divergence_l2", HARDENING_THRESHOLDS["divergence_advisory_abs_max"], less_equal=True):
+            actions.append(
+                {
+                    "action": "repair_mesh_or_pressure_correction_settings",
+                    "priority": "high",
+                    "reason": "Divergence is above the advisory tolerance even though the route did not hard-fail.",
+                }
+            )
+        if not _truthy_metric((metrics.get("mass_flux") or {}), "relative_imbalance", HARDENING_THRESHOLDS["mass_flux_advisory_relative_max"], less_equal=True):
+            actions.append(
+                {
+                    "action": "repair_boundary_balance_or_domain_setup",
+                    "priority": "high",
+                    "reason": "Mass-flux imbalance is above the advisory tolerance.",
+                }
+            )
+        if warnings and not actions:
+            actions.append(
+                {
+                    "action": "review_advisory_hardening_warnings",
+                    "priority": "medium",
+                    "reason": "One or more advisory hardening gates were marginal.",
+                }
+            )
+    else:
+        recommended = "do_not_trust_native_evidence_repair_case_before_handoff"
+        actions.append(
+            {
+                "action": "stop_and_repair_case",
+                "priority": "critical",
+                "reason": "At least one blocking hardening gate failed.",
+            }
+        )
+    return {
+        "usable_as_native_advisory_seed": status == "passed",
+        "usable_for_screening_evidence": status in {"passed", "warning"},
+        "usable_for_final_cfd_validation": False,
+        "recommended_next_action": recommended,
+        "agent_actions": actions,
+    }
+
+
+def _truthy_metric(payload: dict[str, Any], key: str, threshold: float, *, less_equal: bool) -> bool:
+    value = payload.get(key)
+    if value is None:
+        return False
+    numeric = float(value)
+    return numeric <= threshold if less_equal else numeric >= threshold
 
 
 def _compact_linear_system(payload: dict[str, Any]) -> dict[str, Any]:

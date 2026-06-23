@@ -5,6 +5,34 @@ layer. It is designed to run cheap, bounded FastFluent-derived tests before
 high-fidelity Fluent validation. It is not a Fluent replacement and its reports
 must remain evidence-led.
 
+## Recommended Agent Entry: S7 Workflow
+
+For normal agent use, start with S7. It is the top-level FastFluent workflow
+runner and connects the setup and evidence chain into one inspectable package:
+
+```text
+CaseSpec v3
+  -> Flow Pack
+  -> Route Selector
+  -> Route Plan
+  -> Execution Gate
+  -> Controlled Runner
+  -> optional S6 native advisory evidence
+  -> Result Pack
+  -> agent_decision.json
+```
+
+Run the public demo:
+
+```powershell
+python -m fromcad2cfd fastcfd workflow demo --output-dir sandbox/output/s7_workflow_demo --mode native_advisory --format markdown
+```
+
+Use `--mode dry_run` when only setup, route planning, and review-only Result
+Packs are desired. Use `--mode native_advisory` when a bounded S6 transport
+evidence route should also run. Neither mode launches Fluent or claims final
+CFD validation.
+
 ## Capability Inventory
 
 ```powershell
@@ -299,6 +327,61 @@ S3 is a native setup artifact layer. It does not launch Fluent, call PyFluent,
 edit Fluent case/data files, emit raw Fluent TUI, generate UDF source, or
 replace CAD meshing and production CFD validation.
 
+## S6 Unified Transport Coupling Core
+
+The S6 transport core provides one shared scalar-transport interface for alpha,
+temperature, species, particle concentration, and wax-fraction style screening.
+It writes transport QoI, material-property coupling ranges, CSV history, VTU
+field output, and a native `status.json` that can be compiled into a Result
+Pack.
+
+```powershell
+python -m fromcad2cfd fastcfd transport demo --output-dir sandbox/output/s6_transport_alpha --quantity alpha --format markdown
+python -m fromcad2cfd fastcfd result-pack compile-native sandbox/output/s6_transport_alpha/status.json --output-dir sandbox/output/s6_transport_alpha_pack --format markdown
+```
+
+It writes:
+
+- `transport_case.json`
+- `transport_history.csv`
+- `transport_qoi.json`
+- `material_properties.json`
+- `transport_solution.vtu`
+- `transport_report.md`
+- `status.json`
+
+S6 is a scalar transport evidence route. It does not solve coupled
+pressure-momentum, turbulence, dynamic mesh, phase-interface reconstruction, or
+final Fluent validation.
+
+## S7 Workflow Runner
+
+S7 is the agent-facing workflow orchestrator. It connects CaseSpec validation,
+Flow Pack, Route Selector, Route Plan, Execution Gate, Controlled Runner, S6
+native advisory evidence, Result Pack, and the final agent decision artifact.
+
+```powershell
+python -m fromcad2cfd fastcfd workflow demo --output-dir sandbox/output/s7_workflow_demo --mode native_advisory --format markdown
+```
+
+It writes:
+
+- `01_flow_pack/*`
+- `02_route_selection/*`
+- `03_route_plan/*`
+- `04_execution_gate/*`
+- `05_controlled_runner/*`
+- `06_native_result/*`
+- `07_result_pack/*`
+- `workflow_manifest.json`
+- `stage_status.json`
+- `agent_decision.json`
+- `workflow_report.md`
+
+`dry_run` mode stops at review-only workflow evidence. `native_advisory` mode
+adds the bounded S6 transport route and compiles it into a Result Pack. S7 does
+not launch Fluent and does not claim final CFD validation.
+
 ## Wax Rheology / Phase-Change Passport
 
 The wax route turns public material and thermal-property inputs into a bounded
@@ -393,9 +476,10 @@ python -m fromcad2cfd fastcfd unstructured solve-obstacle-channel --output-dir 0
 ```
 
 It writes `public_obstacle_channel.msh` when no mesh is provided,
-`mesh_manifest.json`, `mesh_quality.json`,
-`obstacle_boundary_contract.json`, `fv_geometry.json`, `mesh.vtu`,
-`obstacle_qoi.json`, `obstacle_report.md`, and `obstacle_status.json`.
+`mesh_manifest.json`, `mesh_quality.json`, `bc.json`, `fv_geometry.json`,
+`mesh.vtu`, `qoi.json`, `report.md`, and `status.json`. The public artifact
+keys remain semantic, for example `obstacle_boundary_contract`,
+`obstacle_qoi`, `obstacle_report`, and `obstacle_status`.
 
 ## VOF-Lite Alpha Transport
 

@@ -8,6 +8,7 @@ from typing import Any
 
 from fromcad2cfd_cad import AgentResult
 
+from ..motion_solver_preflight import run_motion_solver_preflight
 from ..paths import unique_path
 from .boundary import BoundaryCondition, boundary_conditions_from_dict
 from .steady_incompressible import run_steady_incompressible_case
@@ -20,6 +21,8 @@ def run_unstructured_case_file(
     case_file: str | Path,
     *,
     output_dir: str | Path | None = None,
+    motion_adapter_file: str | Path | None = None,
+    motion_execution_mode: str = "static_grid_motion_evidence",
 ) -> dict[str, Any]:
     """Run an agent-safe unstructured case JSON file."""
 
@@ -29,6 +32,9 @@ def run_unstructured_case_file(
     try:
         raw = json.loads(case_path.read_text(encoding="utf-8"))
         normalized = normalize_unstructured_case(raw, case_path=case_path)
+        if motion_adapter_file is not None:
+            normalized["motion_adapter_file"] = str(Path(motion_adapter_file).resolve())
+            normalized["motion_execution_mode"] = motion_execution_mode
         normalized_path = _write_json(target_dir / "normalized_case.json", normalized)
         solver_family = normalized["solver"]["family"]
         if solver_family != "steady_incompressible":
@@ -45,10 +51,38 @@ def run_unstructured_case_file(
             }
             _write_json(target_dir / "case_status.json", failure.to_dict())
             return failure.to_dict()
+        motion_preflight = None
+        if normalized.get("motion_adapter_file"):
+            motion_preflight = run_motion_solver_preflight(
+                normalized["motion_adapter_file"],
+                target_dir / "m_pre",
+                solver_family=solver_family,
+                execution_mode=normalized.get("motion_execution_mode", motion_execution_mode),
+                case_file=case_path,
+            )
+            if not motion_preflight["solver_dispatch_allowed"]:
+                failure = AgentResult.failed(
+                    backend="unstructured_fvm",
+                    operation="run_unstructured_case",
+                    message="Unstructured case was blocked by motion solver preflight.",
+                    errors=motion_preflight["blocking_errors"],
+                    metadata={"case_file": str(case_path), "output_dir": str(target_dir)},
+                )
+                failure.outputs["case"] = normalized
+                failure.outputs["motion_solver_preflight"] = motion_preflight
+                failure.outputs["solver_execution"] = "blocked_by_motion_solver_preflight"
+                failure.outputs["artifacts"] = {
+                    "normalized_case": str(normalized_path),
+                    "motion_solver_preflight": motion_preflight["artifacts"]["motion_solver_preflight"],
+                    "motion_solver_decision": motion_preflight["artifacts"]["motion_solver_decision"],
+                    "case_status": str(target_dir / "case_status.json"),
+                }
+                _write_json(target_dir / "case_status.json", failure.to_dict())
+                return failure.to_dict()
         conditions = _conditions_from_normalized_case(normalized)
         result = run_steady_incompressible_case(
             normalized["mesh_file"],
-            output_dir=target_dir / "steady_incompressible",
+            output_dir=target_dir / "st",
             boundary_conditions=conditions,
             required_patches=tuple(normalized["required_patches"]),
             density=normalized["physics"]["density"],
@@ -64,6 +98,11 @@ def run_unstructured_case_file(
         artifacts["normalized_case"] = str(normalized_path)
         result["outputs"]["case"] = normalized
         result["outputs"]["runner_execution"] = "unstructured_case_runner"
+        if motion_preflight is not None:
+            result["outputs"]["motion_solver_preflight"] = motion_preflight
+            result["outputs"]["solver_execution_mode"] = motion_preflight["solver_execution_mode"]
+            artifacts["motion_solver_preflight"] = motion_preflight["artifacts"]["motion_solver_preflight"]
+            artifacts["motion_solver_decision"] = motion_preflight["artifacts"]["motion_solver_decision"]
         result.setdefault("metadata", {}).update({"case_file": str(case_path), "output_dir": str(target_dir)})
         artifacts["case_status"] = str(_write_json(target_dir / "case_status.json", result))
         return result
@@ -106,6 +145,15 @@ def normalize_unstructured_case(raw: dict[str, Any], *, case_path: Path | None =
     required_patches = raw.get("required_patches") or list(boundary_payload)
     if not isinstance(required_patches, list) or not all(isinstance(item, str) and item for item in required_patches):
         raise ValueError("Unstructured case required_patches must be a list of patch names.")
+    motion_adapter_file = raw.get("motion_adapter_file")
+    motion_adapter_path = None
+    if motion_adapter_file is not None:
+        if not isinstance(motion_adapter_file, str) or not motion_adapter_file:
+            raise ValueError("Unstructured case motion_adapter_file must be a non-empty string when provided.")
+        motion_adapter_path = Path(motion_adapter_file)
+        if not motion_adapter_path.is_absolute():
+            motion_adapter_path = (base / motion_adapter_path).resolve()
+    motion_execution_mode = str(raw.get("motion_execution_mode") or "static_grid_motion_evidence")
     normalized = {
         "schema_version": UNSTRUCTURED_CASE_SCHEMA_VERSION,
         "case_name": str(raw.get("case_name") or Path(mesh_file).stem),
@@ -126,6 +174,8 @@ def normalize_unstructured_case(raw: dict[str, Any], *, case_path: Path | None =
             "linear_tolerance": float(solver.get("linear_tolerance", 1.0e-12)),
             "max_linear_iterations": solver.get("max_linear_iterations"),
         },
+        "motion_adapter_file": str(motion_adapter_path) if motion_adapter_path else None,
+        "motion_execution_mode": motion_execution_mode,
         "limitations": [
             "This case schema is an agent-safe unstructured FastFluent route.",
             "The current executable solver family is steady_incompressible.",

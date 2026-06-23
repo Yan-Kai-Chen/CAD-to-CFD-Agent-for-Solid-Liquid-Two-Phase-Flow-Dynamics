@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import io
 import json
 from math import log, sqrt
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import Any
 
 from fromcad2cfd_cad import AgentResult
 
+from ..file_io import ensure_dir, write_json_file, write_text_file
 from ..paths import unique_path
 from .boundary import BoundaryCondition, validate_boundary_contract
 from .geometry import build_fv_geometry
@@ -39,7 +41,7 @@ def run_channel_validation_case(
 
     mesh_path = Path(mesh_file)
     target_dir = Path(output_dir) if output_dir else unique_path(mesh_path.parent / f"{mesh_path.stem}_channel_validation")
-    target_dir.mkdir(parents=True, exist_ok=True)
+    ensure_dir(target_dir)
     try:
         if viscosity <= 0:
             raise ValueError("Channel validation viscosity must be positive.")
@@ -207,7 +209,7 @@ def run_channel_convergence_case(
     """Run U14 channel validation across several mesh levels."""
 
     target_dir = Path(output_dir) if output_dir else unique_path(Path("05_projects") / "unstructured_channel_convergence" / "output")
-    target_dir.mkdir(parents=True, exist_ok=True)
+    ensure_dir(target_dir)
     try:
         prepared_meshes = _prepare_convergence_meshes(target_dir, mesh_files=mesh_files, mesh_levels=mesh_levels)
         cases = []
@@ -270,7 +272,7 @@ def write_unit_square_channel_mesh(path: str | Path, *, nx: int, ny: int | None 
     if ny < 1:
         raise ValueError("Channel mesh ny must be at least 1.")
     output = Path(path)
-    output.parent.mkdir(parents=True, exist_ok=True)
+    ensure_dir(output.parent)
 
     def node_tag(i: int, j: int) -> int:
         return j * (nx + 1) + i + 1
@@ -335,8 +337,7 @@ def write_unit_square_channel_mesh(path: str | Path, *, nx: int, ny: int | None 
             lines.append(f"{element_tag} {n00} {n11} {n01}")
             element_tag += 1
     lines.append("$EndElements")
-    output.write_text("\n".join(lines) + "\n", encoding="utf-8")
-    return output
+    return write_text_file(output, "\n".join(lines) + "\n")
 
 
 def _channel_boundary_conditions(*, viscosity: float, pressure_drop: float, length: float, height: float) -> dict[str, BoundaryCondition]:
@@ -525,12 +526,11 @@ def _build_convergence_summary(cases: list[dict[str, Any]], *, viscosity: float,
 
 
 def _write_channel_residual_history(path: Path, rows: list[dict[str, Any]]) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    with path.open("w", newline="", encoding="utf-8") as handle:
-        writer = csv.DictWriter(handle, fieldnames=["component", "iteration", "residual_l2", "residual_linf"])
-        writer.writeheader()
-        writer.writerows(rows)
-    return path
+    buffer = io.StringIO()
+    writer = csv.DictWriter(buffer, fieldnames=["component", "iteration", "residual_l2", "residual_linf"])
+    writer.writeheader()
+    writer.writerows(rows)
+    return write_text_file(path, buffer.getvalue())
 
 
 def _channel_markdown(qoi: dict[str, Any]) -> str:
@@ -591,12 +591,8 @@ def _require_triangles(mesh: UnstructuredMesh) -> None:
 
 
 def _write_json(path: Path, payload: dict[str, Any]) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(payload, ensure_ascii=True, indent=2), encoding="utf-8")
-    return path
+    return write_json_file(path, payload)
 
 
 def _write_text(path: Path, text: str) -> Path:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(text, encoding="utf-8")
-    return path
+    return write_text_file(path, text)

@@ -1,0 +1,66 @@
+{
+  "schema_version": "fastfluent_transport_case_v1",
+  "case_id": "s6_alpha_transport_demo",
+  "case_name": "S6 alpha transport coupling demo",
+  "field": {
+    "name": "alpha",
+    "quantity": "volume_fraction",
+    "units": "1",
+    "bounded_min": 0.0,
+    "bounded_max": 1.0
+  },
+  "steps": 16,
+  "time_step_s": 0.01,
+  "velocity_m_s": [0.12, 0.0],
+  "diffusivity_m2_s": 0.0,
+  "required_patches": ["inlet", "outlet", "wall"],
+  "initial_condition": {
+    "type": "left_column",
+    "fraction": 0.35,
+    "value": 1.0,
+    "background": 0.0
+  },
+  "boundary_conditions": {
+    "inlet": {
+      "type": "fixed_value",
+      "value": 1.0
+    },
+    "outlet": {
+      "type": "zero_gradient"
+    },
+    "wall": {
+      "type": "zero_gradient"
+    }
+  },
+  "source": {
+    "type": "none"
+  },
+  "material_couplings": [
+    {
+      "property": "density_kg_m3",
+      "model": "linear",
+      "field_min": 0.0,
+      "field_max": 1.0,
+      "value_at_min": 998.2,
+      "value_at_max": 1200.0
+    },
+    {
+      "property": "dynamic_viscosity_Pa_s",
+      "model": "linear",
+      "field_min": 0.0,
+      "field_max": 1.0,
+      "value_at_min": 0.001,
+      "value_at_max": 0.006
+    }
+  ],
+  "acceptance": {
+    "max_courant_number": 0.5,
+    "max_diffusion_number": 0.5,
+    "max_relative_balance_error": 1.0e-8,
+    "max_clipped_integral_warning": 1.0e-10
+  },
+  "limitations": [
+    "S6 solves a bounded scalar transport proxy only.",
+    "S6 does not solve pressure, momentum, turbulence, phase interface reconstruction, or Fluent validation."
+  ]
+}

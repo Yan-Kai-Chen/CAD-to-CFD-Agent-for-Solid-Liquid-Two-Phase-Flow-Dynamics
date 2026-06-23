@@ -210,12 +210,14 @@ Optional arguments:
 - `flow_status.json`: U10 agent result envelope.
 - `unstructured_mesh_report.md`: human-readable inspection summary.
 - `inspection_status.json`: agent result envelope.
-- `obstacle_boundary_contract.json`: named boundary-condition contract for
+- `bc.json` via `obstacle_boundary_contract`: named boundary-condition contract for
   `inlet`, `outlet`, `wall`, and `obstacle_wall`.
-- `obstacle_qoi.json`: public synthetic body-fitted obstacle-channel metrics,
+- `qoi.json` via `obstacle_qoi`: public synthetic body-fitted obstacle-channel metrics,
   blockage ratio, clearance metrics, zone evidence, and Fluent setup hints.
-- `obstacle_report.md`: human-readable obstacle-channel evidence summary.
-- `obstacle_status.json`: agent result envelope for the obstacle evidence gate.
+- `report.md` via `obstacle_report`: human-readable obstacle-channel evidence
+  summary.
+- `status.json` via `obstacle_status`: agent result envelope for the obstacle
+  evidence gate.
 - `vof_lite_history.csv`: alpha mass, alpha bounds, boundary flux, and clipping
   trace for each VOF-lite transport step.
 - `vof_lite_qoi.json`: bounded alpha transport metrics, CFL, phase-volume
