@@ -4,7 +4,11 @@ Date: 2026-06-24
 
 Repository: `Yan-Kai-Chen/CAD-to-CFD-Agent-for-Solid-Liquid-Two-Phase-Flow-Dynamics`
 
-Recommended public baseline commit: `e4c79ea`
+Minimum code baseline: `e4c79ea`
+
+Deployment recommendation: use the current `main` commit that contains this
+runbook. Do not check out `e4c79ea` exactly unless this runbook has already been
+copied outside the repository.
 
 ## Purpose
 
@@ -82,7 +86,7 @@ git rev-parse HEAD
 
 Acceptance:
 
-- `git rev-parse HEAD` returns `e4c79ea` or a later reviewed commit.
+- `git rev-parse HEAD` returns a reviewed commit at or after `e4c79ea`.
 - `git status --short` is clean.
 
 ## Phase 2: Create The Python Environment
