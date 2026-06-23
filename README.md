@@ -23,17 +23,21 @@ and reuse.
 | `Modeling` | Prepare CAD geometry, repair surfaces, and build flow-domain solids. | `fromcad2cfd nx capabilities --format markdown` |
 | `FastFluent` | Run low-cost CFD checks before committing to expensive Fluent runs. | `fromcad2cfd fastcfd registry --format markdown` |
 | `Meshing` | Validate HyperMesh surface-meshing plans and batch-run controlled scripts. | `fromcad2cfd hypermesh-meshing locate-runtime` |
-| `Fluent` | Validate solver plans and summarize monitor outputs from Fluent workflows. | `fromcad2cfd fluent-solver validate-plan --plan examples/fluent_solver/basic_air_steam_fill/solver_plan.json` |
+| `Fluent` | Validate solver plans, preview FastFluent patch handoff, and summarize monitor outputs. | `fromcad2cfd fluent-solver plan-v2-patch-preview-demo --output-dir sandbox/output/fluent_plan_v2_patch_preview_demo` |
 
 ## What You Can Do Today
 
 - build or edit CFD-ready geometry through bounded SolidWorks and NX workflows;
 - convert coarse mesh geometry into solid-friendly preprocessing inputs;
 - run FastFluent screening before expensive Fluent work;
+- run public FastFluent-native simulation validation packs with field outputs,
+  convergence histories, QoIs, and passport-simulation alignment reports;
+- run practical FastFluent-native heat, scalar, material-property,
+  source-term, parameter-sweep, and wax application utilities;
 - inspect public unstructured meshes and generate low-cost CFD evidence;
 - validate HyperMesh surface-meshing plans and run controlled batch scripts;
-- validate Fluent solver plans, prepare templates, and summarize monitor
-  outputs after runs.
+- validate Fluent solver plans, preview FastFluent patch handoff, prepare
+  advisory templates, and summarize monitor outputs after runs.
 
 ## Workflow
 
@@ -45,7 +49,7 @@ Meshing
 FastFluent
   -> low-cost CFD evidence before expensive solving
 Fluent
-  -> validated solver workflow, local execution handoff, and post-run summaries
+  -> validated solver workflow, preview-only patch handoff, and post-run summaries
 ```
 
 Each block answers one practical question:
@@ -78,7 +82,36 @@ FastFluent is the project's fast local CFD evidence layer.
   project.
 
 The current public surface includes structured and unstructured evidence
-routes, QoI extraction, screening reports, and VOF/turbulence/rheology support.
+routes, QoI extraction, screening reports, VOF/turbulence/rheology support, and
+evidence-to-Fluent handoff artifacts such as physics passports, Fluent setup
+hints, and validated non-executing `solver_plan_patch.json` bundles.
+
+Representative public demo:
+
+```powershell
+python -m fromcad2cfd fastcfd native-simulation-validation-pack-demo --output-dir sandbox/output/fastfluent_native_simulation_validation_pack
+python -m fromcad2cfd fastcfd horizontal-validation-pack-demo --output-dir sandbox/output/fastfluent_horizontal_validation_pack
+python -m fromcad2cfd fastcfd steam-air-handoff-demo --output-dir sandbox/output/steam_air_handoff_demo
+python -m fromcad2cfd fastcfd steam-air-v2-demo --output-dir sandbox/output/steam_air_v2_demo
+python -m fromcad2cfd fastcfd solid-liquid-handoff-demo --output-dir sandbox/output/solid_liquid_suspension_demo
+python -m fromcad2cfd fastcfd practical-native-demo-pack --output-dir sandbox/output/fastfluent_practical_native_demo_pack
+python -m fromcad2cfd fastcfd existing-passport-patch-demo --output-dir sandbox/output/fastfluent_h1_existing_patch_demo
+```
+
+The native simulation validation pack runs public FastFluent-native routes and
+writes `simulation_result.json`, field outputs, convergence/history files, QoI
+summaries, `simulation_manifest.json`, `simulation_summary.md`, and
+passport-simulation alignment reports. The other commands write synthetic
+public-safe FastFluent evidence, Fluent setup hints, solver-plan patch JSON, and
+Markdown handoff reports without launching Fluent or editing Fluent case files.
+The horizontal validation-pack demo remains the public regression gate for
+H1-H3 setup evidence.
+
+The practical native demo pack adds reusable native mini computations for heat
+diffusion, scalar transport, material-property fields, source-term ramp/clamp
+behavior, parameter sweeps, and a wax application demo. It writes CSV/JSON field
+and history outputs plus a `practical_native_manifest.json` without launching
+Fluent.
 
 ### Meshing
 
@@ -96,6 +129,8 @@ volume meshing.
 Fluent manages solver-side workflow logic.
 
 - public solver-plan validation;
+- preview-only Solver Plan v2 patch receiving from FastFluent
+  `solver_plan_patch.json`;
 - resume-plan guardrails;
 - advisory PyFluent templates;
 - monitor contracts and post-processing summaries;
@@ -159,6 +194,7 @@ fromcad2cfd hypermesh-meshing validate-plan --plan examples/hypermesh_meshing/ba
 
 ```powershell
 fromcad2cfd fluent-solver validate-plan --plan examples/fluent_solver/basic_air_steam_fill/solver_plan.json
+fromcad2cfd fluent-solver plan-v2-patch-preview-demo --output-dir sandbox/output/fluent_plan_v2_patch_preview_demo
 fromcad2cfd post summarize-run `
   --global-monitor examples/postprocessing/basic_monitor_summary/global_monitors.out `
   --wall-monitor examples/postprocessing/basic_monitor_summary/wall_exposure_indicators.out `
@@ -203,6 +239,8 @@ fromcad2cfd post summarize-run `
 - [SolidWorks quickstart](docs/solidworks/quickstart.md)
 - [NX quickstart](docs/nx/quickstart.md)
 - [FastFluent quickstart](docs/fastcfd/quickstart.md)
+- [FastFluent S1 native simulation delivery](docs/FASTFLUENT_S1_NATIVE_SIMULATION_DELIVERY_20260623.md)
+- [FastFluent S2 practical native function expansion delivery](docs/FASTFLUENT_S2_PRACTICAL_NATIVE_FUNCTION_EXPANSION_DELIVERY_20260623.md)
 - [HyperMesh meshing interface](docs/hypermesh_meshing/interface_draft.md)
 - [Fluent solver interface](docs/fluent_solver/interface_draft.md)
 - [Post-processing interface](docs/postprocessing/interface_draft.md)

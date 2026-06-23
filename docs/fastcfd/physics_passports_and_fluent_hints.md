@@ -21,6 +21,10 @@ case/data files.
 | Unstructured case runner | `fromcad2cfd fastcfd unstructured run-case` | Runs an agent-safe JSON case with explicit mesh, physics, boundary conditions, and solver controls. |
 | Public unstructured benchmark suite | `fromcad2cfd fastcfd unstructured run-benchmark-suite` | Runs the current public-safe suite across channel validation, steady case, obstacle evidence, VOF-lite, and turbulence ladder. |
 | Fluent hint compiler | `fromcad2cfd fastcfd compile-fluent-hints` | Aggregates setup hints only when every hint has explicit evidence and source-artifact traceability. |
+| Solver-plan patch compiler | `fromcad2cfd fastcfd compile-fluent-patch` | Converts supported evidence passports or hint artifacts into validated, non-executing Fluent `solver_plan_patch.json` bundles. |
+| Existing passport patch demo | `fromcad2cfd fastcfd existing-passport-patch-demo` | Generates public VOF, turbulence, rheology, and combined solver-plan patch bundles for the Fluent Solver Plan v2 preview receiver. |
+| Steam-air condensation v2 | `fromcad2cfd fastcfd steam-air-v2-demo` | Adds Reynolds, Prandtl, Peclet, Jakob, Stefan, HTC, mass-transfer resistance, and source-term checks to the steam-air patch route. |
+| Solid-liquid suspension passport | `fromcad2cfd fastcfd solid-liquid-handoff-demo` | Adds particle Reynolds, Stokes number, settling, mass loading, cell-particle ratio, time-step risk, and DPM/Mixture/Eulerian model-selection evidence. |
 
 ## Evidence Rule
 
@@ -35,6 +39,10 @@ The compiler fails closed if evidence files are missing, hints are absent, or a
 hint does not include evidence. This keeps downstream agent decisions
 traceable and prevents unsupported Fluent setup instructions from being treated
 as validated output.
+
+The solver-plan patch compiler follows the same evidence rule. It can compile
+VOF, turbulence, rheology, and steam-air passports into patch bundles, but it
+does not run Fluent, edit Fluent files, call PyFluent, or generate UDF code.
 
 ## Engineering Role
 

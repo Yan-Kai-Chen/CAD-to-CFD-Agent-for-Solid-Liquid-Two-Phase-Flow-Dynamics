@@ -78,6 +78,10 @@
 - [x] Add preliminary CFD prediction reports for expected flow behavior, physical screening, and design implications.
 - [x] Add bounded parameter screening for simple velocity and grid-sensitivity tests.
 - [x] Add bounded pilot-decision policy artifacts for Fluent handoff control.
+- [x] Add VOF, turbulence, and rheology evidence-to-solver-plan patch compiler.
+- [x] Add combined existing-passport patch demo for Fluent Solver Plan v2 preview.
+- [x] Add steam-air condensation v2 evidence with HTC, mass-transfer resistance, and source-term checks.
+- [x] Add solid-liquid suspension passport with DPM/Mixture/Eulerian setup recommendation.
 - [ ] Promote native FastFluent entrypoint output from run summary to the full artifact contract.
 
 ## v0.4.0 Fluent Meshing Planning Gate And Prototype
@@ -93,6 +97,10 @@
 
 ## v0.5.0 Fluent Solver Setup Prototype
 
+- [x] Add Solver Plan v2 preview schema and validator.
+- [x] Add FastFluent `solver_plan_patch.json` preview receiver.
+- [x] Add conflict report, before/after diff, and reviewer checklist artifacts.
+- [x] Add preview-only CLI and MCP-safe tool surfaces.
 - [ ] Load mesh.
 - [ ] Set physics models.
 - [ ] Set materials.

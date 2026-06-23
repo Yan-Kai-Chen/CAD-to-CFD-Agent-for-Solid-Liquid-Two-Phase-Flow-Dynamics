@@ -218,6 +218,83 @@ The suite runs Poiseuille channel validation, the JSON steady incompressible
 case route, public obstacle-channel evidence, VOF-lite alpha transport, and the
 turbulence ladder. It is public-safe evidence, not production Fluent validation.
 
+## S1 Native Simulation Validation Pack
+
+The S1 pack is the current one-command native simulation validation gate. It
+runs public FastFluent/FastCFD-native routes, writes a case-level
+`simulation_result.json` contract, collects field outputs, extracts QoIs, and
+connects native evidence back to H1-H3.5 passports.
+
+```powershell
+python -m fromcad2cfd fastcfd native-simulation-validation-pack-demo --output-dir sandbox/output/fastfluent_native_simulation_validation_pack --format markdown
+```
+
+It writes:
+
+- `simulation_manifest.json`
+- `simulation_summary.md`
+- `limitations.md`
+- `structured_cases/*/simulation_result.json`
+- `unstructured_cases/*/simulation_result.json`
+- `passport_simulation_alignment/*.md`
+- backend field outputs such as `*.vtu` and residual/history `*.csv`
+
+The S1 pack does not launch Fluent, call PyFluent, edit Fluent case/data files,
+emit raw Fluent TUI, or generate UDF source. Structured C++ cases are recorded
+as status-only when that optional backend is not run.
+
+## S2 Practical Native Function Expansion Pack
+
+The S2 pack adds small reusable native computations that are useful even before
+Fluent is available: heat diffusion, scalar advection-diffusion, material
+property fields, source-term ramp/clamp behavior, parameter sweeps, and a wax
+application demo.
+
+```powershell
+python -m fromcad2cfd fastcfd practical-native-demo-pack --output-dir sandbox/output/fastfluent_practical_native_demo_pack --format markdown
+```
+
+It writes:
+
+- `heat_diffusion_1d/*`
+- `heat_diffusion_2d/*`
+- `scalar_advection_diffusion_1d/*`
+- `bounded_scalar_transport/*`
+- `arrhenius_viscosity_field/*`
+- `source_term_ramp_clamp/*`
+- `practical_parameter_sweep/*`
+- `wax_application_demo/*`
+- `practical_native_manifest.json`
+- `practical_native_summary.md`
+
+S2 validates practical FastFluent-native utilities and artifact generation. It
+does not launch Fluent, call PyFluent, edit Fluent case/data files, emit raw
+Fluent TUI, generate UDF source, or prove high-fidelity CFD accuracy.
+
+## Wax Rheology / Phase-Change Passport
+
+The wax route turns public material and thermal-property inputs into a bounded
+readiness passport for later Fluent review. It estimates Arrhenius viscosity,
+softening behavior, thermal time scales, latent-heat energy scale,
+phase-change stiffness, material-model recommendations, monitor requirements,
+and a non-executing solver-plan patch.
+
+```powershell
+python -m fromcad2cfd fastcfd wax-rheology-handoff-demo --output-dir sandbox/output/wax_rheology_phase_change_demo --format markdown
+```
+
+It writes:
+
+- `wax_rheology_phase_change_case.json`
+- `passport/wax_rheology_phase_change_passport.json`
+- `passport/wax_rheology_phase_change_fluent_hints.json`
+- `passport/wax_rheology_phase_change_report.md`
+- `solver_plan_patch.json`
+- `solver_plan_patch_report.md`
+
+This route does not launch Fluent, call PyFluent, edit Fluent case/data files,
+emit raw Fluent TUI, generate UDF source, or validate final dewaxing accuracy.
+
 ## VOF Physics Passport
 
 The VOF route validates two-phase setup readiness before any Fluent VOF run. It
@@ -319,6 +396,57 @@ python -m fromcad2cfd fastcfd compile-fluent-hints --evidence-files <vof_hints.j
 It writes `fluent_setup_hints.json`,
 `fluent_setup_hints_report.md`, and `fluent_setup_hints_status.json`. It does
 not execute Fluent or edit Fluent case files.
+
+## Existing Passport To Solver-Plan Patch Compiler
+
+The patch compiler converts already validated FastFluent evidence into a
+non-executing Fluent solver-plan patch. Current supported sources are
+steam-air, VOF, turbulence, rheology, and their related hint-only artifacts.
+
+```powershell
+python -m fromcad2cfd fastcfd compile-fluent-patch --input <passport_or_hints.json> --output <solver_plan_patch.json> --format markdown
+python -m fromcad2cfd fastcfd existing-passport-patch-demo --output-dir sandbox/output/fastfluent_h1_existing_patch_demo --format markdown
+```
+
+The public H1 demo writes VOF, turbulence, rheology, and combined
+`solver_plan_patch.json` bundles with Markdown reports and a conflict summary.
+It does not run Fluent, call PyFluent, edit case/data files, or generate UDF
+code.
+
+## Steam-Air Condensation v2 Evidence
+
+The H2 steam-air route upgrades the original condensation passport with
+dimensionless groups, heat-transfer estimates, non-condensable resistance,
+source-term dimension checks, and expanded solver-plan patch recommendations.
+
+```powershell
+python -m fromcad2cfd fastcfd steam-air-v2-demo --output-dir sandbox/output/steam_air_v2_demo --format markdown
+```
+
+It writes `steam_air_condensation_case_v2.json`,
+`steam_air_condensation_passport_v2.json`,
+`steam_air_condensation_fluent_hints_v2.json`, `solver_plan_patch.json`,
+`solver_plan_patch_report.md`, and `steam_air_condensation_report_v2.md`.
+The route remains preview-only and does not execute Fluent or generate UDF
+code.
+
+## Solid-Liquid Suspension Evidence
+
+The H3 solid-liquid route estimates particle-flow regime and downstream Fluent
+model suitability before any Fluent setup is attempted.
+
+```powershell
+python -m fromcad2cfd fastcfd solid-liquid-handoff-demo --output-dir sandbox/output/solid_liquid_suspension_demo --format markdown
+```
+
+It writes `solid_liquid_suspension_case.json`,
+`solid_liquid_suspension_passport.json`,
+`solid_liquid_suspension_fluent_hints.json`, `solver_plan_patch.json`,
+`solver_plan_patch_report.md`, and `solid_liquid_suspension_report.md`. The
+passport reports particle Reynolds number, Stokes number, settling tendency,
+mass loading, cell-particle ratio, particle time-step risk, and a conservative
+DPM/Mixture/Eulerian review recommendation. It does not run Fluent, solve
+particle trajectories, or generate UDF code.
 
 ## Environment Preflight
 

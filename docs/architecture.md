@@ -74,6 +74,7 @@ FastFluent
     -> prediction and screening
     -> field QoI and reports
     -> physics passports
+    -> Fluent setup hints and solver-plan patch bundles
     -> structured solver orchestration
     -> unstructured public benchmark routes
 ```
@@ -84,7 +85,11 @@ Current public unstructured scope includes:
 - mesh-quality checks and finite-volume geometry;
 - scalar diffusion, Stokes, projection, and steady incompressible routes;
 - obstacle-channel and channel-validation evidence;
-- VOF-lite, turbulence, and rheology-related workflow support.
+- VOF-lite, turbulence, and rheology-related workflow support;
+- steam-air condensation screening that emits a physics passport, Fluent setup
+  hints, and a validated non-executing `solver_plan_patch.json` handoff bundle;
+- solid-liquid suspension screening that recommends DPM, Mixture, or Eulerian
+  review using explicit particle-flow evidence.
 
 Architecturally, FastFluent is not a side note under modeling. It is a separate
 decision layer between geometry preparation and high-fidelity Fluent work.
@@ -125,6 +130,7 @@ The Fluent block manages solver-side workflow logic.
 Fluent
   -> fromcad2cfd_fluent_solver
     -> solver-plan validation
+    -> Solver Plan v2 patch-preview receiver
     -> resume-plan guardrails
     -> advisory PyFluent template generation
   -> fromcad2cfd_postprocessing

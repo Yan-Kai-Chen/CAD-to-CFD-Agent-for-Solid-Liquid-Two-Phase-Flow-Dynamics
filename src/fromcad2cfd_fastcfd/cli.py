@@ -17,9 +17,18 @@ from .fastfluent_backend import (
     write_obstacle2d_job,
 )
 from .fluent_hints import compile_fluent_setup_hints
+from .fluent_patch_compiler import (
+    compile_solver_plan_patch_from_passport,
+    run_existing_passport_patch_demo,
+    run_steam_air_handoff_demo,
+    write_solver_plan_patch_bundle,
+)
+from .horizontal_validation_pack import run_horizontal_validation_pack
 from .mock_runner import run_mock_job, write_demo_job
+from .native_simulation_pack import run_native_simulation_validation_pack
 from .physics_validator import contract_has_blocking_errors, validate_physics
 from .prediction import build_prediction_from_output, write_prediction_artifacts
+from .practical_native_demo_pack import run_practical_native_demo_pack
 from .preflight import run_preflight
 from .registry import registry_inventory, registry_markdown
 from .rheology import run_rheology_benchmark_file, write_demo_rheology_case
@@ -27,6 +36,17 @@ from .screening import run_parameter_screening
 from .scene_compiler import compile_scene_file_to_job, read_scene, validate_scene_semantics, write_scene
 from .schemas import read_job
 from .paths import unique_path
+from .solid_liquid_suspension import (
+    run_solid_liquid_handoff_demo,
+    validate_solid_liquid_suspension_case_file,
+    write_demo_solid_liquid_case,
+)
+from .steam_air_condensation import validate_steam_air_condensation_case_file, write_demo_steam_air_case
+from .steam_air_condensation_v2 import (
+    run_steam_air_v2_demo,
+    validate_steam_air_condensation_v2_case_file,
+    write_demo_steam_air_v2_case,
+)
 from .unstructured.channel_validation import run_channel_convergence_case, run_channel_validation_case
 from .unstructured.benchmark_suite import run_public_benchmark_suite
 from .unstructured.case_runner import run_unstructured_case_file, write_public_steady_channel_case
@@ -45,6 +65,11 @@ from .unstructured.turbulence_ladder import run_turbulence_ladder_case
 from .turbulence import validate_turbulence_case_file, write_demo_turbulence_case
 from .vof import validate_vof_case_file, write_demo_vof_case
 from .vof_transport import run_vof_lite_transport_benchmark
+from .wax_rheology_phase_change import (
+    run_wax_rheology_handoff_demo,
+    validate_wax_rheology_phase_change_case_file,
+    write_demo_wax_rheology_case,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -171,10 +196,99 @@ def build_parser() -> argparse.ArgumentParser:
     run_rheology.add_argument("--output-dir", default=None)
     run_rheology.add_argument("--format", choices=("json", "markdown"), default="json")
 
+    write_wax = sub.add_parser("write-wax-rheology-demo", help="Write a public wax rheology / phase-change demo case.")
+    write_wax.add_argument("--output-dir", required=True, help="Directory for wax_rheology_phase_change_case.json.")
+    write_wax.add_argument("--case-name", default="wax_arrhenius_softening_demo")
+    write_wax.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    validate_wax = sub.add_parser("validate-wax-rheology-phase-change", help="Validate a wax rheology / phase-change case and write passport artifacts.")
+    validate_wax.add_argument("--case", required=True, help="wax_rheology_phase_change_case.json path.")
+    validate_wax.add_argument("--output-dir", required=True, help="Directory for passport, hints, and report.")
+    validate_wax.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    wax_demo = sub.add_parser("wax-rheology-handoff-demo", help="Run the H4 wax case -> passport -> patch demo pipeline.")
+    wax_demo.add_argument("--output-dir", required=True, help="Directory for the H4 wax handoff demo artifact chain.")
+    wax_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
     compile_hints = sub.add_parser("compile-fluent-hints", help="Compile evidence-checked Fluent setup hints from FastFluent artifacts.")
     compile_hints.add_argument("--evidence-files", required=True, help="Comma-separated JSON evidence artifact paths.")
     compile_hints.add_argument("--output-dir", default=None)
     compile_hints.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    write_steam_air = sub.add_parser("write-steam-air-demo", help="Write a public steam-air condensation demo case.")
+    write_steam_air.add_argument("--output-dir", required=True, help="Directory for steam_air_condensation_case.json.")
+    write_steam_air.add_argument("--case-name", default="steam_air_wall_condensation_demo")
+    write_steam_air.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    validate_steam_air = sub.add_parser("validate-steam-air-condensation", help="Validate a steam-air condensation case and write passport artifacts.")
+    validate_steam_air.add_argument("--case", required=True, help="steam_air_condensation_case.json path.")
+    validate_steam_air.add_argument("--output-dir", required=True, help="Directory for passport, hints, and report.")
+    validate_steam_air.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    compile_patch = sub.add_parser("compile-fluent-patch", help="Compile a FastFluent passport into a solver_plan_patch.json bundle.")
+    compile_patch.add_argument("--input", required=True, help="FastFluent passport JSON path.")
+    compile_patch.add_argument("--output", required=True, help="Output solver_plan_patch.json path.")
+    compile_patch.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    steam_air_demo = sub.add_parser("steam-air-handoff-demo", help="Run the public steam-air case -> passport -> patch demo pipeline.")
+    steam_air_demo.add_argument("--output-dir", required=True, help="Directory for the full handoff demo artifact chain.")
+    steam_air_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    write_steam_air_v2 = sub.add_parser("write-steam-air-v2-demo", help="Write a public steam-air condensation v2 demo case.")
+    write_steam_air_v2.add_argument("--output-dir", required=True, help="Directory for steam_air_condensation_case_v2.json.")
+    write_steam_air_v2.add_argument("--case-name", default="steam_air_wall_condensation_v2_demo")
+    write_steam_air_v2.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    validate_steam_air_v2 = sub.add_parser("validate-steam-air-condensation-v2", help="Validate a steam-air condensation v2 case and write passport artifacts.")
+    validate_steam_air_v2.add_argument("--case", required=True, help="steam_air_condensation_case_v2.json path.")
+    validate_steam_air_v2.add_argument("--output-dir", required=True, help="Directory for v2 passport, hints, and report.")
+    validate_steam_air_v2.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    steam_air_v2_demo = sub.add_parser("steam-air-v2-demo", help="Run the H2 steam-air v2 case -> passport -> patch demo pipeline.")
+    steam_air_v2_demo.add_argument("--output-dir", required=True, help="Directory for the H2 steam-air v2 demo artifact chain.")
+    steam_air_v2_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    write_solid_liquid = sub.add_parser("write-solid-liquid-demo", help="Write a public solid-liquid suspension demo case.")
+    write_solid_liquid.add_argument("--output-dir", required=True, help="Directory for solid_liquid_suspension_case.json.")
+    write_solid_liquid.add_argument("--case-name", default="solid_liquid_suspension_demo")
+    write_solid_liquid.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    validate_solid_liquid = sub.add_parser("validate-solid-liquid-suspension", help="Validate a solid-liquid suspension case and write passport artifacts.")
+    validate_solid_liquid.add_argument("--case", required=True, help="solid_liquid_suspension_case.json path.")
+    validate_solid_liquid.add_argument("--output-dir", required=True, help="Directory for passport, hints, and report.")
+    validate_solid_liquid.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    solid_liquid_demo = sub.add_parser("solid-liquid-handoff-demo", help="Run the H3 solid-liquid suspension case -> passport -> patch demo pipeline.")
+    solid_liquid_demo.add_argument("--output-dir", required=True, help="Directory for the H3 solid-liquid demo artifact chain.")
+    solid_liquid_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    existing_patch_demo = sub.add_parser(
+        "existing-passport-patch-demo",
+        help="Run the H1 VOF + turbulence + rheology passport -> solver-plan patch demo.",
+    )
+    existing_patch_demo.add_argument("--output-dir", required=True, help="Directory for H1 patch demo artifacts.")
+    existing_patch_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    validation_pack_demo = sub.add_parser(
+        "horizontal-validation-pack-demo",
+        help="Run the H3.5 public H1-H3 horizontal validation pack.",
+    )
+    validation_pack_demo.add_argument("--output-dir", required=True, help="Directory for validation pack artifacts.")
+    validation_pack_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    native_simulation_pack_demo = sub.add_parser(
+        "native-simulation-validation-pack-demo",
+        help="Run the S1 public FastFluent-native simulation validation pack without launching Fluent.",
+    )
+    native_simulation_pack_demo.add_argument("--output-dir", required=True, help="Directory for S1 native simulation artifacts.")
+    native_simulation_pack_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    practical_native_demo = sub.add_parser(
+        "practical-native-demo-pack",
+        help="Run the S2 practical FastFluent-native function expansion pack without launching Fluent.",
+    )
+    practical_native_demo.add_argument("--output-dir", required=True, help="Directory for S2 practical native artifacts.")
+    practical_native_demo.add_argument("--format", choices=("json", "markdown"), default="json")
 
     unstructured = sub.add_parser("unstructured", help="Run unstructured FastFluent mesh gateway commands.")
     unstructured_sub = unstructured.add_subparsers(dest="unstructured_command", required=True)
@@ -685,6 +799,53 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(json.dumps(result, ensure_ascii=True, indent=2))
         return 0 if result.get("status") == "success" else 2
+    if args.command == "write-wax-rheology-demo":
+        result = write_demo_wax_rheology_case(output_dir=args.output_dir, case_name=args.case_name)
+        if args.format == "markdown":
+            print("# FastFluent Wax Rheology / Phase-Change Demo Case\n")
+            print(f"- Case file: `{result.get('outputs', {}).get('case_file')}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "validate-wax-rheology-phase-change":
+        result = validate_wax_rheology_phase_change_case_file(args.case, output_dir=args.output_dir)
+        if args.format == "markdown":
+            passport = result.get("outputs", {}).get("passport", {})
+            computed = passport.get("computed_quantities", {})
+            recommendation = computed.get("recommendation", {})
+            phase = computed.get("phase_change", {})
+            softening = computed.get("softening", {})
+            print("# FastFluent Wax Rheology / Phase-Change Passport\n")
+            print(f"- Result status: `{result.get('status')}`")
+            print(f"- Passport status: `{passport.get('status')}`")
+            print(f"- Material model recommendation: `{recommendation.get('material_model_recommendation')}`")
+            print(f"- Softening regime: `{softening.get('softening_regime')}`")
+            print(f"- Phase-change stiffness risk: `{phase.get('phase_change_stiffness_risk')}`")
+            print(f"- Recommended dt s: `{recommendation.get('recommended_time_step_s')}`")
+            print(f"- Errors: `{result.get('errors', [])}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "wax-rheology-handoff-demo":
+        result = run_wax_rheology_handoff_demo(output_dir=args.output_dir)
+        if args.format == "markdown":
+            artifacts = result.get("outputs", {}).get("artifacts", {})
+            passport = result.get("outputs", {}).get("passport", {})
+            patch = result.get("outputs", {}).get("patch", {})
+            computed = passport.get("computed_quantities", {})
+            recommendation = computed.get("recommendation", {})
+            print("# FastFluent Wax Rheology / Phase-Change Handoff Demo\n")
+            print(f"- Status: `{result.get('status')}`")
+            print(f"- Passport status: `{passport.get('status')}`")
+            print(f"- Material model recommendation: `{recommendation.get('material_model_recommendation')}`")
+            print(f"- Patch status: `{patch.get('status')}`")
+            print(f"- Patch count: `{len(patch.get('patches', []))}`")
+            print(f"- Evidence count: `{len(patch.get('evidence', []))}`")
+            for key, value in artifacts.items():
+                print(f"- {key}: `{value}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
     if args.command == "compile-fluent-hints":
         result = compile_fluent_setup_hints(
             [Path(item.strip()) for item in args.evidence_files.split(",") if item.strip()],
@@ -699,6 +860,215 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print(json.dumps(result, ensure_ascii=True, indent=2))
         return 0 if result.get("status") == "success" else 2
+    if args.command == "write-steam-air-demo":
+        result = write_demo_steam_air_case(output_dir=args.output_dir, case_name=args.case_name)
+        if args.format == "markdown":
+            print("# FastFluent Steam-Air Demo Case\n")
+            print(f"- Case file: `{result.get('outputs', {}).get('case_file')}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "validate-steam-air-condensation":
+        result = validate_steam_air_condensation_case_file(args.case, output_dir=args.output_dir)
+        if args.format == "markdown":
+            passport = result.get("outputs", {}).get("passport", {})
+            computed = passport.get("computed_quantities", {})
+            print("# FastFluent Steam-Air Condensation Passport\n")
+            print(f"- Result status: `{result.get('status')}`")
+            print(f"- Passport status: `{passport.get('status')}`")
+            print(f"- Wall subcooling K: `{computed.get('wall_subcooling_K')}`")
+            print(f"- Non-condensable risk: `{computed.get('non_condensable_layer_risk')}`")
+            print(f"- Recommended dt s: `{computed.get('recommended_time_step_s')}`")
+            print(f"- Source stiffness risk: `{computed.get('source_term_stiffness_risk')}`")
+            print(f"- Errors: `{result.get('errors', [])}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "compile-fluent-patch":
+        patch = compile_solver_plan_patch_from_passport(args.input)
+        result = write_solver_plan_patch_bundle(patch, output=args.output)
+        if args.format == "markdown":
+            validation = result.get("outputs", {}).get("validation", {})
+            patch_payload = result.get("outputs", {}).get("patch", {})
+            print("# FastFluent Solver Plan Patch\n")
+            print(f"- Result status: `{result.get('status')}`")
+            print(f"- Patch status: `{patch_payload.get('status')}`")
+            print(f"- Patch count: `{validation.get('checked_patch_count')}`")
+            print(f"- Evidence count: `{validation.get('checked_evidence_count')}`")
+            print(f"- Errors: `{result.get('errors', [])}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
+    if args.command == "steam-air-handoff-demo":
+        result = run_steam_air_handoff_demo(output_dir=args.output_dir)
+        if args.format == "markdown":
+            artifacts = result.get("outputs", {}).get("artifacts", {})
+            print("# FastFluent Steam-Air Handoff Demo\n")
+            print(f"- Status: `{result.get('status')}`")
+            for key, value in artifacts.items():
+                print(f"- {key}: `{value}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
+    if args.command == "write-steam-air-v2-demo":
+        result = write_demo_steam_air_v2_case(output_dir=args.output_dir, case_name=args.case_name)
+        if args.format == "markdown":
+            print("# FastFluent Steam-Air v2 Demo Case\n")
+            print(f"- Case file: `{result.get('outputs', {}).get('case_file')}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "validate-steam-air-condensation-v2":
+        result = validate_steam_air_condensation_v2_case_file(args.case, output_dir=args.output_dir)
+        if args.format == "markdown":
+            passport = result.get("outputs", {}).get("passport", {})
+            computed = passport.get("computed_quantities", {})
+            print("# FastFluent Steam-Air Condensation v2 Passport\n")
+            print(f"- Result status: `{result.get('status')}`")
+            print(f"- Passport status: `{passport.get('status')}`")
+            print(f"- Reynolds number: `{computed.get('reynolds_number')}`")
+            print(f"- Prandtl number: `{computed.get('prandtl_number')}`")
+            print(f"- Jakob number: `{computed.get('jakob_number')}`")
+            print(f"- HTC W/m2K: `{computed.get('estimated_htc_W_m2K')}`")
+            print(f"- Mass-transfer resistance: `{computed.get('mass_transfer_resistance')}`")
+            print(f"- Source stiffness level: `{computed.get('source_term_stiffness_level')}`")
+            print(f"- Errors: `{result.get('errors', [])}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "steam-air-v2-demo":
+        result = run_steam_air_v2_demo(output_dir=args.output_dir)
+        if args.format == "markdown":
+            artifacts = result.get("outputs", {}).get("artifacts", {})
+            patch = result.get("outputs", {}).get("patch", {})
+            print("# FastFluent Steam-Air v2 Demo\n")
+            print(f"- Status: `{result.get('status')}`")
+            print(f"- Patch status: `{patch.get('status')}`")
+            print(f"- Patch count: `{len(patch.get('patches', []))}`")
+            print(f"- Evidence count: `{len(patch.get('evidence', []))}`")
+            for key, value in artifacts.items():
+                print(f"- {key}: `{value}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
+    if args.command == "write-solid-liquid-demo":
+        result = write_demo_solid_liquid_case(output_dir=args.output_dir, case_name=args.case_name)
+        if args.format == "markdown":
+            print("# FastFluent Solid-Liquid Suspension Demo Case\n")
+            print(f"- Case file: `{result.get('outputs', {}).get('case_file')}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "validate-solid-liquid-suspension":
+        result = validate_solid_liquid_suspension_case_file(args.case, output_dir=args.output_dir)
+        if args.format == "markdown":
+            passport = result.get("outputs", {}).get("passport", {})
+            computed = passport.get("computed_quantities", {})
+            print("# FastFluent Solid-Liquid Suspension Passport\n")
+            print(f"- Result status: `{result.get('status')}`")
+            print(f"- Passport status: `{passport.get('status')}`")
+            print(f"- Recommended model: `{computed.get('recommended_model')}`")
+            print(f"- Particle Reynolds number: `{computed.get('particle_reynolds_number')}`")
+            print(f"- Stokes number: `{computed.get('stokes_number')}`")
+            print(f"- Settling velocity m/s: `{computed.get('settling_velocity_m_s')}`")
+            print(f"- Mass loading: `{computed.get('particle_mass_loading')}`")
+            print(f"- Particle time-step risk: `{computed.get('particle_time_step_risk')}`")
+            print(f"- Errors: `{result.get('errors', [])}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "solid-liquid-handoff-demo":
+        result = run_solid_liquid_handoff_demo(output_dir=args.output_dir)
+        if args.format == "markdown":
+            artifacts = result.get("outputs", {}).get("artifacts", {})
+            passport = result.get("outputs", {}).get("passport", {})
+            patch = result.get("outputs", {}).get("patch", {})
+            computed = passport.get("computed_quantities", {})
+            print("# FastFluent Solid-Liquid Suspension Handoff Demo\n")
+            print(f"- Status: `{result.get('status')}`")
+            print(f"- Passport status: `{passport.get('status')}`")
+            print(f"- Recommended model: `{computed.get('recommended_model')}`")
+            print(f"- Patch status: `{patch.get('status')}`")
+            print(f"- Patch count: `{len(patch.get('patches', []))}`")
+            print(f"- Evidence count: `{len(patch.get('evidence', []))}`")
+            for key, value in artifacts.items():
+                print(f"- {key}: `{value}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
+    if args.command == "existing-passport-patch-demo":
+        result = run_existing_passport_patch_demo(output_dir=args.output_dir)
+        if args.format == "markdown":
+            artifacts = result.get("outputs", {}).get("artifacts", {})
+            summary = result.get("outputs", {}).get("conflict_summary", {})
+            print("# FastFluent Existing Passport Patch Demo\n")
+            print(f"- Status: `{result.get('status')}`")
+            print(f"- Combined patch status: `{summary.get('status')}`")
+            print(f"- Combined evidence count: `{summary.get('evidence_count')}`")
+            print(f"- Combined patch count: `{summary.get('patch_count')}`")
+            for key, value in artifacts.items():
+                print(f"- {key}: `{value}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
+    if args.command == "horizontal-validation-pack-demo":
+        result = run_horizontal_validation_pack(output_dir=args.output_dir)
+        if args.format == "markdown":
+            artifacts = result.get("outputs", {}).get("artifacts", {})
+            manifest = result.get("outputs", {}).get("manifest", {})
+            summary = manifest.get("test_status_summary", {})
+            print("# FastFluent Horizontal H3.5 Validation Pack\n")
+            print(f"- Status: `{result.get('status')}`")
+            print(f"- Case count: `{manifest.get('case_count')}`")
+            print(f"- Valid patches: `{summary.get('valid_patch_count')}`")
+            print(f"- Invalid patches: `{summary.get('invalid_patch_count')}`")
+            print(f"- Fluent launched: `{manifest.get('metadata', {}).get('fluent_launched')}`")
+            for key, value in artifacts.items():
+                print(f"- {key}: `{value}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
+    if args.command == "native-simulation-validation-pack-demo":
+        result = run_native_simulation_validation_pack(output_dir=args.output_dir)
+        if args.format == "markdown":
+            artifacts = result.get("outputs", {}).get("artifacts", {})
+            manifest = result.get("outputs", {}).get("manifest", {})
+            acceptance = manifest.get("acceptance_summary", {})
+            print("# FastFluent S1 Native Simulation Validation Pack\n")
+            print(f"- Status: `{result.get('status')}`")
+            print(f"- Case count: `{manifest.get('case_count')}`")
+            print(f"- Actual native simulation cases: `{manifest.get('actual_simulation_case_count')}`")
+            print(f"- Field-output cases: `{manifest.get('field_output_case_count')}`")
+            print(f"- Convergence cases: `{manifest.get('convergence_case_count')}`")
+            print(f"- Model-comparison cases: `{manifest.get('model_comparison_case_count')}`")
+            print(f"- S1 complete: `{acceptance.get('s1_complete')}`")
+            print(f"- Fluent launched: `{manifest.get('metadata', {}).get('fluent_launched')}`")
+            for key, value in artifacts.items():
+                print(f"- {key}: `{value}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
+    if args.command == "practical-native-demo-pack":
+        result = run_practical_native_demo_pack(output_dir=args.output_dir)
+        if args.format == "markdown":
+            artifacts = result.get("outputs", {}).get("artifacts", {})
+            manifest = result.get("outputs", {}).get("manifest", {})
+            acceptance = manifest.get("acceptance_summary", {})
+            print("# FastFluent S2 Practical Native Function Expansion Pack\n")
+            print(f"- Status: `{result.get('status')}`")
+            print(f"- Case count: `{manifest.get('case_count')}`")
+            print(f"- Heat diffusion 1D: `{acceptance.get('heat_diffusion_1d_demo')}`")
+            print(f"- Scalar transport: `{acceptance.get('scalar_transport_demo')}`")
+            print(f"- Material property field: `{acceptance.get('arrhenius_property_demo')}`")
+            print(f"- Source ramp/clamp: `{acceptance.get('source_term_ramp_clamp_demo')}`")
+            print(f"- Parameter sweep: `{acceptance.get('parameter_sweep_demo')}`")
+            print(f"- Wax application demo: `{acceptance.get('wax_application_demo')}`")
+            print(f"- Fluent launched: `{manifest.get('metadata', {}).get('fluent_launched')}`")
+            for key, value in artifacts.items():
+                print(f"- {key}: `{value}`")
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
     if args.command == "unstructured":
         if args.unstructured_command == "inspect-mesh":
             result = inspect_mesh_file(
