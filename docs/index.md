@@ -39,6 +39,7 @@ Start with the project-level documents:
 - `fastcfd/SOLVER_CAPABILITY_MATRIX.md`
 - `fastcfd/TRANSPORT_COUPLING_CORE.md`
 - `fastcfd/WORKFLOW_RUNNER.md`
+- `fastcfd/SERVER_CODEX_DEPLOYMENT_RUNBOOK.md`
 - `fastcfd/MOTION_CONTRACT.md`
 - `fastcfd/quickstart.md`
 - `fastcfd/fastfluent_baseline_20260613.md`

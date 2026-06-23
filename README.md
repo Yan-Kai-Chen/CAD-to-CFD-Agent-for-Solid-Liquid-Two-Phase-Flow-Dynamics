@@ -195,6 +195,7 @@ Start here:
 - [Documentation index](docs/index.md)
 - [FastFluent quickstart](docs/fastcfd/quickstart.md)
 - [FastFluent S7 workflow runner](docs/fastcfd/WORKFLOW_RUNNER.md)
+- [FastFluent server Codex deployment runbook](docs/fastcfd/SERVER_CODEX_DEPLOYMENT_RUNBOOK.md)
 - [FastFluent current capability snapshot](docs/fastcfd/CURRENT_CAPABILITY_SNAPSHOT.md)
 - [FastFluent agent workflow status audit](docs/fastcfd/AGENT_WORKFLOW_STATUS_AUDIT.md)
 - [NX quickstart](docs/nx/quickstart.md)
