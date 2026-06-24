@@ -223,6 +223,22 @@ The current FastFluent suite covers the S7 workflow runner, route selection,
 execution gates, controlled runner, result packs, transport coupling, mesh
 gateway, unstructured routes, and solver capability matrix.
 
+### Latest Public Validation Snapshot
+
+The latest local public validation run on 2026-06-24 passed the main
+FastFluent and Fluent bridge checks:
+
+- Full Python suite: `396 passed`.
+- FastFluent-focused suite: `277 passed`.
+- S7 agent workflow: `native_advisory_complete`.
+- Public Fluent bridge smoke with Ansys `mixing_elbow.msh.h5`: mesh read,
+  mesh check, hybrid initialization, and two repeatable five-iteration runs.
+- Public Fluent bridge smoke with Ansys `nozzle_3d.msh.h5`: proxy download,
+  one-core Fluent launch, mesh read, and mesh check.
+
+The public Fluent bridge smokes were run on ANSYS Fluent 2024 R1 with public
+Ansys example data.
+
 ## Public Data Policy
 
 The public repository must not contain:
