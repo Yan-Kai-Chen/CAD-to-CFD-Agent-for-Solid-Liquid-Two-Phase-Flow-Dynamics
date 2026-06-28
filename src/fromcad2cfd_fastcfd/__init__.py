@@ -8,6 +8,17 @@ from .core.case_spec import explain_case_spec_markdown, read_case_spec, validate
 from .core.evidence_bundle import summarize_evidence_bundle_markdown, validate_evidence_bundle
 from .core.units import validate_unit_contract
 from .controlled_runner import run_controlled_runner, run_controlled_runner_demo, validate_controlled_runner
+from .dewaxing_agent_iteration_pack import run_dewaxing_agent_iteration_pack
+from .dewaxing_application import (
+    create_dewaxing_application_case,
+    run_dewaxing_application_demo,
+    run_dewaxing_application_public_demo,
+)
+from .dewaxing_fluent_guidance_pack import compile_dewaxing_fluent_guidance_pack
+from .dewaxing_native_solver import demo_dewaxing_native_case, run_dewaxing_native_solver
+from .dewaxing_native_study import default_dewaxing_native_study_plan, run_dewaxing_native_study
+from .dewaxing_native_validation_pack import default_dewaxing_native_validation_plan, run_dewaxing_native_validation_pack
+from .dewaxing_paper_evidence_pack import compile_dewaxing_paper_evidence_pack
 from .execution_gate import audit_execution_gate, run_execution_gate_demo, validate_execution_gate
 from .fastfluent_backend import run_fastfluent_cavity2d_job, write_cavity2d_job
 from .fluent_hints import compile_fluent_setup_hints
@@ -77,11 +88,17 @@ __all__ = [
     "capability_inventory",
     "build_prediction_from_output",
     "build_prediction_report",
+    "create_dewaxing_application_case",
+    "demo_dewaxing_native_case",
+    "default_dewaxing_native_study_plan",
+    "default_dewaxing_native_validation_plan",
     "build_flow_pack",
     "compile_fluent_setup_hints",
     "compile_route_plan",
     "compile_result_pack",
     "compile_native_result_pack",
+    "compile_dewaxing_paper_evidence_pack",
+    "compile_dewaxing_fluent_guidance_pack",
     "audit_execution_gate",
     "adapt_motion_to_mesh",
     "compile_rheology_patch_from_artifact",
@@ -112,6 +129,12 @@ __all__ = [
     "run_rheology_benchmark_file",
     "run_controlled_runner",
     "run_controlled_runner_demo",
+    "run_dewaxing_agent_iteration_pack",
+    "run_dewaxing_application_demo",
+    "run_dewaxing_application_public_demo",
+    "run_dewaxing_native_solver",
+    "run_dewaxing_native_study",
+    "run_dewaxing_native_validation_pack",
     "run_route_selector_demo",
     "run_route_plan_demo",
     "run_execution_gate_demo",

@@ -6,6 +6,7 @@ from pathlib import Path
 from fromcad2cfd.cli import main as root_main
 from fromcad2cfd_mcp_postprocessing.server import server_descriptor
 from fromcad2cfd_mcp_postprocessing.tools import DISABLED_TOOLS, tool_inventory
+from fromcad2cfd_postprocessing.dewaxing_result_pack import validate_dewaxing_result_pack
 from fromcad2cfd_postprocessing.monitor_parser import parse_monitor_file
 from fromcad2cfd_postprocessing.summary import summarize_run
 from fromcad2cfd_postprocessing.video_plan import write_video_plan
@@ -100,6 +101,85 @@ def test_postprocessing_mcp_inventory_is_safe():
     descriptor = server_descriptor()
 
     assert "fromcad2cfd_post_summarize_run" in inventory["allowed_tools"]
+    assert "fromcad2cfd_post_validate_dewaxing_pack" in inventory["allowed_tools"]
     assert "execute_shell" in DISABLED_TOOLS
     assert "claim_solid_structural_stress" in descriptor["disabled_tools"]
     assert "run_ffmpeg" not in inventory["allowed_tools"]
+
+
+def _dewaxing_pack() -> dict:
+    return {
+        "schema_version": "dewaxing_agent_result_pack_v1",
+        "status": "dewaxing_bridge_complete",
+        "case_id": "unit_dewaxing_bridge",
+        "evidence_level": "reviewed_private_fluent_result_pack",
+        "decision": {
+            "recommended_next_action": "review_dewaxing_decision_brief",
+            "can_support_final_crack_probability": False,
+            "can_support_two_way_fsi_validation": False,
+        },
+        "qoi": {
+            "early_steam_shock": {"max_crack_driving_index_over_3p6mpa": 0.0147},
+            "full_cycle_wax": {
+                "melt_completion": {
+                    "first_full_melt_time_s": 409.0,
+                    "latest_avg_liquid_fraction": 0.997398,
+                },
+                "dominant_risk_window": {
+                    "time_s": 100.7,
+                    "peak_effective_pressure_mpa": 4.466,
+                    "peak_wall_vm_p995_mpa": 42.45,
+                },
+                "drainage_relief": {
+                    "stress_drop_fraction_peak_to_latest_p995": 0.942,
+                },
+            },
+        },
+        "claim_ledger": "claim_ledger.json",
+        "usage_boundary": {
+            "valid_for_agent_workflow_control": True,
+            "valid_for_final_crack_probability": False,
+            "valid_for_two_way_fsi_claims": False,
+        },
+    }
+
+
+def test_validate_dewaxing_result_pack_extracts_key_metrics(tmp_path):
+    pack_dir = tmp_path / "dewaxing"
+    pack_dir.mkdir()
+    (pack_dir / "result_pack.json").write_text(json.dumps(_dewaxing_pack()), encoding="utf-8")
+    (pack_dir / "claim_ledger.json").write_text("{}", encoding="utf-8")
+
+    result = validate_dewaxing_result_pack(pack_dir)
+
+    assert result["status"] == "passed"
+    assert result["case_id"] == "unit_dewaxing_bridge"
+    assert result["key_metrics"]["dominant_risk_time_s"] == 100.7
+    assert result["key_metrics"]["peak_wall_vm_p995_mpa"] == 42.45
+    assert result["warnings"] == []
+
+
+def test_validate_dewaxing_result_pack_blocks_probability_claim(tmp_path):
+    pack = _dewaxing_pack()
+    pack["usage_boundary"]["valid_for_final_crack_probability"] = True
+    path = tmp_path / "result_pack.json"
+    path.write_text(json.dumps(pack), encoding="utf-8")
+
+    result = validate_dewaxing_result_pack(path)
+
+    assert result["status"] == "failed"
+    assert any("crack probability" in item for item in result["errors"])
+
+
+def test_root_cli_routes_dewaxing_pack_validation(tmp_path, capsys):
+    pack_dir = tmp_path / "dewaxing"
+    pack_dir.mkdir()
+    (pack_dir / "result_pack.json").write_text(json.dumps(_dewaxing_pack()), encoding="utf-8")
+    (pack_dir / "claim_ledger.json").write_text("{}", encoding="utf-8")
+
+    exit_code = root_main(["post", "validate-dewaxing-pack", "--pack", str(pack_dir)])
+
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert payload["status"] == "passed"
+    assert payload["key_metrics"]["full_melt_time_s"] == 409.0

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from fromcad2cfd_postprocessing.dewaxing_result_pack import validate_dewaxing_result_pack
 from fromcad2cfd_postprocessing.monitor_parser import parse_monitor_file
 from fromcad2cfd_postprocessing.summary import summarize_run
 from fromcad2cfd_postprocessing.video_plan import write_video_plan
@@ -14,6 +15,7 @@ ALLOWED_TOOLS = [
     "fromcad2cfd_post_parse_monitor",
     "fromcad2cfd_post_summarize_run",
     "fromcad2cfd_post_write_video_plan",
+    "fromcad2cfd_post_validate_dewaxing_pack",
 ]
 
 DISABLED_TOOLS = [
@@ -32,6 +34,7 @@ TOOL_DESCRIPTIONS = {
     "fromcad2cfd_post_parse_monitor": "Parse a Fluent report monitor file into rows and first/last state.",
     "fromcad2cfd_post_summarize_run": "Summarize Fluent global and optional wall monitor files.",
     "fromcad2cfd_post_write_video_plan": "Write a public-safe autosave frame plan for a field video.",
+    "fromcad2cfd_post_validate_dewaxing_pack": "Validate a dewaxing Agent Result Pack without reading Fluent case/data files.",
 }
 
 
@@ -76,9 +79,14 @@ def fromcad2cfd_post_write_video_plan(
     )
 
 
+def fromcad2cfd_post_validate_dewaxing_pack(pack_path: str) -> dict[str, Any]:
+    return validate_dewaxing_result_pack(pack_path)
+
+
 MCP_TOOL_FUNCTIONS = [
     fromcad2cfd_post_tool_inventory,
     fromcad2cfd_post_parse_monitor,
     fromcad2cfd_post_summarize_run,
     fromcad2cfd_post_write_video_plan,
+    fromcad2cfd_post_validate_dewaxing_pack,
 ]

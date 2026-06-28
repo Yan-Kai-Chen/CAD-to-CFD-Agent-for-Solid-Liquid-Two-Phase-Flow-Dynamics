@@ -55,6 +55,11 @@ def compile_route_plan(
         artifacts.update(materialized.get("artifacts", {}))
         warnings.extend(materialized.get("warnings", []))
         errors.extend(materialized.get("errors", []))
+    elif materialize_job and route == "dewaxing_native_application":
+        materialized = _materialize_dewaxing_application_plan(case_payload, root=root)
+        artifacts.update(materialized.get("artifacts", {}))
+        warnings.extend(materialized.get("warnings", []))
+        errors.extend(materialized.get("errors", []))
     elif materialize_job:
         warnings.append(f"No job materializer is implemented for route: {route}.")
 
@@ -325,6 +330,68 @@ def _materialize_structured_fastfluent_job(case_payload: dict[str, Any], *, root
     }
 
 
+def _materialize_dewaxing_application_plan(case_payload: dict[str, Any], *, root: Path) -> dict[str, Any]:
+    plan_dir = root / "dewaxing_application"
+    ensure_dir(plan_dir)
+    application_plan = {
+        "schema_version": "fastfluent_dewaxing_application_route_plan_v1",
+        "status": "ready_for_application",
+        "case_id": case_payload.get("case_id"),
+        "case_type": case_payload.get("case_type"),
+        "application": "dewaxing",
+        "recommended_sequence": [
+            {
+                "step": "application_bridge",
+                "command": "python -m fromcad2cfd fastcfd dewaxing-application-demo --output-dir <application_dir> --dewaxing-pack <result_pack_dir> --format markdown",
+                "primary_outputs": ["application_manifest.json", "agent_decision.json", "agent_flow_report.md"],
+            },
+            {
+                "step": "native_study",
+                "command": "python -m fromcad2cfd fastcfd run-dewaxing-native-study --output-dir <study_dir> --comparison-pack <result_pack_dir> --format markdown",
+                "primary_outputs": ["study_manifest.json", "dewaxing_guidance.json", "variant_summary.csv"],
+            },
+            {
+                "step": "agent_iteration_campaign",
+                "command": "python -m fromcad2cfd fastcfd run-dewaxing-agent-iteration-pack --output-dir <iteration_dir> --comparison-pack <result_pack_dir> --format markdown",
+                "primary_outputs": ["agent_iteration_manifest.json", "agent_decision.json", "candidate_summary.csv"],
+            },
+            {
+                "step": "native_validation",
+                "command": "python -m fromcad2cfd fastcfd run-dewaxing-native-validation-pack --output-dir <validation_dir> --comparison-pack <result_pack_dir> --profile standard --format markdown",
+                "primary_outputs": ["validation_pack_manifest.json", "qoi_stability.json", "paper_tables.md"],
+            },
+            {
+                "step": "paper_evidence",
+                "command": "python -m fromcad2cfd fastcfd compile-dewaxing-paper-evidence-pack --validation-pack <validation_dir> --iteration-pack <iteration_dir> --output-dir <paper_pack_dir> --format markdown",
+                "primary_outputs": ["paper_evidence_manifest.json", "sections/results_section.md", "figures/"],
+            },
+        ],
+        "application_qoi": [
+            "full_melt_time_s",
+            "dominant_risk_time_s",
+            "early_shell_stress_proxy_MPa",
+            "peak_pressure_risk_proxy",
+            "native_cell_time_steps",
+        ],
+        "notes": [
+            "This route makes the dewaxing application chain explicit in M6.",
+            "The application bridge itself executes the native dewaxing and S6 proxy calculations.",
+        ],
+    }
+    plan_path = write_json_file(plan_dir / "dewaxing_application_plan.json", application_plan)
+    return {
+        "status": "ready_for_application",
+        "application_plan_path": str(plan_path),
+        "mapping_policy": "dewaxing_casespec_to_native_application_chain",
+        "artifacts": {
+            "dewaxing_application_plan": str(plan_path),
+        },
+        "warnings": [],
+        "errors": [],
+        "commands_after_approval": [item["command"] for item in application_plan["recommended_sequence"]],
+    }
+
+
 def _route_steps(route: str, materialized: dict[str, Any] | None) -> list[dict[str, Any]]:
     if route == "native_fastfluent_structured":
         job_path = materialized.get("job_path") if materialized else "<job.json>"
@@ -354,6 +421,28 @@ def _route_steps(route: str, materialized: dict[str, Any] | None) -> list[dict[s
                 "evidence": [str(job_path)],
             },
         ]
+    if route == "dewaxing_native_application":
+        plan_path = materialized.get("application_plan_path") if materialized else "<dewaxing_application_plan.json>"
+        return [
+            {
+                "id": "review_dewaxing_application_plan",
+                "title": "Review the dewaxing application sequence.",
+                "status": "ready" if materialized else "not_materialized",
+                "evidence": [str(plan_path)],
+            },
+            {
+                "id": "run_application_bridge",
+                "title": "Run the dewaxing application bridge.",
+                "status": "ready_for_application",
+                "evidence": [str(plan_path)],
+            },
+            {
+                "id": "run_study_validation_and_paper_pack",
+                "title": "Run native study, Agent iteration, validation pack, and paper evidence pack.",
+                "status": "ready_for_application",
+                "evidence": [str(plan_path)],
+            },
+        ]
     return [
         {
             "id": "review_route_selection",
@@ -380,7 +469,17 @@ def _approval_gate(route: str, materialized: dict[str, Any] | None, errors: list
             f"python -m fromcad2cfd fastcfd validate-job --job-file \"{job_path}\"",
             f"python -m fromcad2cfd fastcfd run-fastfluent-job --job-file \"{job_path}\"",
         ]
-    status = "blocked" if errors else ("ready_for_approval" if route == "native_fastfluent_structured" and materialized else "review_only")
+    if materialized and materialized.get("application_plan_path"):
+        required_reviews.append("dewaxing_application_plan.json")
+        commands = list(materialized.get("commands_after_approval", []))
+    if errors:
+        status = "blocked"
+    elif route == "native_fastfluent_structured" and materialized:
+        status = "ready_for_approval"
+    elif route == "dewaxing_native_application" and materialized:
+        status = "ready_for_application"
+    else:
+        status = "review_only"
     return {
         "schema_version": "fastfluent_route_plan_approval_gate_v1",
         "status": status,

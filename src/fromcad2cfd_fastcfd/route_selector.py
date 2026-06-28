@@ -62,6 +62,18 @@ ROUTE_CATALOG: dict[str, dict[str, Any]] = {
             "python -m fromcad2cfd fastcfd run-rheology-benchmark --case-file <rheology_case.json>",
         ],
     },
+    "dewaxing_native_application": {
+        "route_type": "application_native_dewaxing",
+        "goal": "Run the dewaxing application chain with native dewaxing evidence, study/validation packs, and paper evidence outputs.",
+        "allowed_to_execute_solver": True,
+        "commands": [
+            "python -m fromcad2cfd fastcfd dewaxing-application-demo --output-dir <application_dir> --dewaxing-pack <result_pack_dir>",
+            "python -m fromcad2cfd fastcfd run-dewaxing-native-study --output-dir <study_dir> --comparison-pack <result_pack_dir>",
+            "python -m fromcad2cfd fastcfd run-dewaxing-agent-iteration-pack --output-dir <iteration_dir> --comparison-pack <result_pack_dir>",
+            "python -m fromcad2cfd fastcfd run-dewaxing-native-validation-pack --output-dir <validation_dir> --comparison-pack <result_pack_dir>",
+            "python -m fromcad2cfd fastcfd compile-dewaxing-paper-evidence-pack --validation-pack <validation_dir> --iteration-pack <iteration_dir> --output-dir <paper_pack_dir>",
+        ],
+    },
     "fluent_planning_preview": {
         "route_type": "fluent_preview",
         "goal": "Compile reviewable Fluent setup or solver-plan evidence without launching Fluent.",
@@ -288,6 +300,28 @@ def _evaluate_routes(flow_pack: dict[str, Any], case_payload: dict[str, Any], va
             next_actions=[
                 "Convert the CaseSpec into an unstructured case-runner JSON if needed.",
                 "Run a controlled unstructured evidence route with mesh and boundary gates enabled.",
+            ],
+        )
+
+    if case_type == "thermal.dewaxing":
+        return _decision(
+            "dewaxing_native_application",
+            confidence="high",
+            rationale=[
+                "Case is the dewaxing application CaseSpec.",
+                "Flow Pack setup gates passed.",
+                "A dedicated FastFluent-native dewaxing application chain is available.",
+            ],
+            alternatives=[
+                _alternative("physics_passport_review", "Use only when the dewaxing application chain should be decomposed into individual model-review artifacts."),
+                _alternative("fluent_planning_preview", "Use after native dewaxing evidence if a Fluent setup preview is needed."),
+            ],
+            rejected_routes=[_reject("native_fastfluent_structured", "Dewaxing requires the dedicated thermal phase-change application route.")],
+            next_actions=[
+                "Run the dewaxing application bridge to generate setup, native solver, proxy transport, and result-pack artifacts.",
+                "Run the native study and validation pack to select and check the FastFluent-guided candidate.",
+                "Run the Agent iteration pack when a closed-loop candidate search is needed before final paper evidence.",
+                "Compile the paper evidence pack from the completed validation and Agent iteration packs.",
             ],
         )
 

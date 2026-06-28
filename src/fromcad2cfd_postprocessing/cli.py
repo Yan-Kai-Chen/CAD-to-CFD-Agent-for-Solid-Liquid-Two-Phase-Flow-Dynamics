@@ -6,6 +6,10 @@ import argparse
 import json
 from pathlib import Path
 
+from .dewaxing_result_pack import (
+    dewaxing_result_pack_validation_markdown,
+    validate_dewaxing_result_pack,
+)
 from .monitor_parser import parse_monitor_file
 from .summary import compare_summaries, summarize_run
 from .video_plan import write_video_plan
@@ -36,6 +40,10 @@ def build_parser() -> argparse.ArgumentParser:
     compare = sub.add_parser("compare-runs", help="Compare two summary JSON files.")
     compare.add_argument("--left-summary", required=True)
     compare.add_argument("--right-summary", required=True)
+
+    dewax = sub.add_parser("validate-dewaxing-pack", help="Validate a dewaxing Agent Result Pack.")
+    dewax.add_argument("--pack", required=True)
+    dewax.add_argument("--format", choices=("json", "markdown"), default="json")
     return parser
 
 
@@ -70,6 +78,13 @@ def main(argv: list[str] | None = None) -> int:
         right = json.loads(Path(args.right_summary).read_text(encoding="utf-8"))
         print(json.dumps(compare_summaries(left, right), ensure_ascii=True, indent=2))
         return 0
+    if args.command == "validate-dewaxing-pack":
+        result = validate_dewaxing_result_pack(args.pack)
+        if args.format == "markdown":
+            print(dewaxing_result_pack_validation_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result["status"] == "passed" else 2
     parser.print_help()
     return 0
 

@@ -19,6 +19,16 @@ from .controlled_runner import (
     run_controlled_runner_demo,
     validate_controlled_runner,
 )
+from .dewaxing_agent_iteration_pack import dewaxing_agent_iteration_pack_markdown, run_dewaxing_agent_iteration_pack
+from .dewaxing_application import dewaxing_application_markdown, run_dewaxing_application_demo
+from .dewaxing_fluent_guidance_pack import (
+    compile_dewaxing_fluent_guidance_pack,
+    dewaxing_fluent_guidance_pack_markdown,
+)
+from .dewaxing_native_solver import dewaxing_native_solver_markdown, run_dewaxing_native_solver
+from .dewaxing_native_study import dewaxing_native_study_markdown, run_dewaxing_native_study
+from .dewaxing_native_validation_pack import dewaxing_native_validation_pack_markdown, run_dewaxing_native_validation_pack
+from .dewaxing_paper_evidence_pack import dewaxing_paper_evidence_pack_markdown, compile_dewaxing_paper_evidence_pack
 from .execution_gate import (
     audit_execution_gate,
     execution_gate_markdown,
@@ -393,6 +403,76 @@ def build_parser() -> argparse.ArgumentParser:
     workflow_demo.add_argument("--output-dir", required=True)
     workflow_demo.add_argument("--mode", choices=("dry_run", "native_advisory"), default="native_advisory")
     workflow_demo.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    dewaxing_application = sub.add_parser(
+        "dewaxing-application-demo",
+        help="Run the public-safe dewaxing application bridge with FastFluent proxy evidence.",
+    )
+    dewaxing_application.add_argument("--output-dir", required=True)
+    dewaxing_application.add_argument("--dewaxing-pack", default="examples/postprocessing/dewaxing_result_pack")
+    dewaxing_application.add_argument("--skip-native-transport", action="store_true")
+    dewaxing_application.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    dewaxing_native = sub.add_parser(
+        "run-dewaxing-native-solver",
+        help="Run the FastFluent-native reduced-order dewaxing solver.",
+    )
+    dewaxing_native.add_argument("--output-dir", required=True)
+    dewaxing_native.add_argument("--comparison-pack", default="examples/postprocessing/dewaxing_result_pack")
+    dewaxing_native.add_argument("--case-file", default=None)
+    dewaxing_native.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    dewaxing_study = sub.add_parser(
+        "run-dewaxing-native-study",
+        help="Run a FastFluent-native dewaxing reduced-order parameter study.",
+    )
+    dewaxing_study.add_argument("--output-dir", required=True)
+    dewaxing_study.add_argument("--comparison-pack", default="examples/postprocessing/dewaxing_result_pack")
+    dewaxing_study.add_argument("--max-variants", type=int, default=None)
+    dewaxing_study.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    dewaxing_validation = sub.add_parser(
+        "run-dewaxing-native-validation-pack",
+        help="Run grid/time-step validation for FastFluent-native dewaxing evidence.",
+    )
+    dewaxing_validation.add_argument("--output-dir", required=True)
+    dewaxing_validation.add_argument("--comparison-pack", default="examples/postprocessing/dewaxing_result_pack")
+    dewaxing_validation.add_argument("--profile", choices=("smoke", "standard"), default="standard")
+    dewaxing_validation.add_argument("--max-cases", type=int, default=None)
+    dewaxing_validation.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    dewaxing_paper = sub.add_parser(
+        "compile-dewaxing-paper-evidence-pack",
+        help="Compile paper-facing tables, figures, and application claim guidance from a dewaxing validation pack.",
+    )
+    dewaxing_paper.add_argument("--validation-pack", required=True)
+    dewaxing_paper.add_argument("--iteration-pack", default=None)
+    dewaxing_paper.add_argument("--output-dir", required=True)
+    dewaxing_paper.add_argument("--manuscript-title", default="Agent-Guided FastFluent Dewaxing Evidence")
+    dewaxing_paper.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    dewaxing_guidance = sub.add_parser(
+        "compile-dewaxing-fluent-guidance-pack",
+        help="Compile FastFluent partitioning and parameter priorities into a Fluent-facing dewaxing guidance pack.",
+    )
+    dewaxing_guidance.add_argument("--study-pack", default=None)
+    dewaxing_guidance.add_argument("--validation-pack", default=None)
+    dewaxing_guidance.add_argument("--iteration-pack", default=None)
+    dewaxing_guidance.add_argument("--fluent-bridge-pack", default=None)
+    dewaxing_guidance.add_argument("--output-dir", required=True)
+    dewaxing_guidance.add_argument("--manuscript-title", default="FastFluent-Guided Fluent Dewaxing Workflow")
+    dewaxing_guidance.add_argument("--format", choices=("json", "markdown"), default="json")
+
+    dewaxing_iteration = sub.add_parser(
+        "run-dewaxing-agent-iteration-pack",
+        help="Run an Agent-guided iterative FastFluent-native dewaxing campaign.",
+    )
+    dewaxing_iteration.add_argument("--output-dir", required=True)
+    dewaxing_iteration.add_argument("--comparison-pack", default="examples/postprocessing/dewaxing_result_pack")
+    dewaxing_iteration.add_argument("--max-rounds", type=int, default=None)
+    dewaxing_iteration.add_argument("--max-candidates-per-round", type=int, default=None)
+    dewaxing_iteration.add_argument("--max-validation-targets", type=int, default=8)
+    dewaxing_iteration.add_argument("--format", choices=("json", "markdown"), default="json")
 
     preflight = sub.add_parser("preflight", help="Check optional FastFluent source and build environment.")
     preflight.add_argument("--source-root", default=None, help="Explicit FastFluent source root.")
@@ -1368,6 +1448,89 @@ def main(argv: list[str] | None = None) -> int:
             else:
                 print(json.dumps(result, ensure_ascii=True, indent=2))
             return 0 if result.get("status") not in {"failed", "blocked", "blocked_native_evidence"} else 2
+    if args.command == "dewaxing-application-demo":
+        result = run_dewaxing_application_demo(
+            args.output_dir,
+            dewaxing_pack=args.dewaxing_pack,
+            include_native_transport=not args.skip_native_transport,
+        )
+        if args.format == "markdown":
+            print(dewaxing_application_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "partial"} else 2
+    if args.command == "run-dewaxing-native-solver":
+        case = None
+        if args.case_file:
+            case = json.loads(Path(args.case_file).read_text(encoding="utf-8"))
+        result = run_dewaxing_native_solver(case, output_dir=args.output_dir, comparison_pack=args.comparison_pack)
+        if args.format == "markdown":
+            print(dewaxing_native_solver_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "run-dewaxing-native-study":
+        result = run_dewaxing_native_study(
+            output_dir=args.output_dir,
+            comparison_pack=args.comparison_pack,
+            max_variants=args.max_variants,
+        )
+        if args.format == "markdown":
+            print(dewaxing_native_study_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "run-dewaxing-native-validation-pack":
+        result = run_dewaxing_native_validation_pack(
+            output_dir=args.output_dir,
+            comparison_pack=args.comparison_pack,
+            profile=args.profile,
+            max_cases=args.max_cases,
+        )
+        if args.format == "markdown":
+            print(dewaxing_native_validation_pack_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") == "success" else 2
+    if args.command == "compile-dewaxing-paper-evidence-pack":
+        result = compile_dewaxing_paper_evidence_pack(
+            validation_pack=args.validation_pack,
+            iteration_pack=args.iteration_pack,
+            output_dir=args.output_dir,
+            manuscript_title=args.manuscript_title,
+        )
+        if args.format == "markdown":
+            print(dewaxing_paper_evidence_pack_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "warning"} else 2
+    if args.command == "compile-dewaxing-fluent-guidance-pack":
+        result = compile_dewaxing_fluent_guidance_pack(
+            study_pack=args.study_pack,
+            validation_pack=args.validation_pack,
+            iteration_pack=args.iteration_pack,
+            fluent_bridge_pack=args.fluent_bridge_pack,
+            output_dir=args.output_dir,
+            manuscript_title=args.manuscript_title,
+        )
+        if args.format == "markdown":
+            print(dewaxing_fluent_guidance_pack_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "warning"} else 2
+    if args.command == "run-dewaxing-agent-iteration-pack":
+        result = run_dewaxing_agent_iteration_pack(
+            output_dir=args.output_dir,
+            comparison_pack=args.comparison_pack,
+            max_rounds=args.max_rounds,
+            max_candidates_per_round=args.max_candidates_per_round,
+            max_validation_targets=args.max_validation_targets,
+        )
+        if args.format == "markdown":
+            print(dewaxing_agent_iteration_pack_markdown(result))
+        else:
+            print(json.dumps(result, ensure_ascii=True, indent=2))
+        return 0 if result.get("status") in {"success", "warning"} else 2
     if args.command == "preflight":
         result = run_preflight(args.source_root).to_dict()
         print(json.dumps(result, ensure_ascii=True, indent=2))

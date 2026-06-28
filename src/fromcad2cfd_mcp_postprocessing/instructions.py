@@ -8,7 +8,8 @@ automation, arbitrary case/data export, delete operations, overwrite
 operations, or tools that package private Fluent case/data files.
 
 The public surface parses Fluent report monitors, writes deterministic
-summaries, creates public-safe video plans, and compares summary JSON files.
-Pressure is a fluid normal-load proxy and wall shear is a tangential
-fluid-load proxy; neither is solid structural stress.
+summaries, creates public-safe video plans, compares summary JSON files, and
+validates public-safe dewaxing Agent Result Pack contracts. Pressure is a fluid
+normal-load proxy and wall shear is a tangential fluid-load proxy; neither is
+solid structural stress.
 """

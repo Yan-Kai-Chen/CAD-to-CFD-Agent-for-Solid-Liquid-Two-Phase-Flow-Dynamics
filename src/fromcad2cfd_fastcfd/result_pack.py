@@ -448,6 +448,8 @@ def _native_result_kind(payload: dict[str, Any], source_path: Path) -> str:
         return "quasi_steady_motion_evidence"
     if schema == "fastfluent_transport_result_v1":
         return "unified_transport_coupling"
+    if schema == "fastfluent_dewaxing_native_result_v1":
+        return "dewaxing_native_reduced_order_solver"
     if operation == "solve_steady_incompressible":
         return "steady_incompressible"
     if operation == "run_unstructured_case" or "case_status" in source_path.name:
@@ -597,6 +599,7 @@ def _resolve_native_result_path(native_result: str | Path) -> Path:
             "status.json",
             "steady_status.json",
             "obstacle_status.json",
+            "dewaxing_native_status.json",
         ):
             candidate = path / name
             if path_is_file(candidate):

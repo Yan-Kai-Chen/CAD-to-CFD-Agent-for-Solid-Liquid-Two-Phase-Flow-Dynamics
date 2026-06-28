@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "fromcad2cfd"
 version = "0.2.0"
-description = "An agentic CAD-to-CFD automation framework for solid-liquid two-phase flow dynamics."
+description = "Software workspace for An Agent Framework for FastFluent-to-Fluent Simulation of Complex Solid-Liquid Dynamics."
 readme = "README.md"
 requires-python = ">=3.10"
 license = { text = "Apache-2.0" }

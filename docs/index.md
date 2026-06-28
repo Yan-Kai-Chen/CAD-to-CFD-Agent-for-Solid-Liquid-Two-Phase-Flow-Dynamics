@@ -6,9 +6,22 @@ This project is best read as four connected workflow blocks: `Modeling`,
 Start with the project-level documents:
 
 - `architecture.md`
+- `public_asset_framework_map.md`
 - `installation.md`
 - `safety_policy.md`
 - `skills.md`
+
+## Paper-Facing Agent Route
+
+- `public_asset_framework_map.md`
+- `agent_benchmark_ladder/README.md`
+- `dewaxing_agent/README.md`
+- `AGENT_BENCHMARK_LADDER_REPLAN_20260628.md`
+- `DEWAXING_AGENT_GITHUB_RESTRUCTURE_HANDOFF_20260628.md`
+
+Use these documents first when the goal is to understand how the original
+public GitHub assets were split into the current framework and paper-facing
+route.
 
 ## Modeling
 
@@ -24,6 +37,8 @@ Start with the project-level documents:
 ## FastFluent
 
 - `../cpp/fastfluent_core/README.md`
+- `agent_benchmark_ladder/README.md`
+- `dewaxing_agent/README.md`
 - `fastcfd/AGENT_WORKFLOW_STATUS_AUDIT.md`
 - `fastcfd/CURRENT_CAPABILITY_SNAPSHOT.md`
 - `fastcfd/CASESPEC_V3.md`
@@ -39,6 +54,8 @@ Start with the project-level documents:
 - `fastcfd/SOLVER_CAPABILITY_MATRIX.md`
 - `fastcfd/TRANSPORT_COUPLING_CORE.md`
 - `fastcfd/WORKFLOW_RUNNER.md`
+- `fastcfd/DEWAXING_APPLICATION_BRIDGE.md`
+- `DEWAXING_FASTFLUENT_TO_FLUENT_ASSET_INVENTORY_20260628.md`
 - `fastcfd/SERVER_CODEX_DEPLOYMENT_RUNBOOK.md`
 - `fastcfd/MOTION_CONTRACT.md`
 - `fastcfd/quickstart.md`
@@ -67,6 +84,7 @@ Start with the project-level documents:
 - `FASTFLUENT_S2_PRACTICAL_NATIVE_FUNCTION_EXPANSION_DELIVERY_20260623.md`
 - `FASTFLUENT_S3_PRACTICAL_NATIVE_SETUP_UTILITIES_PROGRESS_20260623.md`
 - `FASTFLUENT_S3_PRACTICAL_NATIVE_SETUP_UTILITIES_DELIVERY_20260623.md`
+- `FASTFLUENT_DEWAXING_NATIVE_SOLVER_PROGRESS_20260627.md`
 
 ## Meshing
 

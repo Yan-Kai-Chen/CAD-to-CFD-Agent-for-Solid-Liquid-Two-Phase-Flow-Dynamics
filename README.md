@@ -1,9 +1,11 @@
-# FromCAD2CFD
+# An Agent Framework for FastFluent-to-Fluent Simulation of Complex Solid-Liquid Dynamics
 
-**FromCAD2CFD: An Agentic Automation Framework for CAD-to-CFD Workflows in
-Solid-Liquid Two-Phase Flow Dynamics** is a research software project for
-building auditable, agent-assisted workflows around CAD preparation, meshing,
-fast CFD evidence, Fluent setup planning, and post-run interpretation.
+This repository is the public software workspace for **An Agent Framework for
+FastFluent-to-Fluent Simulation of Complex Solid-Liquid Dynamics**.
+
+The implementation package remains `fromcad2cfd`: a research software project
+for building auditable, agent-assisted workflows around CAD preparation,
+meshing, fast CFD evidence, Fluent setup planning, and post-run interpretation.
 
 The project is designed for engineering workflows where an AI agent should not
 blindly operate CAD or CFD software. Instead, each step writes explicit inputs,
@@ -23,6 +25,22 @@ FromCAD2CFD currently contains four public workflow blocks.
 
 This repository does not replace SolidWorks, Siemens NX, HyperMesh, or ANSYS
 Fluent. It provides a reproducible automation layer around them.
+
+## Public Asset Organization
+
+The public repository is now organized around three reader paths:
+
+| reader path | entry point | purpose |
+| --- | --- | --- |
+| Engineering workflow | [Architecture](docs/architecture.md) | Understand the four workflow blocks: `Modeling`, `FastFluent`, `Meshing`, and `Fluent`. |
+| Agent framework validation | [Agent benchmark ladder](docs/agent_benchmark_ladder/README.md) | See how existing public CFD assets are mapped into a compact `4+1` benchmark ladder. |
+| Paper case study | [Dewaxing Agent case study](docs/dewaxing_agent/README.md) | Follow the complex solid-liquid dewaxing route from FastFluent guidance to Fluent-facing evidence. |
+
+The asset mapping rules are recorded in
+[Public asset framework map](docs/public_asset_framework_map.md). That document
+explains how original public GitHub assets are retained, indexed, and assigned
+to the current framework without turning the repository into a local-output
+dump.
 
 ## Why This Project Exists
 
@@ -96,6 +114,22 @@ The current public FastFluent stack includes:
 - Execution Gate and Controlled Runner.
 - S6 unified scalar-transport evidence.
 - S7 workflow runner with final `agent_decision.json`.
+- Agent benchmark ladder scaffold with four public capability benchmarks plus
+  one dewaxing-inspired application bridge.
+- FastFluent-native reduced-order dewaxing solver with temperature and
+  liquid-fraction fields, melt timing, risk proxy, and Result Pack output.
+- FastFluent-native dewaxing parameter study with variant ranking,
+  sensitivity summaries, and `dewaxing_guidance.json`.
+- FastFluent-native dewaxing validation pack with grid/time-step checks,
+  paper tables, and `agent_validation_decision.json`.
+- FastFluent-native dewaxing Agent iteration pack with multi-round candidate
+  proposals, stability rejection, and accepted-candidate decision traces.
+- Dewaxing paper evidence compiler with manuscript tables, SVG figures,
+  draft results text, and application claim guidance.
+- FastFluent-to-Fluent dewaxing guidance compiler with process partitions,
+  Fluent validation targets, parameter priorities, and handoff briefs.
+- Dewaxing application bridge with H4 wax handoff, native dewaxing evidence,
+  S6 auxiliary proxy evidence, and existing dewaxing Result Pack validation.
 - unstructured mesh import, quality gates, finite-volume geometry, and public
   benchmark routes.
 - advisory VOF-lite, turbulence, rheology, phase-change, and motion-related
@@ -108,10 +142,23 @@ python -m fromcad2cfd fastcfd workflow demo --output-dir sandbox/output/s7_demo 
 python -m fromcad2cfd fastcfd registry --format markdown
 python -m fromcad2cfd fastcfd unstructured inspect-mesh examples/unstructured/channel2d.msh --format json
 python -m fromcad2cfd fastcfd transport demo --output-dir sandbox/output/s6_transport_alpha --quantity alpha
+python -m fromcad2cfd fastcfd run-dewaxing-native-solver --output-dir sandbox/output/dewaxing_native_solver --format markdown
+python -m fromcad2cfd fastcfd run-dewaxing-native-study --output-dir sandbox/output/dewaxing_native_study --format markdown
+python -m fromcad2cfd fastcfd run-dewaxing-agent-iteration-pack --output-dir sandbox/output/dewaxing_agent_iteration_pack --format markdown
+python -m fromcad2cfd fastcfd run-dewaxing-native-validation-pack --output-dir sandbox/output/dewaxing_native_validation_pack --profile standard --format markdown
+python -m fromcad2cfd fastcfd compile-dewaxing-paper-evidence-pack --validation-pack sandbox/output/dewaxing_native_validation_pack --iteration-pack sandbox/output/dewaxing_agent_iteration_pack --output-dir sandbox/output/dewaxing_paper_evidence_pack --format markdown
+python -m fromcad2cfd fastcfd compile-dewaxing-fluent-guidance-pack --study-pack sandbox/output/dewaxing_native_study --validation-pack sandbox/output/dewaxing_native_validation_pack --iteration-pack sandbox/output/dewaxing_agent_iteration_pack --fluent-bridge-pack examples/postprocessing/dewaxing_result_pack --output-dir sandbox/output/dewaxing_fluent_guidance_pack --format markdown
+python -m fromcad2cfd fastcfd dewaxing-application-demo --output-dir sandbox/output/dewaxing_application_bridge --format markdown
 ```
 
 FastFluent is intended for fast setup validation and engineering evidence. It
 is not presented as a production replacement for Fluent.
+
+The current paper-facing Agent route is organized as a compact benchmark ladder
+followed by the dewaxing application:
+
+- [Agent benchmark ladder](docs/agent_benchmark_ladder/README.md)
+- [Dewaxing Agent case study](docs/dewaxing_agent/README.md)
 
 ### Meshing
 
@@ -177,10 +224,13 @@ cpp/
   fastfluent_core/                # C++ FastFluent numerical core
 docs/
   fastcfd/                        # FastFluent contracts and workflow docs
+  agent_benchmark_ladder/         # public Agent CFD benchmark ladder
+  dewaxing_agent/                 # paper-facing dewaxing Agent case study
   nx/                             # NX workflow docs
   solidworks/                     # SolidWorks workflow docs
 examples/
   fastcfd/                        # public FastFluent workflow examples
+  fastcfd/agent_benchmark_ladder/ # benchmark ladder example scaffold
   unstructured/                   # public mesh examples
   fluent_solver/                  # public solver-plan examples
 tests/
@@ -193,6 +243,9 @@ Start here:
 
 - [Architecture](docs/architecture.md)
 - [Documentation index](docs/index.md)
+- [Public asset framework map](docs/public_asset_framework_map.md)
+- [Agent benchmark ladder](docs/agent_benchmark_ladder/README.md)
+- [Dewaxing Agent case study](docs/dewaxing_agent/README.md)
 - [FastFluent quickstart](docs/fastcfd/quickstart.md)
 - [FastFluent S7 workflow runner](docs/fastcfd/WORKFLOW_RUNNER.md)
 - [FastFluent server Codex deployment runbook](docs/fastcfd/SERVER_CODEX_DEPLOYMENT_RUNBOOK.md)
@@ -225,19 +278,28 @@ gateway, unstructured routes, and solver capability matrix.
 
 ### Latest Public Validation Snapshot
 
-The latest local public validation run on 2026-06-24 passed the main
-FastFluent and Fluent bridge checks:
+The latest local Python validation run on 2026-06-28 passed:
 
-- Full Python suite: `396 passed`.
-- FastFluent-focused suite: `277 passed`.
-- S7 agent workflow: `native_advisory_complete`.
-- Public Fluent bridge smoke with Ansys `mixing_elbow.msh.h5`: mesh read,
-  mesh check, hybrid initialization, and two repeatable five-iteration runs.
-- Public Fluent bridge smoke with Ansys `nozzle_3d.msh.h5`: proxy download,
-  one-core Fluent launch, mesh read, and mesh check.
+- Full Python suite: `424 passed`.
+- Public asset/title focused suite: `5 passed`.
+- Dewaxing focused suite: `24 passed` when run with the public asset framework
+  checks.
+- Wheel build: `fromcad2cfd-0.2.0-py3-none-any.whl` built successfully through
+  a short-path `subst` workspace.
+- Real local dewaxing validation pack: `10` native cases, `20,525,400`
+  cell-time steps, and quality status `passed`.
+- Real local dewaxing Agent iteration pack: `46` native solver runs,
+  `80,140,200` cell-time steps, accepted `path106_initial6` after rejecting
+  five fitted candidates during stability review.
+- Real local dewaxing paper evidence pack: generated manuscript sections, six
+  tables, seven SVG figures, and Agent iteration claim guidance.
+- Real local FastFluent-to-Fluent guidance pack: generated five process
+  partitions, seven Fluent validation targets, four handoff tables, a workflow
+  figure, and paper outline/methods/results guidance sections.
 
-The public Fluent bridge smokes were run on ANSYS Fluent 2024 R1 with public
-Ansys example data.
+Earlier public Fluent bridge smokes with Ansys `mixing_elbow.msh.h5` and
+`nozzle_3d.msh.h5` were run on ANSYS Fluent 2024 R1 with public Ansys example
+data.
 
 ## Public Data Policy
 

@@ -1,0 +1,57 @@
+{
+  "schema_version": "dewaxing_agent_result_pack_v1",
+  "status": "dewaxing_bridge_complete",
+  "case_id": "public_synthetic_dewaxing_bridge",
+  "source_kind": "synthetic_public_fixture",
+  "evidence_level": "reviewed_private_fluent_result_pack",
+  "decision": {
+    "schema_version": "dewaxing_agent_decision_v1",
+    "status": "accepted_bridge_evidence",
+    "recommended_next_action": "review_dewaxing_decision_brief",
+    "can_support_agent_workflow_decision": true,
+    "can_support_dewaxing_screening_decision": true,
+    "can_support_case_specific_fluent_result_review": true,
+    "can_support_final_crack_probability": false,
+    "can_support_two_way_fsi_validation": false
+  },
+  "qoi": {
+    "early_steam_shock": {
+      "stage": "0-4.1 s early steam-shock screening",
+      "case_count": 6,
+      "reference_strength_mpa": 3.6,
+      "max_crack_driving_index_over_3p6mpa": 0.0146655
+    },
+    "full_cycle_wax": {
+      "stage": "0-420 s full-cycle wax melting and drainage-relief review",
+      "melt_completion": {
+        "threshold_avg_liquid_fraction": 0.995,
+        "first_full_melt_time_s": 409.0,
+        "latest_avg_liquid_fraction": 0.997398,
+        "latest_exceeds_threshold": true
+      },
+      "dominant_risk_window": {
+        "time_s": 100.7,
+        "peak_effective_pressure_mpa": 4.466,
+        "peak_wall_vm_p995_mpa": 42.45
+      },
+      "drainage_relief": {
+        "latest_effective_pressure_mpa": 0.259,
+        "latest_wall_vm_p995_mpa": 2.47,
+        "stress_drop_fraction_peak_to_latest_p995": 0.942
+      }
+    }
+  },
+  "claim_ledger": "claim_ledger.json",
+  "usage_boundary": {
+    "valid_for_agent_workflow_control": true,
+    "valid_for_dewaxing_screening_decision": true,
+    "valid_for_case_specific_fluent_result_review": true,
+    "valid_for_final_crack_probability": false,
+    "valid_for_two_way_fsi_claims": false
+  },
+  "guardrails": [
+    "Do not claim calibrated crack probability.",
+    "Do not claim two-way FSI validation.",
+    "Do not publish private Fluent case/data files."
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "schema_version": "dewaxing_agent_claim_ledger_v1",
+  "supported_claims": [
+    {
+      "claim": "Synthetic fixture reaches the engineering full-melt criterion.",
+      "evidence": "full_cycle_wax_qoi.melt_completion"
+    },
+    {
+      "claim": "Synthetic fixture preserves the dominant risk-window fields.",
+      "evidence": "full_cycle_wax_qoi.dominant_risk_window"
+    }
+  ],
+  "unsupported_claims": [
+    {
+      "claim": "The fixture proves real Fluent accuracy.",
+      "reason": "This example is public-safe synthetic data for schema validation only."
+    },
+    {
+      "claim": "The fixture supports calibrated crack probability.",
+      "reason": "The public contract intentionally blocks crack-probability claims."
+    }
+  ]
+}

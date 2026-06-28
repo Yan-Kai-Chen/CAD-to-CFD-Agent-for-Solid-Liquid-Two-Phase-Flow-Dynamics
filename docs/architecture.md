@@ -12,6 +12,23 @@ These are not four disconnected modules. They are four workflow stages that an
 agent can traverse with explicit plans, bounded tools, and machine-readable
 artifacts.
 
+The paper-facing restructure adds a navigation layer above the original public
+assets:
+
+```text
+public repository assets
+  -> framework base
+  -> four workflow blocks
+  -> Agent workflow spine
+  -> 4+1 benchmark ladder
+  -> dewaxing Agent case study
+```
+
+The detailed mapping is maintained in
+`public_asset_framework_map.md`. Original public modules and examples stay in
+their natural engineering locations; benchmark and dewaxing pages reference
+them by role instead of duplicating or relocating everything.
+
 ## Top-Level Flow
 
 ```text

@@ -33,6 +33,66 @@ Packs are desired. Use `--mode native_advisory` when a bounded S6 transport
 evidence route should also run. Neither mode launches Fluent or claims final
 CFD validation.
 
+## Agent Benchmark Ladder
+
+For paper-facing organization, the Agent route is now planned as a compact
+`4+1` benchmark ladder before the dewaxing application:
+
+1. Internal pipe/channel flow.
+2. Backward-facing step.
+3. Heated channel / CHT toy case.
+4. Cavity / enclosure flow.
+5. Dewaxing-inspired steam impact case.
+
+See:
+
+```text
+docs/agent_benchmark_ladder/README.md
+examples/fastcfd/agent_benchmark_ladder/README.md
+```
+
+## Dewaxing Native Application Evidence
+
+For the dewaxing case study, run the native reduced-order solver when the agent
+needs FastFluent to carry real computation before comparing against reviewed
+Fluent evidence:
+
+```powershell
+python -m fromcad2cfd fastcfd run-dewaxing-native-solver --output-dir sandbox/output/dewaxing_native_solver --format markdown
+```
+
+Run the full application bridge:
+
+```powershell
+python -m fromcad2cfd fastcfd dewaxing-application-demo --output-dir sandbox/output/dewaxing_application_bridge --format markdown
+```
+
+Run the native parameter study when the agent needs to rank settings and
+identify sensitive parameters:
+
+```powershell
+python -m fromcad2cfd fastcfd run-dewaxing-native-study --output-dir sandbox/output/dewaxing_native_study --format markdown
+```
+
+Run the native validation pack when the agent needs grid/time-step evidence and
+paper-facing tables for the selected dewaxing candidate:
+
+```powershell
+python -m fromcad2cfd fastcfd run-dewaxing-native-validation-pack --output-dir sandbox/output/dewaxing_native_validation_pack --profile standard --format markdown
+```
+
+Compile the paper evidence pack after validation. Add the Agent iteration pack
+when the manuscript needs multi-round candidate-search evidence:
+
+```powershell
+python -m fromcad2cfd fastcfd compile-dewaxing-paper-evidence-pack --validation-pack sandbox/output/dewaxing_native_validation_pack --iteration-pack sandbox/output/dewaxing_agent_iteration_pack --output-dir sandbox/output/dewaxing_paper_evidence_pack --format markdown
+```
+
+The native solver writes temperature fields, liquid-fraction fields,
+full-melt timing, early thermal-shock proxies, drainage-risk proxies, and a
+native Result Pack. The bridge then connects those artifacts to H4 wax handoff
+evidence and an existing dewaxing Result Pack. It still does not launch Fluent.
+
 ## Capability Inventory
 
 ```powershell
